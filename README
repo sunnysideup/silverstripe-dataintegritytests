@@ -1,0 +1,36 @@
+###############################################
+Data Integrity Tests
+Pre 0.1 proof of concept
+###############################################
+
+
+Developer
+-----------------------------------------------
+Nicolaas [at] sunnysideup.co.nz
+
+Requirements
+-----------------------------------------------
+SilverStripe 2.3.0 or greater.
+
+Documentation
+-----------------------------------------------
+Adding this module allows the user to change
+font-sizes on your website.
+
+
+
+Installation Instructions
+-----------------------------------------------
+1. Find out how to add modules to SS and add module as per usual.
+
+2. add to mysite/_config.php
+//===================---------------- START dataintegritytests MODULE ----------------===================
+
+Director::addRules(7, array(
+	'dbintegritycheck//$Action' => 'DataIntegrityTest'
+));
+//===================---------------- END dataintegritytests MODULE ----------------===================
+
+3. go to http://www.mysite.com/dbintegritycheck/ and go
+from there
+
