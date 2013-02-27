@@ -1,5 +1,5 @@
 {
-	"name": "silverstripe/dataintegritytests",
+	"name": "sunnysideup/dataintegritytests",
 	"type": "silverstripe-module",
 	"description": "check your database for obsolete fields and related data-structure errors",
 	"homepage": "http://www.silverstripe-webdevelopment.com",
