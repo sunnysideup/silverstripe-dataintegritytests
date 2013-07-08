@@ -4,7 +4,7 @@
 class DataIntegrityTestDefaulEntries extends Object {
 
 	public static function update($baseTable, $field, $value, $id = 0, $replace = false, $addLive = false) {
-		$object = DataObject::get_one($baseTable);
+		$object = $baseTable::get()->First();
 		if($object) {
 			$tableArray = array($baseTable);
 			if($object instanceOf SiteTree) {

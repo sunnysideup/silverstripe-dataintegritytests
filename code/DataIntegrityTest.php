@@ -104,15 +104,15 @@ class DataIntegrityTest extends DevelopmentAdmin {
 					if($rawCount < 1000){
 						Versioned::set_reading_mode("Stage");
 						$realCount = 0;
-						$objects = DataObject::get($dataClass, "\"$dataClass\".ID > 0");
-						if($objects) {
+						$objects = $dataClass::get()->filter(array($dataClass."ID:GreaterThan" => 0));
+						if($objects->count()) {
 							$realCount = $objects->count();
 						}
 						if($rawCount != $realCount) {
 							DB::alteration_message("The DB Table Row Count ($rawCount) does not seem to match the DataObject Count ($realCount) for $dataClass.  This could indicate an error as generally these numbers should match.", "deleted");
 						}
 						if($realCount > $rawCount) {
-							$objects = DataObject::get($dataClass);
+							$objects = $dataClass::get();
 							foreach($objects as $object) {
 								if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
 									DB::alteration_message("Now trying to recreate missing items....", "created");
