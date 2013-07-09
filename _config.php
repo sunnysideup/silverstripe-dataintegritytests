@@ -7,7 +7,7 @@
  * @help: // to see in action, add _configs per below, and go to http://www.mysite.com/dbintegritycheck/
  **/
 
-Director::addRules(7, array(
+Director::addRules(100, array(
 	'dbintegritycheck//$Action/$ID/$OtherID' => 'DataIntegrityTest'
 ));
 
