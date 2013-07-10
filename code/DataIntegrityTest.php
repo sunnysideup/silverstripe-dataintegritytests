@@ -238,14 +238,14 @@ class DataIntegrityTest extends DevelopmentAdmin {
 			return false;
 		}
 		else {
-			DB::query('ALTER TABLE `'.$table.'` DROP `'.$field.'`;');
+			DB::query('ALTER TABLE "'.$table.'" DROP "'.$field.'";');
 			DB::alteration_message ("Deleted $field in $table", "deleted");
 			$obj = singleton($table);
 			//to do: make this more reliable - checking for versioning rather than SiteTree
 			if($obj instanceof SiteTree) {
-				DB::query('ALTER TABLE `'.$table.'_Live` DROP `'.$field.'`;');
+				DB::query('ALTER TABLE "'.$table.'_Live" DROP "'.$field.'";');
 				DB::alteration_message ("Deleted $field in {$table}_Live", "deleted");
-				DB::query('ALTER TABLE `'.$table.'_versions` DROP `'.$field.'`;');
+				DB::query('ALTER TABLE "'.$table.'_versions" DROP "'.$field.'";');
 				DB::alteration_message ("Deleted $field in {$table}_versions", "deleted");
 			}
 			return true;
