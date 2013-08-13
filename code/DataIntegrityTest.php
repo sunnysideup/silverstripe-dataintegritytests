@@ -23,8 +23,7 @@ class DataIntegrityTest extends DevelopmentAdmin {
 	/**
 	*@param array = should be provided as follows: array("Member.UselessField1", "Member.UselessField2", "SiteTree.UselessField3")
 	*/
-	protected static $fields_to_delete = array();
-		static function set_fields_to_delete($array) {self::$fields_to_delete = $array;}
+	private static $fields_to_delete = array();
 
 	function init() {
 		//this checks security
