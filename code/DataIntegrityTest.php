@@ -1,11 +1,24 @@
 <?php
 
 
-class DataIntegrityTest extends DevelopmentAdmin {
+class DataIntegrityTest extends BuildTask {
 
-	protected static $warning = "are you sure - this step is irreversible! - MAKE SURE TO MAKE A BACKUP OF YOUR DATABASE FIRST";
 
-	protected static $test_array = array(
+	/**
+	 * standard SS variable
+	 * @var String
+	 */
+	protected $title = "Check Database Integrity";
+
+	/**
+	 * standard SS variable
+	 * @var String
+	 */
+	protected $description = "Go through all fields in the database and work out what fields are superfluous.";
+
+	private static $warning = "are you sure - this step is irreversible! - MAKE SURE TO MAKE A BACKUP OF YOUR DATABASE FIRST";
+
+	private static $test_array = array(
 		"In SiteTree_Live but not in SiteTree" =>
     	"SELECT SiteTree.ID, SiteTree.Title FROM SiteTree_Live RIGHT JOIN SiteTree ON SiteTree_Live.ID = SiteTree.ID WHERE SiteTree.ID IS NULL;",
 		"ParentID does not exist in SiteTree" =>
@@ -14,7 +27,7 @@ class DataIntegrityTest extends DevelopmentAdmin {
 			"SELECT SiteTree_Live.ID, SiteTree_Live.Title FROM SiteTree_Live RIGHT JOIN SiteTree_Live Parent ON SiteTree_Live.ParentID = Parent.ID Where SiteTree_Live.ID IS NULL and SiteTree_Live.ParentID <> 0;",
 	);
 
-	protected static $global_exceptions = array(
+	private static $global_exceptions = array(
 		"EditableFormField" => "Version",
 		"EditableOption" => "Version",
 		"OrderItem" => "Version"
@@ -25,26 +38,40 @@ class DataIntegrityTest extends DevelopmentAdmin {
 	*/
 	private static $fields_to_delete = array();
 
+	private static $allowed_actions = array(
+		"obsoletefields" => "ADMIN",
+		"deletemarkedfields" => "ADMIN",
+		"deleteobsoletefields" => "ADMIN",
+	);
+
+
 	function init() {
 		//this checks security
 		parent::init();
 	}
 
-	function index() {
+	function run($request) {
+		if($action = $request->getVar("do")) {
+			if(isset(self::$allowed_actions[$action])) {
+				return $this->$action();
+			}
+		}
 		echo "<h2>Database Administration Helpers</h2>";
-		echo "<p><a href=\"".Director::absoluteBaseURL()."dbintegritycheck/obsoletefields/\">Prepare a list of obsolete fields.</a></p>";
-		echo "<p><a href=\"".Director::absoluteBaseURL()."dbintegritycheck/deletemarkedfields/\" onclick=\"return confirm('".self::$warning."');\">Delete fields listed in _config.</a></p>";
-		echo "<p><a href=\"".Director::absoluteBaseURL()."dbintegritycheck/obsoletefields/immediately/destroyed/\" onclick=\"return confirm('".self::$warning."');\">Delete obsolete fields now!</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".self::$warning."');\">Delete fields listed in _config.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".self::$warning."');\">Delete obsolete fields now!</a></p>";
 	}
 
-	public function obsoletefields(SS_HTTPRequest $request) {
-		$check1 = $request->param("ID");
-		$check2 = $request->param("OtherID");
-		$deleteNow = false;
-		if($check1 == "immediately" && $check2 = "destroyed") {
-			$deleteNow = true;
-			increase_time_limit_to(600);
-		}
+	protected function Link(){
+		return "/dev/tasks/DataIntegrityTest/";
+	}
+
+	protected function deleteobsoletefields(){
+		return $this->obsoletefields(true);
+	}
+
+	protected function obsoletefields($deleteNow = false) {
+		increase_time_limit_to(600);
 		$dataClasses = ClassInfo::subclassesFor('DataObject');
 		$notCheckedArray = array();
 		//remove dataobject
