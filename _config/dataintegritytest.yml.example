@@ -1,0 +1,5 @@
+DataIntegrityTest:
+  fields_to_delete:
+		- "Member.UselessField1"
+		- "Member.UselessField1"
+		- "SiteTree.UselessField3"
