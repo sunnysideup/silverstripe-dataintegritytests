@@ -52,14 +52,16 @@ class DataIntegrityTest extends BuildTask {
 
 	function run($request) {
 		if($action = $request->getVar("do")) {
-			if(isset(self::$allowed_actions[$action])) {
+			$allowedActions = Config::inst()->get("DataIntegrityTest", "allowed_actions");
+			if(isset($allowedActions[$action])) {
 				return $this->$action();
 			}
 		}
+		$warning = Config::inst()->get("DataIntegrityTest", "warning");
 		echo "<h2>Database Administration Helpers</h2>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
-		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".self::$warning."');\">Delete fields listed in _config.</a></p>";
-		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".self::$warning."');\">Delete obsolete fields now!</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".$warning."');\">Delete obsolete fields now!</a></p>";
 	}
 
 	protected function Link(){
@@ -105,7 +107,8 @@ class DataIntegrityTest extends BuildTask {
 								$link = " !!!!!!!!!!! DELETED !!!!!!!!!";
 							}
 							else {
-								$link = "<a href=\"".Director::absoluteBaseURL()."dbintegritycheck/deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".self::$warning."');\">delete field</a><br /><br />";
+								$warning = Config::inst()->get("DataIntegrityTest", "warning");
+								$link = "<a href=\"".Director::absoluteBaseURL()."dbintegritycheck/deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a><br /><br />";
 							}
 							if(!in_array($actualField, array("ID", "Version"))) {
 								if(!in_array($actualField, $requiredFields)) {
@@ -209,9 +212,10 @@ class DataIntegrityTest extends BuildTask {
 	}
 
 	public function deletemarkedfields() {
-		if(is_array(self::$fields_to_delete)) {
-			if(count(self::$fields_to_delete)) {
-				foreach(self::$fields_to_delete as $key => $tableDotField) {
+		$fieldsToDelete = Config::inst()->get("DataIntegrityTest", "fields_to_delete");
+		if(is_array($fieldsToDelete)) {
+			if(count($fieldsToDelete)) {
+				foreach($fieldsToDelete as $key => $tableDotField) {
 					$tableFieldArray = explode(".", $tableDotField);
 					$this->deleteField($tableFieldArray[0], $tableFieldArray[1]);
 				}
@@ -221,7 +225,7 @@ class DataIntegrityTest extends BuildTask {
 			}
 		}
 		else {
-			user_error("you need to select these fields to be deleted first (DataIntegrityTest::set_fields_to_delete)");
+			user_error("you need to select these fields to be deleted first (DataIntegrityTest.fields_to_delete)");
 		}
 	}
 
@@ -243,8 +247,9 @@ class DataIntegrityTest extends BuildTask {
 
 	protected function deleteField($table, $field) {
 		$fields = $this->swapArray(DB::fieldList($table));
-		if(count(self::$global_exceptions)) {
-			foreach(self::$global_exceptions as $exceptionTable => $exceptionField) {
+		$globalExeceptions = Config::inst()->get("DataIntegrityTest", "global_exceptions");
+		if(count($globalExeceptions)) {
+			foreach($globalExeceptions as $exceptionTable => $exceptionField) {
 				if($exceptionTable == $table && $exceptionField == $field) {
 					DB::alteration_message ("tried to delete $table.$field but this is listed as a global exception and can not be deleted", "created");
 					return false;
