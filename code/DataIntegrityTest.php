@@ -42,6 +42,7 @@ class DataIntegrityTest extends BuildTask {
 		"obsoletefields" => "ADMIN",
 		"deletemarkedfields" => "ADMIN",
 		"deleteobsoletefields" => "ADMIN",
+		"resetutf8" => "ADMIN"
 	);
 
 
@@ -62,6 +63,7 @@ class DataIntegrityTest extends BuildTask {
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".$warning."');\">Delete obsolete fields now!</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=resetutf8\" onclick=\"return confirm('".$warning."');\">set all tables to utf-8!</a></p>";
 	}
 
 	protected function Link(){
@@ -305,6 +307,15 @@ class DataIntegrityTest extends BuildTask {
 			$versioningPresent = true;
 		}
 		return $versioningPresent;
+	}
+
+	public function resetutf8(){
+		$tables = DB::query('SHOW tables');
+		foreach ($tables as $table) {
+			$table = array_pop($table);
+			mysql_query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");
+			DB::alteration_message("Resetting $table to utf8");
+		}
 	}
 
 }
