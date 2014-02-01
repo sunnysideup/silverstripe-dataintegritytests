@@ -311,10 +311,28 @@ class DataIntegrityTest extends BuildTask {
 
 	public function resetutf8(){
 		$tables = DB::query('SHOW tables');
+		$unique = array();
 		foreach ($tables as $table) {
 			$table = array_pop($table);
 			mysql_query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");
 			DB::alteration_message("Resetting $table to utf8");
+			$fields = DB::query("SHOW COLUMNS FROM \"$table\";");
+
+			foreach($fields as $fieldArray) {
+				$field = $fieldArray["Field"];
+				$type = $fieldArray["Type"];
+				if(
+					strtolower(substr($type, 0, 7)) == "varchar" ||
+					strtolower(substr($type, 0, 10)) == "mediumtext"
+
+				) {
+					DB::query("
+						UPDATE \"$table\"
+						SET \"$field\" = REPLACE(\"$field\", 'Â', '');
+					");
+					DB::alteration_message("Removing Â from $table.$field");
+				}
+			}
 		}
 	}
 
