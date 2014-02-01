@@ -314,7 +314,7 @@ class DataIntegrityTest extends BuildTask {
 		$unique = array();
 		foreach ($tables as $table) {
 			$table = array_pop($table);
-			mysql_query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");
+			DB::query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");
 			DB::alteration_message("Resetting $table to utf8");
 			$fields = DB::query("SHOW COLUMNS FROM \"$table\";");
 
