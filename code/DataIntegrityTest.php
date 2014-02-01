@@ -330,7 +330,12 @@ class DataIntegrityTest extends BuildTask {
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'Â', '');
 					");
-					DB::alteration_message("Removing Â from $table.$field");
+					DB::alteration_message("Removing Â characters from $table.$field");
+					DB::query("
+						UPDATE \"$table\"
+						SET \"$field\" = REPLACE(\"$field\", 'â€™', '\'');
+					");
+					DB::alteration_message("Changing â€™ to ' in $table.$field");
 				}
 			}
 		}
