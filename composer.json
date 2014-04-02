@@ -2,7 +2,7 @@
 	"name": "sunnysideup/dataintegritytests",
 	"type": "silverstripe-module",
 	"description": "check your database for obsolete fields and related data-structure errors",
-	"homepage": "http://www.silverstripe-webdevelopment.com",
+	"homepage": "https://github.com/sunnysideup/silverstripe-dataintegritytests",
 	"keywords": ["dataintegritytests", "silverstripe"],
 	"license": "Sunny Side Up (BSD-3-Clause and CUSTOM)",
 	"authors":[
@@ -16,5 +16,8 @@
 	"require":{
 		"silverstripe/framework": "~3.1",
 		"silverstripe/cms": "~3.1"
+	},
+	"extra": {
+		"installer-name": "dataintegritytests"
 	}
 }
