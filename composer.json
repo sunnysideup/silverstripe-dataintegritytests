@@ -3,7 +3,7 @@
 	"type": "silverstripe-module",
 	"description": "check your database for obsolete fields and related data-structure errors",
 	"homepage": "https://github.com/sunnysideup/silverstripe-dataintegritytests",
-	"keywords": ["dataintegritytests", "silverstripe"],
+	"keywords": ["dataintegritytests", "silverstripe", "mysql", "check database", "database", "test data structure", "clean database", "obsolete fields"],
 	"license": "Sunny Side Up (BSD-3-Clause and CUSTOM)",
 	"authors":[
 		{
