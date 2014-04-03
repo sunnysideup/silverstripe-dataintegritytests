@@ -111,7 +111,7 @@ class DataIntegrityTest extends BuildTask {
 								}
 								else {
 									$warning = Config::inst()->get("DataIntegrityTest", "warning");
-									$link = "<a href=\"".Director::absoluteBaseURL()."dbintegritycheck/deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a><br /><br />";
+									$link = "<a href=\"".Director::absoluteBaseURL()."dev/tasks/DataIntegrityTest/?do=deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a><br /><br />";
 								}
 								if(!in_array($actualField, array("ID", "Version"))) {
 									if(!in_array($actualField, $requiredFields)) {
@@ -173,7 +173,7 @@ class DataIntegrityTest extends BuildTask {
 		if(count($notCheckedArray)) {
 			echo "<h3>Did not check the following classes as no fields appear to be required and hence there is no database table.</h3>";
 			foreach($notCheckedArray as $table) {
-				if( mysql_query("SELECT 1 FROM \"".$table."\"")) {
+				if( DB::query("SHOW TABLES LIKE '".$table."'")->value()) {
 					DB::alteration_message ($table ." - NOTE: a table exists for this Class, this is an unexpected result", "deleted");
 				}
 				else {
@@ -216,7 +216,7 @@ class DataIntegrityTest extends BuildTask {
 			}
 		}
 
-		echo "<a href=\"".Director::absoluteURL("/dbintegritycheck")."\">back to main menu.</a>";
+		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
 
 	public function deletemarkedfields() {
@@ -249,7 +249,7 @@ class DataIntegrityTest extends BuildTask {
 		if($this->deleteField($table, $field)) {
 			DB::alteration_message("successfully deleted $field from $table now", "deleted");
 		}
-		DB::alteration_message("<a href=\"".Director::absoluteURL("dbintegritycheck/obsoletefields")."\">return to list of obsolete fields</a>", "created");
+		DB::alteration_message("<a href=\"".Director::absoluteURL("dev/tasks/DataIntegrityTest/?do=obsoletefields")."\">return to list of obsolete fields</a>", "created");
 
 	}
 
@@ -264,16 +264,16 @@ class DataIntegrityTest extends BuildTask {
 				}
 			}
 		}
-		if(!mysql_num_rows( mysql_query("SHOW TABLES LIKE '".$table."'"))) {
-			DB::alteration_message ("tried to delete $table.$field but TABLE does not exist", "created");
+		if(!DB::query("SHOW TABLES LIKE '".$table."'")->value()) {
+			DB::alteration_message ("tried to delete $table.$field but TABLE does not exist", "deleted");
 			return false;
 		}
 		if(!class_exists($table)){
-			DB::alteration_message ("tried to delete $table.$field but CLASS does not exist", "created");
+			DB::alteration_message ("tried to delete $table.$field but CLASS does not exist", "deleted");
 			return false;
 		}
 		if(!in_array($field, $fields)) {
-			DB::alteration_message ("tried to delete $table.$field but FIELD does not exist", "created");
+			DB::alteration_message ("tried to delete $table.$field but FIELD does not exist", "deleted");
 			return false;
 		}
 		else {
