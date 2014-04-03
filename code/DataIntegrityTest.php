@@ -94,88 +94,94 @@ class DataIntegrityTest extends BuildTask {
 		foreach($dataClasses as $dataClass) {
 			// Check if class exists before trying to instantiate - this sidesteps any manifest weirdness
 			if(class_exists($dataClass)) {
-				$dataObject = singleton($dataClass);
-				$requiredFields = $this->swapArray(DataObject::database_fields($dataObject->ClassName));
-				if(count($requiredFields)) {
-					foreach($requiredFields as $field) {
-						if(!$dataObject->hasOwnTableDatabaseField($field)) {
-							DB::alteration_message ("  **** $dataClass.$field DOES NOT EXIST BUT IT SHOULD BE THERE!", "deleted");
+				$dataObject = $dataClass::create();
+				if(!($dataObject instanceof TestOnly)) {
+					$requiredFields = $this->swapArray(DataObject::database_fields($dataObject->ClassName));
+					if(count($requiredFields)) {
+						foreach($requiredFields as $field) {
+							if(!$dataObject->hasOwnTableDatabaseField($field)) {
+								DB::alteration_message ("  **** $dataClass.$field DOES NOT EXIST BUT IT SHOULD BE THERE!", "deleted");
+							}
 						}
-					}
-					$actualFields = $this->swapArray(DB::fieldList($dataClass));
-					if($actualFields) {
-						foreach($actualFields as $actualField) {
-							if($deleteNow) {
-								$link = " !!!!!!!!!!! DELETED !!!!!!!!!";
-							}
-							else {
-								$warning = Config::inst()->get("DataIntegrityTest", "warning");
-								$link = "<a href=\"".Director::absoluteBaseURL()."dbintegritycheck/deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a><br /><br />";
-							}
-							if(!in_array($actualField, array("ID", "Version"))) {
-								if(!in_array($actualField, $requiredFields)) {
-									DB::alteration_message ("$dataClass.$actualField $link", "deleted");
-									if($deleteNow) {
-										$this->deleteField($dataClass, $actualField);
+						$actualFields = $this->swapArray(DB::fieldList($dataClass));
+						if($actualFields) {
+							foreach($actualFields as $actualField) {
+								if($deleteNow) {
+									$link = " !!!!!!!!!!! DELETED !!!!!!!!!";
+								}
+								else {
+									$warning = Config::inst()->get("DataIntegrityTest", "warning");
+									$link = "<a href=\"".Director::absoluteBaseURL()."dbintegritycheck/deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a><br /><br />";
+								}
+								if(!in_array($actualField, array("ID", "Version"))) {
+									if(!in_array($actualField, $requiredFields)) {
+										DB::alteration_message ("$dataClass.$actualField $link", "deleted");
+										if($deleteNow) {
+											$this->deleteField($dataClass, $actualField);
+										}
+									}
+								}
+								if($actualField == "Version" && !in_array($actualField, $requiredFields)) {
+									$versioningPresent = $dataObject->hasVersioning();
+									if(!$versioningPresent) {
+										DB::alteration_message ("$dataClass.$actualField $link", "deleted");
+										if($deleteNow) {
+											$this->deleteField($dataClass, $actualField);
+										}
 									}
 								}
 							}
-							if($actualField == "Version" && !in_array($actualField, $requiredFields)) {
-								$versioningPresent = $dataObject->hasVersioning();
-								if(!$versioningPresent) {
-									DB::alteration_message ("$dataClass.$actualField $link", "deleted");
-									if($deleteNow) {
-										$this->deleteField($dataClass, $actualField);
+						}
+						$rawCount = DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\"")->value();
+						if($rawCount < 1000){
+							Versioned::set_reading_mode("Stage.Stage");
+							$realCount = 0;
+							$objects = $dataClass::get()->exclude(array("ID" => 0));
+							if($objects->count()) {
+								$realCount = $objects->count();
+							}
+							if($rawCount != $realCount) {
+								DB::alteration_message("The DB Table Row Count ($rawCount) does not seem to match the DataObject Count ($realCount) for $dataClass.  This could indicate an error as generally these numbers should match.", "deleted");
+							}
+							if($realCount > $rawCount) {
+								$objects = $dataClass::get();
+								foreach($objects as $object) {
+									if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
+										DB::alteration_message("Now trying to recreate missing items....", "created");
+										$object->write(true, false, true, false);
 									}
 								}
 							}
 						}
-					}
-					$rawCount = DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\"")->value();
-					if($rawCount < 1000){
-						Versioned::set_reading_mode("Stage");
-						$realCount = 0;
-						$objects = $dataClass::get()->filter(array($dataClass."ID:GreaterThan" => 0));
-						if($objects->count()) {
-							$realCount = $objects->count();
+						else {
+							DB::alteration_message("<span style=\"color: orange\">We cant fully check $dataClass because it as more than 1000 records</span>");
 						}
-						if($rawCount != $realCount) {
-							DB::alteration_message("The DB Table Row Count ($rawCount) does not seem to match the DataObject Count ($realCount) for $dataClass.  This could indicate an error as generally these numbers should match.", "deleted");
-						}
-						if($realCount > $rawCount) {
-							$objects = $dataClass::get();
-							foreach($objects as $object) {
-								if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
-									DB::alteration_message("Now trying to recreate missing items....", "created");
-									$object->write(true, false, true, false);
-								}
-							}
-						}
+						unset($actualTables[$dataClass]);
 					}
 					else {
-						DB::alteration_message("<span style=\"color: orange\">We cant fully check $dataClass because it as more than 1000 records</span>");
-					}
-					unset($actualTables[$dataClass]);
-				}
-				else {
-					if( mysql_num_rows( mysql_query("SHOW TABLES LIKE '".$dataClass."'"))) {
-						DB::alteration_message ("  **** The $dataClass table exists, but according to the data-scheme it should not be there ", "deleted");
-					}
-					else {
-						$notCheckedArray[] = $dataClass;
+						if( mysql_query("SHOW TABLES LIKE '".$dataClass."'")) {
+							DB::alteration_message ("  **** The $dataClass table exists, but according to the data-scheme it should not be there ", "deleted");
+						}
+						else {
+							$notCheckedArray[] = $dataClass;
+						}
 					}
 				}
 			}
 		}
+
 		if(count($notCheckedArray)) {
 			echo "<h3>Did not check the following classes as no fields appear to be required and hence there is no database table.</h3>";
 			foreach($notCheckedArray as $table) {
-				if(mysql_num_rows( mysql_query("SHOW TABLES LIKE '".$table."'"))) {
+				if( mysql_query("SELECT 1 FROM \"".$table."\"")) {
 					DB::alteration_message ($table ." - NOTE: a table exists for this Class, this is an unexpected result", "deleted");
 				}
-				DB::alteration_message ($table, "created");
+				else {
+					DB::alteration_message ($table, "created");
+				}
 			}
 		}
+
 		if(count($actualTables)) {
 			echo "<h3>Other Tables in Database not directly linked to a Silverstripe DataObject:</h3>";
 			foreach($actualTables as $table) {
