@@ -185,33 +185,42 @@ class DataIntegrityTest extends BuildTask {
 		if(count($actualTables)) {
 			echo "<h3>Other Tables in Database not directly linked to a Silverstripe DataObject:</h3>";
 			foreach($actualTables as $table) {
-				$show = true;
+				$remove = true;
 				if(class_exists($table)) {
 					$classExistsMessage = " a PHP class with this name exists.";
 					$obj = singleton($table);
 					//to do: make this more reliable - checking for versioning rather than SiteTree
 					if($obj instanceof SiteTree) {
-						$show = false;
+						$remove = false;
 					}
 				}
 				else {
 					$classExistsMessage = " NO PHP class with this name exists.";
 					if(substr($table, -5) == "_Live") {
-						$show = false;
+						$remove = false;
 					}
 					if(substr($table, -9) == "_versions") {
-						$show = false;
+						$remove = false;
 					}
 					//many 2 many tables...
-					$array = explode("_", $table);
-					if(count($array) == 2) {
-						if(class_exists($array[0]) && class_exists($array[1])) {
-							$show = false;
+					if(strpos($table, "_")) {
+						$class = explode("_", $table);
+						$manyManyClass = substr($table, 0, strrpos($table, '_') );
+						$manyManyExtension = substr($table, strrpos($table, '_') + 1 - strlen($table));
+						if(class_exists($manyManyClass)) {
+							$manyManys = Config::inst()->get($manyManyClass, "many_many");
+							if(isset($manyManys[$manyManyExtension])) {
+								$remove = false;
+							}
 						}
 					}
 				}
-				if($show) {
-					DB::alteration_message ($table." - ".$classExistsMessage, "created");
+				if($remove) {
+					if(substr($table, 0, strlen("_obsolete_")) != "_obsolete_") {
+						DB::alteration_message ($table." - ".$classExistsMessage, "created");
+						DB::alteration_message ($table." making it obsolete", "deleted");
+						DB::getConn()->renameTable($table, "_obsolete_".$table);
+					}
 				}
 			}
 		}
