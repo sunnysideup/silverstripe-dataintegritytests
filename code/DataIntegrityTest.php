@@ -217,9 +217,13 @@ class DataIntegrityTest extends BuildTask {
 				}
 				if($remove) {
 					if(substr($table, 0, strlen("_obsolete_")) != "_obsolete_") {
-						DB::alteration_message ($table." - ".$classExistsMessage, "created");
-						DB::alteration_message ($table." making it obsolete", "deleted");
-						DB::getConn()->renameTable($table, "_obsolete_".$table);
+						if($deleteNow) {
+							DB::alteration_message ($table." making it obsolete by renaming it to _obsolete_".$table, "deleted");
+							DB::getConn()->renameTable($table, "_obsolete_".$table);
+						}
+						else {
+							DB::alteration_message ($table." - ".$classExistsMessage" It can be moved to _obsolete_".$table."." , "created");
+						}
 					}
 				}
 			}
