@@ -40,6 +40,7 @@ class DataIntegrityTest extends BuildTask {
 
 	private static $allowed_actions = array(
 		"obsoletefields" => "ADMIN",
+		"deleteonefield" => "ADMIN",
 		"deletemarkedfields" => "ADMIN",
 		"deleteobsoletefields" => "ADMIN",
 		"resetutf8" => "ADMIN"
@@ -53,9 +54,14 @@ class DataIntegrityTest extends BuildTask {
 
 	function run($request) {
 		if($action = $request->getVar("do")) {
+			$methodArray = explode("/", $action);
+			$method = $methodArray[0];
 			$allowedActions = Config::inst()->get("DataIntegrityTest", "allowed_actions");
-			if(isset($allowedActions[$action])) {
-				return $this->$action();
+			if(isset($allowedActions[$method])) {
+				return $this->$method();
+			}
+			else {
+				user_error("could not find method: $method");
 			}
 		}
 		$warning = Config::inst()->get("DataIntegrityTest", "warning");
@@ -222,7 +228,7 @@ class DataIntegrityTest extends BuildTask {
 							DB::getConn()->renameTable($table, "_obsolete_".$table);
 						}
 						else {
-							DB::alteration_message ($table." - ".$classExistsMessage" It can be moved to _obsolete_".$table."." , "created");
+							DB::alteration_message ($table." - ".$classExistsMessage." It can be moved to _obsolete_".$table."." , "created");
 						}
 					}
 				}
@@ -250,17 +256,21 @@ class DataIntegrityTest extends BuildTask {
 		}
 	}
 
-	public function deleteonefield(SS_HTTPRequest $request) {
-		$table = $request->param("ID");
-		$field = $request->param("OtherID");
-		if(!$table) {
+	public function deleteonefield() {
+		$requestExploded = explode("/", $_GET["do"]);
+		if(!isset($requestExploded[1])) {
 			user_error("no table has been specified", E_USER_WARNING);
 		}
-		if(!$field) {
+		if(!isset($requestExploded[2])) {
 			user_error("no field has been specified", E_USER_WARNING);
 		}
+		$table = $requestExploded[1];
+		$field = $requestExploded[2];
 		if($this->deleteField($table, $field)) {
-			DB::alteration_message("successfully deleted $field from $table now", "deleted");
+			DB::alteration_message("successfully deleted $field from $table now");
+		}
+		else {
+			DB::alteration_message("COULD NOT delete $field from $table now", "deleted");
 		}
 		DB::alteration_message("<a href=\"".Director::absoluteURL("dev/tasks/DataIntegrityTest/?do=obsoletefields")."\">return to list of obsolete fields</a>", "created");
 
