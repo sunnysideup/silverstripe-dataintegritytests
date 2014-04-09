@@ -16,7 +16,7 @@ class DataIntegrityTest extends BuildTask {
 	 */
 	protected $description = "Go through all fields in the database and work out what fields are superfluous.";
 
-	private static $warning = "are you sure - this step is irreversible! - MAKE SURE TO MAKE A BACKUP OF YOUR DATABASE FIRST";
+	private static $warning = "are you sure - this step is irreversible! - MAKE SURE TO MAKE A BACKUP OF YOUR DATABASE BEFORE YOU CONFIRM THIS!";
 
 	private static $test_array = array(
 		"In SiteTree_Live but not in SiteTree" =>
@@ -43,7 +43,9 @@ class DataIntegrityTest extends BuildTask {
 		"deleteonefield" => "ADMIN",
 		"deletemarkedfields" => "ADMIN",
 		"deleteobsoletefields" => "ADMIN",
-		"resetutf8" => "ADMIN"
+		"resetutf8" => "ADMIN",
+		"deleteobsoletetables" => "ADMIN",
+		"deleteallversions" => "ADMIN"
 	);
 
 
@@ -53,6 +55,7 @@ class DataIntegrityTest extends BuildTask {
 	}
 
 	function run($request) {
+		ini_set('max_execution_time', 3000);
 		if($action = $request->getVar("do")) {
 			$methodArray = explode("/", $action);
 			$method = $methodArray[0];
@@ -70,6 +73,8 @@ class DataIntegrityTest extends BuildTask {
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".$warning."');\">Delete obsolete fields now!</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=resetutf8\" onclick=\"return confirm('".$warning."');\">set all tables to utf-8!</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">delete all tables that are marked as obsolete</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deleteallversions\" onclick=\"return confirm('".$warning."');\">delete all versioned data</a></p>";
 	}
 
 	protected function Link(){
@@ -139,28 +144,37 @@ class DataIntegrityTest extends BuildTask {
 							}
 						}
 						$rawCount = DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\"")->value();
-						if($rawCount < 1000){
+						if($rawCount < 10000){
 							Versioned::set_reading_mode("Stage.Stage");
 							$realCount = 0;
-							$objects = $dataClass::get()->exclude(array("ID" => 0));
+							$allSubClasses = array_unique(array($dataClass)+ClassInfo::subclassesFor($dataClass));
+							$objects = $dataClass::get()->filter(array("ClassName" =>  $allSubClasses));
 							if($objects->count()) {
 								$realCount = $objects->count();
 							}
 							if($rawCount != $realCount) {
 								DB::alteration_message("The DB Table Row Count ($rawCount) does not seem to match the DataObject Count ($realCount) for $dataClass.  This could indicate an error as generally these numbers should match.", "deleted");
-							}
-							if($realCount > $rawCount) {
-								$objects = $dataClass::get();
-								foreach($objects as $object) {
-									if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
-										DB::alteration_message("Now trying to recreate missing items....", "created");
-										$object->write(true, false, true, false);
+								if($deleteNow) {
+									if($realCount > 500) {
+										DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in $dataClass. There are more than 500 records so it would take too long to do it now.", "deleted");
+									}
+									else {
+										$objects = $dataClass::get()->where("LinkedTable.ID IS NULL")->leftJoin($dataClass, "$dataClass.ID = LinkedTable.ID", "LinkedTable");
+										DB::alteration_message("Now trying to recreate missing items... COUNT = ".$objects->count(), "created");
+										foreach($objects as $object) {
+											if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
+												$object->write(true, false, true, false);
+											}
+										}
+										$objects = $dataClass::get();
+										$idArray = $objects->map("ID", "ID")->toArray();
+										DB::alteration_message("Consider deleting superfluous records from table.... COUNT =".($rawCount - count($idArray)));
 									}
 								}
 							}
 						}
 						else {
-							DB::alteration_message("<span style=\"color: orange\">We cant fully check $dataClass because it as more than 1000 records</span>");
+							DB::alteration_message("<span style=\"color: orange\">We cant fully check $dataClass because it as more than 10000 records</span>");
 						}
 						unset($actualTables[$dataClass]);
 					}
@@ -196,7 +210,7 @@ class DataIntegrityTest extends BuildTask {
 					$classExistsMessage = " a PHP class with this name exists.";
 					$obj = singleton($table);
 					//to do: make this more reliable - checking for versioning rather than SiteTree
-					if($obj instanceof SiteTree) {
+					if(class_exists("Versioned") && $obj->hasExtension("Versioned")) {
 						$remove = false;
 					}
 				}
@@ -234,7 +248,6 @@ class DataIntegrityTest extends BuildTask {
 				}
 			}
 		}
-
 		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
 
@@ -254,6 +267,7 @@ class DataIntegrityTest extends BuildTask {
 		else {
 			user_error("you need to select these fields to be deleted first (DataIntegrityTest.fields_to_delete)");
 		}
+		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
 
 	public function deleteonefield() {
@@ -273,10 +287,10 @@ class DataIntegrityTest extends BuildTask {
 			DB::alteration_message("COULD NOT delete $field from $table now", "deleted");
 		}
 		DB::alteration_message("<a href=\"".Director::absoluteURL("dev/tasks/DataIntegrityTest/?do=obsoletefields")."\">return to list of obsolete fields</a>", "created");
-
+		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
 
-	protected function deleteField($table, $field) {
+	private function deleteField($table, $field) {
 		$fields = $this->swapArray(DB::fieldList($table));
 		$globalExeceptions = Config::inst()->get("DataIntegrityTest", "global_exceptions");
 		if(count($globalExeceptions)) {
@@ -314,7 +328,7 @@ class DataIntegrityTest extends BuildTask {
 		}
 	}
 
-	protected function swapArray($array) {
+	private function swapArray($array) {
 		$newArray = array();
 		if(is_array($array)) {
 			foreach($array as $key => $value) {
@@ -338,7 +352,7 @@ class DataIntegrityTest extends BuildTask {
 		return $versioningPresent;
 	}
 
-	public function resetutf8(){
+	private function resetutf8(){
 		$tables = DB::query('SHOW tables');
 		$unique = array();
 		foreach ($tables as $table) {
@@ -368,6 +382,44 @@ class DataIntegrityTest extends BuildTask {
 				}
 			}
 		}
+	}
+
+	private function deleteobsoletetables(){
+		$tables = DB::query('SHOW tables');
+		$unique = array();
+		foreach ($tables as $table) {
+			$table = array_pop($table);
+			if(substr($table, 0, 10) == "_obsolete_") {
+				DB::alteration_message("Removing table $table", "deleted");
+				DB::query("DROP TABLE \"$table\" ");
+			}
+		}
+		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
+	}
+
+	private function deleteallversions(){
+		$tables = DB::query('SHOW tables');
+		$unique = array();
+		foreach ($tables as $table) {
+			$table = array_pop($table);
+			$endOfTable = substr($table, -9);
+			if($endOfTable == "_versions") {
+				$className = substr($table, 0, strlen($table) - 9);
+				if(class_exists($className)) {
+					$obj = $className::get()->first();
+					if($obj) {
+						if($obj->hasExtension("Versioned")) {
+							DB::alteration_message("Removing all records from $table", "created");
+							DB::query("DELETE FROM \"$table\" ");
+						}
+					}
+				}
+				else {
+					DB::alteration_message("Could not find $className class... the $table may be obsolete", "deleted");
+				}
+			}
+		}
+		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
 
 }
