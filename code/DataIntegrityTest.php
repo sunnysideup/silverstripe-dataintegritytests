@@ -209,8 +209,11 @@ class DataIntegrityTest extends BuildTask {
 				if(class_exists($table)) {
 					$classExistsMessage = " a PHP class with this name exists.";
 					$obj = singleton($table);
-					//to do: make this more reliable - checking for versioning rather than SiteTree
-					if(class_exists("Versioned") && $obj->hasExtension("Versioned")) {
+					//not sure why we have this.
+					if($obj instanceof DataExtension) {
+						$remove = false;
+					}
+					elseif(class_exists("Versioned") && $obj->hasExtension("Versioned")) {
 						$remove = false;
 					}
 				}
