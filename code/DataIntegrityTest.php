@@ -371,18 +371,22 @@ class DataIntegrityTest extends BuildTask {
 					strtolower(substr($type, 0, 7)) == "varchar" ||
 					strtolower(substr($type, 0, 10)) == "mediumtext"
 				) {
+
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'Â', '');
 					");DB::alteration_message("Removing Â characters from $table.$field");
+
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€™', '\'');
 					");DB::alteration_message("Changing â€™ to ' in $table.$field");
+
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€œ', '\"');
 					");DB::alteration_message("Changing â€œ to ' in $table.$field");
+
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€', '\"');
