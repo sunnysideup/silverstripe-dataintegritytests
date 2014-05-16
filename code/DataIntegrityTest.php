@@ -72,7 +72,7 @@ class DataIntegrityTest extends BuildTask {
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".$warning."');\">Delete obsolete fields now!</a></p>";
-		echo "<p><a href=\"".$this->Link()."?do=resetutf8\" onclick=\"return confirm('".$warning."');\">fix funny characters (due to utf-8 conversion) in ALL TABLES IN DATABASE utf-8!</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=resetutf8\" onclick=\"return confirm('".$warning."');\">fix funny characters (due to utf-8 conversion) in ALL TABLES IN DATABASE</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">delete all tables that are marked as obsolete</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteallversions\" onclick=\"return confirm('".$warning."');\">delete all versioned data</a></p>";
 	}
