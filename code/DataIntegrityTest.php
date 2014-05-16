@@ -415,10 +415,16 @@ class DataIntegrityTest extends BuildTask {
 						SET \"$field\" = REPLACE(\"$field\", 'â€^Ý', '&quot;');
 					");
 
-					DB::alteration_message("Changing &lt;br&gt; &lt;br /&gt; $table.$field");
+					DB::alteration_message("Changing &lt;br&gt; to &lt;br /&gt; in $table.$field");
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", '<br>', '<br />');
+					");
+
+					DB::alteration_message("Changing â€¢ to in &#8226; $table.$field");
+					DB::query("
+						UPDATE \"$table\"
+						SET \"$field\" = REPLACE(\"$field\", 'â€¢', '&#8226;');
 					");
 
 
