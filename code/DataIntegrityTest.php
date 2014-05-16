@@ -179,7 +179,7 @@ class DataIntegrityTest extends BuildTask {
 						unset($actualTables[$dataClass]);
 					}
 					else {
-						if( DB::query("SHOW TABLES LIKE '".$dataClass."'")) {
+						if( mysql_query("SHOW TABLES LIKE '".$dataClass."'")) {
 							DB::alteration_message ("  **** The $dataClass table exists, but according to the data-scheme it should not be there ", "deleted");
 						}
 						else {
@@ -370,28 +370,22 @@ class DataIntegrityTest extends BuildTask {
 				if(
 					strtolower(substr($type, 0, 7)) == "varchar" ||
 					strtolower(substr($type, 0, 10)) == "mediumtext"
-				) {
 
+				) {
 
 					DB::alteration_message("Removing Â characters from $table.$field");
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'Â', '');
-<<<<<<< .mine
 					");
 
 					DB::alteration_message("Changing â€“ to ' in $table.$field");
-=======
-					");DB::alteration_message("Removing Â characters from $table.$field");
-
->>>>>>> .r5678
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€™', '\'');
-<<<<<<< .mine
 					");
 
-					DB::alteration_message("Changing â€™ to &mdash; in $table.$field")
+					DB::alteration_message("Changing â€“ to &mdash; in $table.$field")
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€“', '&mdash;');
@@ -409,19 +403,19 @@ class DataIntegrityTest extends BuildTask {
 						SET \"$field\" = REPLACE(\"$field\", 'Â', '');
 					");
 
-=======
-					");DB::alteration_message("Changing â€™ to ' in $table.$field");
-
+					DB::alteration_message("Changing â€œ to ' in $table.$field");
 					DB::query("
 						UPDATE \"$table\"
-						SET \"$field\" = REPLACE(\"$field\", 'â€œ', '\"');
-					");DB::alteration_message("Changing â€œ to ' in $table.$field");
+						SET \"$field\" = REPLACE(\"$field\", 'â€œ', '&quot;');
+					");
 
+					DB::alteration_message("Changing â€^Ý to \" in $table.$field");
 					DB::query("
 						UPDATE \"$table\"
-						SET \"$field\" = REPLACE(\"$field\", 'â€', '\"');
-					");DB::alteration_message("Changing â€ to \" in $table.$field");
->>>>>>> .r5678
+						SET \"$field\" = REPLACE(\"$field\", 'â€^Ý', '&quot;');
+					");
+
+
 				}
 			}
 		}
