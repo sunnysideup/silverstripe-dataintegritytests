@@ -72,7 +72,7 @@ class DataIntegrityTest extends BuildTask {
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".$warning."');\">Delete obsolete fields now!</a></p>";
-		echo "<p><a href=\"".$this->Link()."?do=resetutf8\" onclick=\"return confirm('".$warning."');\">set all tables to utf-8!</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=resetutf8\" onclick=\"return confirm('".$warning."');\">fix funny characters (due to utf-8 conversion) in ALL TABLES IN DATABASE utf-8!</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">delete all tables that are marked as obsolete</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteallversions\" onclick=\"return confirm('".$warning."');\">delete all versioned data</a></p>";
 	}
@@ -372,14 +372,44 @@ class DataIntegrityTest extends BuildTask {
 					strtolower(substr($type, 0, 10)) == "mediumtext"
 				) {
 
+
+					DB::alteration_message("Removing Â characters from $table.$field");
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'Â', '');
+<<<<<<< .mine
+					");
+
+					DB::alteration_message("Changing â€“ to ' in $table.$field");
+=======
 					");DB::alteration_message("Removing Â characters from $table.$field");
 
+>>>>>>> .r5678
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€™', '\'');
+<<<<<<< .mine
+					");
+
+					DB::alteration_message("Changing â€™ to &mdash; in $table.$field")
+					DB::query("
+						UPDATE \"$table\"
+						SET \"$field\" = REPLACE(\"$field\", 'â€“', '&mdash;');
+					");
+
+					DB::alteration_message("Changing â€¨ to [NOTHING]; in $table.$field");
+					DB::query("
+						UPDATE \"$table\"
+						SET \"$field\" = REPLACE(\"$field\", 'â€¨', '');
+					");
+
+					DB::alteration_message("Changing Â to [NOTHING]; in $table.$field");
+					DB::query("
+						UPDATE \"$table\"
+						SET \"$field\" = REPLACE(\"$field\", 'Â', '');
+					");
+
+=======
 					");DB::alteration_message("Changing â€™ to ' in $table.$field");
 
 					DB::query("
@@ -391,6 +421,7 @@ class DataIntegrityTest extends BuildTask {
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€', '\"');
 					");DB::alteration_message("Changing â€ to \" in $table.$field");
+>>>>>>> .r5678
 				}
 			}
 		}
