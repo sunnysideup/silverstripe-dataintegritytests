@@ -385,7 +385,7 @@ class DataIntegrityTest extends BuildTask {
 						SET \"$field\" = REPLACE(\"$field\", 'â€™', '\'');
 					");
 
-					DB::alteration_message("Changing â€“ to &mdash; in $table.$field")
+					DB::alteration_message("Changing â€“ to &mdash; in $table.$field");
 					DB::query("
 						UPDATE \"$table\"
 						SET \"$field\" = REPLACE(\"$field\", 'â€“', '&mdash;');
