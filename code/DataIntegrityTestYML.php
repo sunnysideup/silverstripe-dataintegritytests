@@ -16,6 +16,12 @@ class DataIntegrityTestYML extends BuildTask {
 	private static $classes_to_skip = array("Name", "Before", "Only", "After");
 
 	/**
+	 * list of variables that do not need checking...
+	 * @var array
+	 */
+	private static $variables_to_skip = array("extensions", "icon");
+
+	/**
 	 * standard SS variable
 	 * @var String
 	 */
