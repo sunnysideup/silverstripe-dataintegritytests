@@ -38,6 +38,7 @@ class DataIntegrityTestYML extends BuildTask {
 		require_once 'thirdparty/spyc/spyc.php';
 		$filesArray = Config::inst()->get("DataIntegrityTestYML", "config_files");
 		$classesToSkip = Config::inst()->get("DataIntegrityTestYML", "classes_to_skip");
+		$variablesToSkip = Config::inst()->get("DataIntegrityTestYML", "variables_to_skip");
 		foreach($filesArray as $folderAndFileLocation){
 			$fixtureFolderAndFile = Director::baseFolder().'/'. $folderAndFileLocation;
 			if(!file_exists($fixtureFolderAndFile)) {
@@ -57,11 +58,16 @@ class DataIntegrityTestYML extends BuildTask {
 					else {
 						db::alteration_message("$className", "created");
 						foreach($variables as $variable => $setting) {
-							if(!property_exists($className, $variable)) {
-								db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> does not exist", "deleted");
+							if(in_arrary($variable, $variablesToSkip)) {
+								db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> skipped");
 							}
 							else {
-								db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> found", "created");
+								if(!property_exists($className, $variable)) {
+									db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> does not exist", "deleted");
+								}
+								else {
+									db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> found", "created");
+								}
 							}
 						}
 					}
