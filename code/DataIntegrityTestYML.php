@@ -58,7 +58,7 @@ class DataIntegrityTestYML extends BuildTask {
 					else {
 						db::alteration_message("$className", "created");
 						foreach($variables as $variable => $setting) {
-							if(in_arrary($variable, $variablesToSkip)) {
+							if(in_array($variable, $variablesToSkip)) {
 								db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> skipped");
 							}
 							else {
