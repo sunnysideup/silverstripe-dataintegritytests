@@ -42,7 +42,7 @@ class DataIntegrityTestYML extends BuildTask {
 		foreach($filesArray as $folderAndFileLocation){
 			$fixtureFolderAndFile = Director::baseFolder().'/'. $folderAndFileLocation;
 			if(!file_exists($fixtureFolderAndFile)) {
-				user_error('No custom configuration has been setup for Ecommerce - I was looking for: "' . $fixtureFolderAndFile . '"', E_USER_NOTICE);
+				user_error('No custom configuration has been setup here : "' . $fixtureFolderAndFile . '" set the files here: DataIntegrityTestYML::config_files', E_USER_NOTICE);
 			}
 			$parser = new Spyc();
 			$arrayOfSettings = $parser->loadFile($fixtureFolderAndFile);
