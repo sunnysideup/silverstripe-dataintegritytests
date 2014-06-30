@@ -177,8 +177,10 @@ class DataIntegrityTest extends BuildTask {
 						unset($actualTables[$dataClass]);
 					}
 					else {
-						if( mysql_query("SHOW TABLES LIKE '".$dataClass."'")) {
-							DB::alteration_message ("  **** The $dataClass table exists, but according to the data-scheme it should not be there ", "deleted");
+						if( $tableRowCount = DB::query("SHOW TABLES LIKE '".$dataClass."'")) {
+							foreach($tableRowCount as $tableRow) {
+								DB::alteration_message ("  **** The $dataClass table exists, but according to the data-scheme it should not be there ", "deleted");
+							}
 						}
 						else {
 							$notCheckedArray[] = $dataClass;
