@@ -142,37 +142,32 @@ class DataIntegrityTest extends BuildTask {
 							}
 						}
 						$rawCount = DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\"")->value();
-						if($rawCount < 10000){
-							Versioned::set_reading_mode("Stage.Stage");
-							$realCount = 0;
-							$allSubClasses = array_unique(array($dataClass)+ClassInfo::subclassesFor($dataClass));
-							$objects = $dataClass::get()->filter(array("ClassName" =>  $allSubClasses));
-							if($objects->count()) {
-								$realCount = $objects->count();
-							}
-							if($rawCount != $realCount) {
-								DB::alteration_message("The DB Table Row Count ($rawCount) does not seem to match the DataObject Count ($realCount) for $dataClass.  This could indicate an error as generally these numbers should match.", "deleted");
-								if($deleteNow) {
-									if($realCount > 500) {
-										DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in $dataClass. There are more than 500 records so it would take too long to do it now.", "deleted");
-									}
-									else {
-										$objects = $dataClass::get()->where("LinkedTable.ID IS NULL")->leftJoin($dataClass, "$dataClass.ID = LinkedTable.ID", "LinkedTable");
-										DB::alteration_message("Now trying to recreate missing items... COUNT = ".$objects->count(), "created");
-										foreach($objects as $object) {
-											if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
-												$object->write(true, false, true, false);
-											}
+						Versioned::set_reading_mode("Stage.Stage");
+						$realCount = 0;
+						$allSubClasses = array_unique(array($dataClass)+ClassInfo::subclassesFor($dataClass));
+						$objects = $dataClass::get()->filter(array("ClassName" =>  $allSubClasses));
+						if($objects->count()) {
+							$realCount = $objects->count();
+						}
+						if($rawCount != $realCount) {
+							DB::alteration_message("The DB Table Row Count ($rawCount) does not seem to match the DataObject Count ($realCount) for $dataClass.  This could indicate an error as generally these numbers should match.", "deleted");
+							if($deleteNow) {
+								if($realCount > 500) {
+									DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in $dataClass. There are more than 500 records so it would take too long to do it now.", "deleted");
+								}
+								else {
+									$objects = $dataClass::get()->where("LinkedTable.ID IS NULL")->leftJoin($dataClass, "$dataClass.ID = LinkedTable.ID", "LinkedTable");
+									DB::alteration_message("Now trying to recreate missing items... COUNT = ".$objects->count(), "created");
+									foreach($objects as $object) {
+										if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
+											$object->write(true, false, true, false);
 										}
-										$objects = $dataClass::get();
-										$idArray = $objects->map("ID", "ID")->toArray();
-										DB::alteration_message("Consider deleting superfluous records from table.... COUNT =".($rawCount - count($idArray)));
 									}
+									$objects = $dataClass::get();
+									$idArray = $objects->map("ID", "ID")->toArray();
+									DB::alteration_message("Consider deleting superfluous records from table.... COUNT =".($rawCount - count($idArray)));
 								}
 							}
-						}
-						else {
-							DB::alteration_message("<span style=\"color: orange\">We cant fully check $dataClass because it as more than 10000 records</span>");
 						}
 						unset($actualTables[$dataClass]);
 					}
