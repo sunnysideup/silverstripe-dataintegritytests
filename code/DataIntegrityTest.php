@@ -145,7 +145,7 @@ class DataIntegrityTest extends BuildTask {
 						Versioned::set_reading_mode("Stage.Stage");
 						$realCount = 0;
 						$allSubClasses = array_unique(array($dataClass)+ClassInfo::subclassesFor($dataClass));
-						$objects = $dataClass::get()->filter(array("ClassName" =>  $allSubClasses));
+						$objects = DataObject::get()->filter(array("ClassName" =>  $allSubClasses));
 						if($objects->count()) {
 							$realCount = $objects->count();
 						}
