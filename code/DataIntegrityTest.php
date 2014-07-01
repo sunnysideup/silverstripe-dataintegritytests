@@ -150,7 +150,11 @@ class DataIntegrityTest extends BuildTask {
 							$realCount = $objects->count();
 						}
 						if($rawCount != $realCount) {
-							DB::alteration_message("The DB Table Row Count ($rawCount) does not seem to match the DataObject Count ($realCount) for $dataClass.  This could indicate an error as generally these numbers should match.", "deleted");
+							$sign = " > ";
+							if($rawCount < $realCount) {
+								$sign = " < ";
+							}
+							DB::alteration_message("The DB Table Row Count does not seem to match the DataObject Count for <strong>$dataClass ($rawCount $sign $realCount)</strong>.  This could indicate an error as generally these numbers should match.", "deleted");
 							if($deleteNow) {
 								if($realCount > 500) {
 									DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in $dataClass. There are more than 500 records so it would take too long to do it now.", "deleted");
@@ -160,22 +164,30 @@ class DataIntegrityTest extends BuildTask {
 									DB::alteration_message("Now trying to recreate missing items... COUNT = ".$objects->count(), "created");
 									foreach($objects as $object) {
 										if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
+											Config::inst()->update('DataObject', 'validation_enabled', false);
 											$object->write(true, false, true, false);
+											Config::inst()->update('DataObject', 'validation_enabled', true);
 										}
 									}
-									$objects = $dataClass::get();
-									$idArray = $objects->map("ID", "ID")->toArray();
-									DB::alteration_message("Consider deleting superfluous records from table.... COUNT =".($rawCount - count($idArray)));
+									$objectCount = $dataClass::get()->count();
+									DB::alteration_message("Consider deleting superfluous records from table $dataClass .... COUNT =".($rawCount - count($objectCount)));
+									$ancestors = ClassInfo::ancestry($dataClass, true);
+									if($ancestors && is_array($ancestors) && count($ancestors)) {
+										foreach($ancestors as $ancestor) {
+											if($ancestor != $dataClass) {
+												DB::query("DELETE `$dataClass`.* FROM `$dataClass` LEFT JOIN `$ancestor` ON `$dataClass`.`ID` = `$ancestor`.`ID` WHERE `$ancestor`.`ID` IS NULL;");
+											}
+										}
+									}
 								}
 							}
 						}
 						unset($actualTables[$dataClass]);
 					}
 					else {
-						if( $tableRowCount = DB::query("SHOW TABLES LIKE '".$dataClass."'")) {
-							foreach($tableRowCount as $tableRow) {
-								DB::alteration_message ("  **** The $dataClass table exists, but according to the data-scheme it should not be there ", "deleted");
-							}
+						$db = DB::getConn();
+						if($db->hasTable($dataClass)) {
+							DB::alteration_message ("  **** The $dataClass table exists, but according to the data-scheme it should not be there ", "deleted");
 						}
 						else {
 							$notCheckedArray[] = $dataClass;
