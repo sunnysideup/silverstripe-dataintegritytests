@@ -247,12 +247,20 @@ class DataIntegrityTest extends BuildTask {
 				}
 				if($remove) {
 					if(substr($table, 0, strlen("_obsolete_")) != "_obsolete_") {
-						if($deleteNow) {
-							DB::alteration_message ($table." making it obsolete by renaming it to _obsolete_".$table, "deleted");
-							DB::getConn()->renameTable($table, "_obsolete_".$table);
+						if(!$this->tableExists($table)) {
+							if($deleteNow) {
+								DB::alteration_message ("We recommend deleting $table or making it obsolete by renaming it to _obsolete_".$table, "deleted");
+								//DB::getConn()->renameTable($table, "_obsolete_".$table);
+							}
+							else {
+								DB::alteration_message ($table." - ".$classExistsMessage." It can be moved to _obsolete_".$table."." , "created");
+								//DB::getConn()->renameTable($table, "_obsolete_".$table);
+							}
 						}
 						else {
-							DB::alteration_message ($table." - ".$classExistsMessage." It can be moved to _obsolete_".$table."." , "created");
+							if($deleteNow) {
+								DB::alteration_message ("I'd recommend to move <strong>$table</strong> to <strong>_obsolete_".$table."</strong>, but that table already exists" , "deleted");
+							}
 						}
 					}
 				}
@@ -260,6 +268,8 @@ class DataIntegrityTest extends BuildTask {
 		}
 		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
+
+
 
 	public function deletemarkedfields() {
 		$fieldsToDelete = Config::inst()->get("DataIntegrityTest", "fields_to_delete");
@@ -399,6 +409,11 @@ class DataIntegrityTest extends BuildTask {
 			}
 		}
 		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
+	}
+
+	private function tableExists($table){
+		$db = DB::getConn();
+		return $db->hasTable($table);
 	}
 
 }
