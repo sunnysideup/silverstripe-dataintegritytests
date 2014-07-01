@@ -150,17 +150,18 @@ class DataIntegrityTest extends BuildTask {
 							$realCount = $objects->count();
 						}
 						if($rawCount != $realCount) {
+							echo "<hr />";
 							$sign = " > ";
 							if($rawCount < $realCount) {
 								$sign = " < ";
 							}
 							DB::alteration_message("The DB Table Row Count does not seem to match the DataObject Count for <strong>$dataClass ($rawCount $sign $realCount)</strong>.  This could indicate an error as generally these numbers should match.", "deleted");
 							if($deleteNow) {
-								if($realCount > 500) {
+								$objects = $dataClass::get()->where("LinkedTable.ID IS NULL")->leftJoin($dataClass, "$dataClass.ID = LinkedTable.ID", "LinkedTable");
+								if($objects->count() > 500) {
 									DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in $dataClass. There are more than 500 records so it would take too long to do it now.", "deleted");
 								}
 								else {
-									$objects = $dataClass::get()->where("LinkedTable.ID IS NULL")->leftJoin($dataClass, "$dataClass.ID = LinkedTable.ID", "LinkedTable");
 									DB::alteration_message("Now trying to recreate missing items... COUNT = ".$objects->count(), "created");
 									foreach($objects as $object) {
 										if(DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
@@ -181,6 +182,7 @@ class DataIntegrityTest extends BuildTask {
 									}
 								}
 							}
+							echo "<hr />";
 						}
 						unset($actualTables[$dataClass]);
 					}
@@ -247,6 +249,9 @@ class DataIntegrityTest extends BuildTask {
 				}
 				if($remove) {
 					if(substr($table, 0, strlen("_obsolete_")) != "_obsolete_") {
+						$rowCount = DB::query("SELECT COUNT(*) FROM $table")->value();
+						DB::alteration_message($table.", rows ".$rowCount);
+
 						if(!$this->tableExists($table)) {
 							if($deleteNow) {
 								DB::alteration_message ("We recommend deleting $table or making it obsolete by renaming it to _obsolete_".$table, "deleted");
