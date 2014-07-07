@@ -36,6 +36,7 @@ class DataIntegrityTestUTF8 extends BuildTask {
 			$table = array_pop($table);
 			DB::query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");
 			DB::alteration_message("<h2>Resetting $table to utf8</h2>");
+			$this->flushNow();
 			$originatingTable = str_replace($table."_Live", $table, $table);
 			if(class_exists($originatingTable)) {
 				if($originatingTable instanceof DataObject) {
@@ -51,6 +52,7 @@ class DataIntegrityTestUTF8 extends BuildTask {
 											$toWord = '[NOTHING]';
 										}
 										DB::alteration_message("Replace $from with $to in  $table.$fieldName", "created");
+										$this->flushNow();
 										DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
 									}
 								}
@@ -60,6 +62,16 @@ class DataIntegrityTestUTF8 extends BuildTask {
 				}
 			}
 		}
+	}
+
+	private function flushNow(){
+		// check that buffer is actually set before flushing
+		if (ob_get_length()){
+			@ob_flush();
+			@flush();
+			@ob_end_flush();
+		}
+		@ob_start();
 	}
 
 }
