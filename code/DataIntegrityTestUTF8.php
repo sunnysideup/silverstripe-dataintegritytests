@@ -11,7 +11,8 @@ class DataIntegrityTestUTF8 extends BuildTask {
 		'â€œ' => '&quot;',
 		'â€^Ý' => '&quot;',
 		'<br>' => '<br />',
-		'â€¢' => '&#8226'
+		'â€¢' => '&#8226',
+		'Ý' => '- '
 	);
 
 	/**
