@@ -6,7 +6,7 @@ class DataIntegrityTestUTF8 extends BuildTask {
 	private static $replacement_array = array(
 		'Â' => '',
 		'Â' => '',
-		'â€™' => '\'',
+		'â€™' => '&#39;',
 		'Ââ€“' => '&mdash;',
 		'â€¨' => '',
 		'â€œ' => '&quot;',
