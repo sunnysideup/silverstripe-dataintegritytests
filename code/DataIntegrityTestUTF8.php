@@ -5,6 +5,7 @@ class DataIntegrityTestUTF8 extends BuildTask {
 
 	private static $replacement_array = array(
 		'Â' => '',
+		'Â' => '',
 		'â€™' => '\'',
 		'Ââ€“' => '&mdash;',
 		'â€¨' => '',
@@ -54,6 +55,9 @@ class DataIntegrityTestUTF8 extends BuildTask {
 										DB::alteration_message("Replace $from with $to in  $table.$fieldName", "created");
 										$this->flushNow();
 										DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
+									}
+									else {
+										DB::alteration_message("No need to replace $from with $to in  $table.$fieldName");
 									}
 								}
 							}
