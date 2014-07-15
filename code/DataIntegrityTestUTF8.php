@@ -40,30 +40,49 @@ class DataIntegrityTestUTF8 extends BuildTask {
 			$this->flushNow();
 			$originatingTable = str_replace($table."_Live", $table, $table);
 			if(class_exists($originatingTable)) {
-				if($originatingTable instanceof DataObject) {
-					$fields = Config::inst()->get($originatingTable, "db", $uninherited = 1);
-					if($fields && count($fields)) {
-						foreach($fields as $fieldName => $type) {
-							if(substr($type, 0, 4) == "HTML") {
-								foreach($arrayOfReplacements as $from => $to) {
-									$count = DB::query("SELECT COUNT(ID) FROM \"$table\" WHERE \"$fieldName\" LIKE '%$from%';")->value();
-									if($count) {
-										$toWord = $to;
-										if($to == '') {
-											$toWord = '[NOTHING]';
-										}
-										DB::alteration_message("Replace $from with $to in  $table.$fieldName", "created");
-										$this->flushNow();
-										DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
+				$fields = Config::inst()->get($originatingTable, "db", $uninherited = 1);
+				if($fields && count($fields)) {
+					$unusedFields = array();
+					$usedFieldsChanged = array();
+					$usedFieldsUnchanged = array();
+					foreach($fields as $fieldName => $type) {
+						if(substr($type, 0, 4) == "HTML") {
+							foreach($arrayOfReplacements as $from => $to) {
+								$count = DB::query("SELECT COUNT(ID) FROM \"$table\" WHERE \"$fieldName\" LIKE '%$from%';")->value();
+								if($count) {
+									$toWord = $to;
+									if($to == '') {
+										$toWord = '[NOTHING]';
 									}
-									else {
-										DB::alteration_message("No need to replace $from with $to in  $table.$fieldName");
-									}
+									$usedFieldsChanged[] = "$count Replacements $from with $to in $table.$fieldName";
+									$this->flushNow();
+									DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
+								}
+								else {
+									$usedFieldsUnchanged[] = "No replacements in $table.$fieldName";
 								}
 							}
 						}
+						else {
+							$unusedFields[] = $fieldName;
+						}
+					}
+					if(count($usedFieldsChanged )) {
+						DB::alteration_message (implode("- <br />", $usedFieldsUnchanged) );
+					}
+					if(count($usedFieldsUnchanged )) {
+						DB::alteration_message (implode("- <br />", $usedFieldsUnchanged) );
+					}
+					if(count($unusedFields)) {
+						DB::alteration_message("Skipped the following fields: ".implode(",", $unusedFields));
 					}
 				}
+				else {
+					DB::alteration_message("No fields for $originatingTable");
+				}
+			}
+			else {
+				DB::alteration_message("Skipping $originatingTable - class can not be found");
 			}
 		}
 	}
