@@ -85,6 +85,7 @@ class DataIntegrityTestUTF8 extends BuildTask {
 				DB::alteration_message("Skipping $originatingTable - class can not be found");
 			}
 		}
+		DB::alteration_message("<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />");
 	}
 
 	private function flushNow(){
