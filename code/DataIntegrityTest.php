@@ -69,6 +69,7 @@ class DataIntegrityTest extends BuildTask {
 		$warning = Config::inst()->get("DataIntegrityTest", "warning");
 		echo "<h2>Database Administration Helpers</h2>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deletesafeones=1\">Prepare a list of obsolete fields and delete obsolete fields without any data.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".$warning."');\">Delete obsolete fields now!</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">delete all tables that are marked as obsolete</a></p>";
@@ -87,6 +88,7 @@ class DataIntegrityTest extends BuildTask {
 		increase_time_limit_to(600);
 		$dataClasses = ClassInfo::subclassesFor('DataObject');
 		$notCheckedArray = array();
+		$canBeSafelyDeleted = array();
 		//remove dataobject
 		array_shift($dataClasses);
 		$rows = DB::query("SHOW TABLES;");
@@ -120,25 +122,32 @@ class DataIntegrityTest extends BuildTask {
 								}
 								else {
 									$warning = Config::inst()->get("DataIntegrityTest", "warning");
-									$link = "<a href=\"".Director::absoluteBaseURL()."dev/tasks/DataIntegrityTest/?do=deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a><br /><br />";
+									$link = "<a href=\"".Director::absoluteBaseURL()."dev/tasks/DataIntegrityTest/?do=deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a>";
 								}
 								if(!in_array($actualField, array("ID", "Version"))) {
 									if(!in_array($actualField, $requiredFields)) {
-										DB::alteration_message ("$dataClass.$actualField $link", "deleted");
-										$distinctCount = DB::query("SELECT COUNT(DISTINCT \"$actualField\") FROM \"$dataClass\";")->value();
-										DB::alteration_message (" &nbsp; &nbsp;UNIQUE ENTRIES: ".$distinctCount);
-										$rows = DB::query("
-											SELECT \"$actualField\" as N, COUNT(\"$actualField\") as C
-											FROM \"$dataClass\"
-											GROUP BY \"$actualField\"
-											ORDER BY C DESC
-											LIMIT 7");
-										if($rows) {
-											foreach($rows as $row) {
-												DB::alteration_message (" &nbsp; &nbsp; &nbsp; ".$row["C"].": ".$row["N"]);
+										$distinctCount = DB::query("SELECT COUNT(DISTINCT \"$actualField\") FROM \"$dataClass\" WHERE \"$actualField\" IS NOT NULL AND \"$actualField\" <> '' AND \"$actualField\" <> 0;")->value();
+										DB::alteration_message ("<br /><br />\n\n$dataClass.$actualField $link - unique entries: $distinctCount", "deleted");
+										if($distinctCount) {
+											$rows = DB::query("
+												SELECT \"$actualField\" as N, COUNT(\"$actualField\") as C
+												FROM \"$dataClass\"
+												GROUP BY \"$actualField\"
+												ORDER BY C DESC
+												LIMIT 7");
+											if($rows) {
+												foreach($rows as $row) {
+													DB::alteration_message (" &nbsp; &nbsp; &nbsp; ".$row["C"].": ".$row["N"]);
+												}
 											}
 										}
-										if($deleteNow) {
+										else {
+											if(!isset($canBeSafelyDeleted[$dataClass])) {
+												$canBeSafelyDeleted[$dataClass] = array();
+											}
+											$canBeSafelyDeleted[$dataClass][$actualField] = "$dataClass.$actualField";
+										}
+										if($deleteNow || (isset($_GET["deletesafeones"]) && $_GET["deletesafeones"] == 1 && $distinctCount == 0)) {
 											$this->deleteField($dataClass, $actualField);
 										}
 									}
@@ -209,6 +218,13 @@ class DataIntegrityTest extends BuildTask {
 						}
 					}
 				}
+			}
+		}
+
+		if(count($canBeSafelyDeleted)) {
+			DB::alteration_message("<h2>Can be safely deleted: </h2>");
+			foreach($canBeSafelyDeleted as $table => $fields) {
+				DB::alteration_message($table.": ".implode(", ", $fields));
 			}
 		}
 
@@ -284,6 +300,7 @@ class DataIntegrityTest extends BuildTask {
 				}
 			}
 		}
+
 		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
 
@@ -352,8 +369,8 @@ class DataIntegrityTest extends BuildTask {
 			return false;
 		}
 		else {
+			DB::alteration_message ("Deleting $field in $table", "deleted");
 			DB::query('ALTER TABLE "'.$table.'" DROP "'.$field.'";');
-			DB::alteration_message ("Deleted $field in $table", "deleted");
 			$obj = singleton($table);
 			//to do: make this more reliable - checking for versioning rather than SiteTree
 			if($obj instanceof SiteTree) {
