@@ -125,6 +125,19 @@ class DataIntegrityTest extends BuildTask {
 								if(!in_array($actualField, array("ID", "Version"))) {
 									if(!in_array($actualField, $requiredFields)) {
 										DB::alteration_message ("$dataClass.$actualField $link", "deleted");
+										$distinctCount = DB::query("SELECT COUNT(DISTINCT \"$actualField\") FROM \"$dataClass\";")->value();
+										DB::alteration_message (" &nbsp; &nbsp;UNIQUE ENTRIES: ".$distinctCount);
+										$rows = DB::query("
+											SELECT \"$actualField\" as N, COUNT(\"$actualField\") as C
+											FROM \"$dataClass\"
+											GROUP BY \"$actualField\"
+											ORDER BY C DESC
+											LIMIT 7");
+										if($rows) {
+											foreach($rows as $row) {
+												DB::alteration_message (" &nbsp; &nbsp; &nbsp; ".$row["C"].": ".$row["N"]);
+											}
+										}
 										if($deleteNow) {
 											$this->deleteField($dataClass, $actualField);
 										}
