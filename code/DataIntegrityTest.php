@@ -126,7 +126,7 @@ class DataIntegrityTest extends BuildTask {
 								}
 								if(!in_array($actualField, array("ID", "Version"))) {
 									if(!in_array($actualField, $requiredFields)) {
-										$distinctCount = DB::query("SELECT COUNT(DISTINCT \"$actualField\") FROM \"$dataClass\" WHERE \"$actualField\" IS NOT NULL AND \"$actualField\" <> '' AND \"$actualField\" <> 0;")->value();
+										$distinctCount = DB::query("SELECT COUNT(DISTINCT \"$actualField\") FROM \"$dataClass\" WHERE \"$actualField\" IS NOT NULL AND \"$actualField\" <> '' AND \"$actualField\" <> '0';")->value();
 										DB::alteration_message ("<br /><br />\n\n$dataClass.$actualField $link - unique entries: $distinctCount", "deleted");
 										if($distinctCount) {
 											$rows = DB::query("
