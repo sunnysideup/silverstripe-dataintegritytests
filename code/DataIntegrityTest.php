@@ -42,7 +42,6 @@ class DataIntegrityTest extends BuildTask {
 		"obsoletefields" => "ADMIN",
 		"deleteonefield" => "ADMIN",
 		"deletemarkedfields" => "ADMIN",
-		"deleteobsoletefields" => "ADMIN",
 		"deleteobsoletetables" => "ADMIN",
 		"deleteallversions" => "ADMIN"
 	);
@@ -60,7 +59,16 @@ class DataIntegrityTest extends BuildTask {
 			$method = $methodArray[0];
 			$allowedActions = Config::inst()->get("DataIntegrityTest", "allowed_actions");
 			if(isset($allowedActions[$method])) {
-				return $this->$method();
+				if($method == "obsoletefields") {
+					$deletesafeones = $fixbrokendataobjects = $deleteall = false;
+					if(isset($_GET["deletesafeones"]) && $_GET["deletesafeones"]) {$deletesafeones = true;}
+					if(isset($_GET["fixbrokendataobjects"]) && $_GET["fixbrokendataobjects"]) {$fixbrokendataobjects = true;}
+					if(isset($_GET["deleteall"]) && $_GET["deleteall"]) {$deleteall = true;}
+					return $this->$method($deletesafeones, $fixbrokendataobjects, $deleteall);
+				}
+				else {
+					return $this->$method();
+				}
 			}
 			else {
 				user_error("could not find method: $method");
@@ -69,10 +77,14 @@ class DataIntegrityTest extends BuildTask {
 		$warning = Config::inst()->get("DataIntegrityTest", "warning");
 		echo "<h2>Database Administration Helpers</h2>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
-		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deletesafeones=1\">Prepare a list of obsolete fields and delete obsolete fields without any data.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deletesafeones=1\" onclick=\"return confirm('".$warning."');\">Prepare a list of obsolete fields and delete obsolete fields without any data.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;fixbrokendataobjects=1\" onclick=\"return confirm('".$warning."');\">Fix broken dataobjects.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deleteall=1\" onclick=\"return confirm('".$warning."');\">Delete all obsolete fields now!</a></p>";
+
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
-		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletefields\" onclick=\"return confirm('".$warning."');\">Delete obsolete fields now!</a></p>";
+
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">delete all tables that are marked as obsolete</a></p>";
+
 		echo "<p><a href=\"".$this->Link()."?do=deleteallversions\" onclick=\"return confirm('".$warning."');\">delete all versioned data</a></p>";
 	}
 
@@ -80,11 +92,7 @@ class DataIntegrityTest extends BuildTask {
 		return "/dev/tasks/DataIntegrityTest/";
 	}
 
-	protected function deleteobsoletefields(){
-		return $this->obsoletefields(true);
-	}
-
-	protected function obsoletefields($deleteNow = false) {
+	protected function obsoletefields($deleteSafeOnes = false, $fixBrokenDataObject = false, $deleteAll = false) {
 		increase_time_limit_to(600);
 		$dataClasses = ClassInfo::subclassesFor('DataObject');
 		$notCheckedArray = array();
@@ -117,7 +125,7 @@ class DataIntegrityTest extends BuildTask {
 						$actualFields = $this->swapArray(DB::fieldList($dataClass));
 						if($actualFields) {
 							foreach($actualFields as $actualField) {
-								if($deleteNow) {
+								if($deleteAll) {
 									$link = " !!!!!!!!!!! DELETED !!!!!!!!!";
 								}
 								else {
@@ -147,7 +155,7 @@ class DataIntegrityTest extends BuildTask {
 											}
 											$canBeSafelyDeleted[$dataClass][$actualField] = "$dataClass.$actualField";
 										}
-										if($deleteNow || (isset($_GET["deletesafeones"]) && $_GET["deletesafeones"] == 1 && $distinctCount == 0)) {
+										if($deleteAll || ($deleteSafeOnes && $distinctCount == 0)) {
 											$this->deleteField($dataClass, $actualField);
 										}
 									}
@@ -156,7 +164,7 @@ class DataIntegrityTest extends BuildTask {
 									$versioningPresent = $dataObject->hasVersioning();
 									if(!$versioningPresent) {
 										DB::alteration_message ("$dataClass.$actualField $link", "deleted");
-										if($deleteNow) {
+										if($deleteAll) {
 											$this->deleteField($dataClass, $actualField);
 										}
 									}
@@ -178,7 +186,7 @@ class DataIntegrityTest extends BuildTask {
 								$sign = " < ";
 							}
 							DB::alteration_message("The DB Table Row Count does not seem to match the DataObject Count for <strong>$dataClass ($rawCount $sign $realCount)</strong>.  This could indicate an error as generally these numbers should match.", "deleted");
-							if($deleteNow) {
+							if($fixBrokenDataObject) {
 								$objects = $dataClass::get()->where("LinkedTable.ID IS NULL")->leftJoin($dataClass, "$dataClass.ID = LinkedTable.ID", "LinkedTable");
 								if($objects->count() > 500) {
 									DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in $dataClass. There are more than 500 records so it would take too long to do it now.", "deleted");
@@ -193,11 +201,12 @@ class DataIntegrityTest extends BuildTask {
 										}
 									}
 									$objectCount = $dataClass::get()->count();
-									DB::alteration_message("Consider deleting superfluous records from table $dataClass .... COUNT =".($rawCount - count($objectCount)));
+									DB::alteration_message("Consider deleting superfluous records from table $dataClass .... COUNT =".($rawCount - $objectCount));
 									$ancestors = ClassInfo::ancestry($dataClass, true);
 									if($ancestors && is_array($ancestors) && count($ancestors)) {
 										foreach($ancestors as $ancestor) {
 											if($ancestor != $dataClass) {
+												echo "DELETE `$dataClass`.* FROM `$dataClass` LEFT JOIN `$ancestor` ON `$dataClass`.`ID` = `$ancestor`.`ID` WHERE `$ancestor`.`ID` IS NULL;";
 												DB::query("DELETE `$dataClass`.* FROM `$dataClass` LEFT JOIN `$ancestor` ON `$dataClass`.`ID` = `$ancestor`.`ID` WHERE `$ancestor`.`ID` IS NULL;");
 											}
 										}
@@ -282,19 +291,19 @@ class DataIntegrityTest extends BuildTask {
 						DB::alteration_message($table.", rows ".$rowCount);
 
 						if(!$this->tableExists($table)) {
-							if($deleteNow) {
-								DB::alteration_message ("We recommend deleting $table or making it obsolete by renaming it to _obsolete_".$table, "deleted");
+							DB::alteration_message ("We recommend deleting $table or making it obsolete by renaming it to _obsolete_".$table, "deleted");
+							if($deleteAll) {
 								//DB::getConn()->renameTable($table, "_obsolete_".$table);
 							}
 							else {
 								DB::alteration_message ($table." - ".$classExistsMessage." It can be moved to _obsolete_".$table."." , "created");
-								//DB::getConn()->renameTable($table, "_obsolete_".$table);
+								if($deleteAll) {
+									//DB::getConn()->renameTable($table, "_obsolete_".$table);
+								}
 							}
 						}
 						else {
-							if($deleteNow) {
-								DB::alteration_message ("I'd recommend to move <strong>$table</strong> to <strong>_obsolete_".$table."</strong>, but that table already exists" , "deleted");
-							}
+							DB::alteration_message ("I'd recommend to move <strong>$table</strong> to <strong>_obsolete_".$table."</strong>, but that table already exists" , "deleted");
 						}
 					}
 				}
