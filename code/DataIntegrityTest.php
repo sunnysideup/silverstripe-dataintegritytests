@@ -289,21 +289,18 @@ class DataIntegrityTest extends BuildTask {
 					if(substr($table, 0, strlen("_obsolete_")) != "_obsolete_") {
 						$rowCount = DB::query("SELECT COUNT(*) FROM $table")->value();
 						DB::alteration_message($table.", rows ".$rowCount);
-
-						if(!$this->tableExists($table)) {
-							DB::alteration_message ("We recommend deleting $table or making it obsolete by renaming it to _obsolete_".$table, "deleted");
+						$obsoleteTableName = "_obsolete_".$table;
+						if(!$this->tableExists($obsoleteTableName)) {
+							DB::alteration_message ("We recommend deleting $table or making it obsolete by renaming it to ".$obsoleteTableName, "deleted");
 							if($deleteAll) {
-								//DB::getConn()->renameTable($table, "_obsolete_".$table);
+								DB::getConn()->renameTable($table, $obsoleteTableName);
 							}
 							else {
 								DB::alteration_message ($table." - ".$classExistsMessage." It can be moved to _obsolete_".$table."." , "created");
-								if($deleteAll) {
-									//DB::getConn()->renameTable($table, "_obsolete_".$table);
-								}
 							}
 						}
 						else {
-							DB::alteration_message ("I'd recommend to move <strong>$table</strong> to <strong>_obsolete_".$table."</strong>, but that table already exists" , "deleted");
+							DB::alteration_message ("I'd recommend to move <strong>$table</strong> to <strong>".$obsoleteTableName."</strong>, but that table already exists" , "deleted");
 						}
 					}
 				}
