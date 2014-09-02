@@ -55,7 +55,7 @@ class DataIntegrityTestUTF8 extends BuildTask {
 										$toWord = '[NOTHING]';
 									}
 								}
-								$usedFieldsChanged[] = "$count Replacements <strong>$from</strong> with <strong>$to</strong>";
+								$usedFieldsChanged[] = "$count Replacements <strong>$from</strong> with <strong>$toWord</strong>";
 							}
 						}
 						else {
