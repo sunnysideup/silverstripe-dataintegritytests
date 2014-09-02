@@ -49,11 +49,9 @@ class DataIntegrityTestUTF8 extends BuildTask {
 							foreach($arrayOfReplacements as $from => $to) {
 								DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
 								$count = DB::getConn()->affectedRows();
-								if($count) {
-									$toWord = $to;
-									if($to == '') {
-										$toWord = '[NOTHING]';
-									}
+								$toWord = $to;
+								if($to == '') {
+									$toWord = '[NOTHING]';
 								}
 								$usedFieldsChanged[] = "$count Replacements <strong>$from</strong> with <strong>$toWord</strong>";
 							}
