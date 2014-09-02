@@ -43,8 +43,8 @@ class DataIntegrityTestUTF8 extends BuildTask {
 				$fields = Config::inst()->get($originatingTable, "db", $uninherited = 1);
 				if($fields && count($fields)) {
 					$unusedFields = array();
-					$usedFieldsChanged = array("CHECKING $table.$fieldName : ");
 					foreach($fields as $fieldName => $type) {
+						$usedFieldsChanged = array("CHECKING $table.$fieldName : ");
 						if(substr($type, 0, 4) == "HTML") {
 							foreach($arrayOfReplacements as $from => $to) {
 								DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
@@ -61,10 +61,10 @@ class DataIntegrityTestUTF8 extends BuildTask {
 						else {
 							$unusedFields[] = $fieldName;
 						}
-					}
-					if(count($usedFieldsChanged )) {
-						DB::alteration_message (implode("<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ", $usedFieldsChanged) );
-						$this->flushNow();
+						if(count($usedFieldsChanged )) {
+							DB::alteration_message (implode("<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ", $usedFieldsChanged) );
+							$this->flushNow();
+						}
 					}
 					if(count($unusedFields)) {
 						DB::alteration_message("Skipped the following fields: ".implode(",", $unusedFields));
