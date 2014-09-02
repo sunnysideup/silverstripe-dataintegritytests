@@ -43,24 +43,19 @@ class DataIntegrityTestUTF8 extends BuildTask {
 				$fields = Config::inst()->get($originatingTable, "db", $uninherited = 1);
 				if($fields && count($fields)) {
 					$unusedFields = array();
-					$usedFieldsChanged = array();
-					$usedFieldsUnchanged = array();
+					$usedFieldsChanged = array("CHECKING $table.$fieldName : ");
 					foreach($fields as $fieldName => $type) {
 						if(substr($type, 0, 4) == "HTML") {
 							foreach($arrayOfReplacements as $from => $to) {
-								$count = DB::query("SELECT COUNT(ID) FROM \"$table\" WHERE \"$fieldName\" LIKE '%$from%';")->value();
+								DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
+								$count = DB::getConn()->affectedRows();
 								if($count) {
 									$toWord = $to;
 									if($to == '') {
 										$toWord = '[NOTHING]';
 									}
-									$usedFieldsChanged[] = "$count Replacements $from with $to in $table.$fieldName";
-									$this->flushNow();
-									DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
 								}
-								else {
-									$usedFieldsUnchanged[] = "No replacements in $table.$fieldName";
-								}
+								$usedFieldsChanged[] = "$count Replacements <strong>$from</strong> with <strong>$to</strong>";
 							}
 						}
 						else {
@@ -68,10 +63,8 @@ class DataIntegrityTestUTF8 extends BuildTask {
 						}
 					}
 					if(count($usedFieldsChanged )) {
-						DB::alteration_message (implode("- <br />", $usedFieldsUnchanged) );
-					}
-					if(count($usedFieldsUnchanged )) {
-						DB::alteration_message (implode("- <br />", $usedFieldsUnchanged) );
+						DB::alteration_message (implode("<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ", $usedFieldsChanged) );
+						$this->flushNow();
 					}
 					if(count($unusedFields)) {
 						DB::alteration_message("Skipped the following fields: ".implode(",", $unusedFields));
