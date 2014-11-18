@@ -58,7 +58,7 @@ SELECT CEILING(Total_InnoDB_Bytes*1.6/POWER(1024,3)) RIBPS FROM
 		Please check your MYSQL innodb_buffer_pool_size setting.
 		It is currently using ".round($innoDBBufferUsed, 3)."G,
 		but it should be set to ".round($innoBDBufferRecommended, 3)."G.
-		The current setting is: ".round($currentInnoDBSetting / (1024))."G
+		The current setting is: ".round($currentInnoDBSetting / (1042 * 1024* 1024))."G
 		<hr /><hr /><hr /><hr /><hr /><hr /><hr />");
 	}
 
