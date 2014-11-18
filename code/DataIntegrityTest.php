@@ -83,9 +83,12 @@ class DataIntegrityTest extends BuildTask {
 
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
 
-		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">delete all tables that are marked as obsolete</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">Delete all tables that are marked as obsolete</a></p>";
 
-		echo "<p><a href=\"".$this->Link()."?do=deleteallversions\" onclick=\"return confirm('".$warning."');\">delete all versioned data</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=deleteallversions\" onclick=\"return confirm('".$warning."');\">Delete all versioned data</a></p>";
+		echo "<hr />";
+		echo "<p><a href=\"/dev/tasks/DataIntegrityTestInnoDB/\" onclick=\"return confirm('".$warning."');\">Set all tables to innoDB</a></p>";
+		echo "<p><a href=\"/dev/tasks/DataIntegrityTestUTF8/\" onclick=\"return confirm('".$warning."');\">Set all tables to utf-8</a></p>";
 	}
 
 	protected function Link(){
