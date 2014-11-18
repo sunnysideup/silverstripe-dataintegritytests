@@ -17,9 +17,9 @@ class DataIntegrityTestInnoDB extends BuildTask {
 
 	function run($request) {
 		ini_set('max_execution_time', 3000);
-		$tables = DB::query('SHOW tables');
+		$tables = DB::query('SHOW TABLE STATUS WHERE ENGINE <>  \'InnoDB\'');
 		foreach ($tables as $table) {
-			$table = array_pop($table);
+			$table = $table["Name"];
 			DB::alteration_message("Updating $table to innoDB", "created");$this->flushNow();
 			$indexRows = DB::query("SHOW INDEX FROM \"$table\" WHERE Index_type = 'FULLTEXT'");
 			unset($done);$done = array();
@@ -34,10 +34,8 @@ class DataIntegrityTestInnoDB extends BuildTask {
 			$sql = "ALTER TABLE \"$table\" ENGINE=INNODB";
 			DB::query($sql);
 		}
-		$rows = DB::query("SHOW GLOBAL STATUS LIKE  'Innodb_page_size'");
-		foreach($rows as $row) {
-			$currentInnoDBSetting = $row["Value"];
-		}
+		//$rows = DB::query("SHOW GLOBAL STATUS LIKE  'Innodb_page_size'");
+		$currentInnoDBSetting = DB::query("SELECT @@innodb_buffer_pool_size as V;")->Value();
 		$innoDBBufferUsed = DB::query("
 
 SELECT (PagesData*PageSize)/POWER(1024,3) DataGB FROM
