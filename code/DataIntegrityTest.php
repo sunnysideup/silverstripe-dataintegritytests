@@ -43,7 +43,8 @@ class DataIntegrityTest extends BuildTask {
 		"deleteonefield" => "ADMIN",
 		"deletemarkedfields" => "ADMIN",
 		"deleteobsoletetables" => "ADMIN",
-		"deleteallversions" => "ADMIN"
+		"deleteallversions" => "ADMIN",
+		"cleanupdb" => "ADMIN"
 	);
 
 
@@ -80,12 +81,14 @@ class DataIntegrityTest extends BuildTask {
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deletesafeones=1\" onclick=\"return confirm('".$warning."');\">Prepare a list of obsolete fields and delete obsolete fields without any data.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;fixbrokendataobjects=1\" onclick=\"return confirm('".$warning."');\">Fix broken dataobjects.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deleteall=1\" onclick=\"return confirm('".$warning."');\">Delete all obsolete fields now!</a></p>";
-
+		echo "<hr />";
 		echo "<p><a href=\"".$this->Link()."?do=deletemarkedfields\" onclick=\"return confirm('".$warning."');\">Delete fields listed in _config.</a></p>";
-
+		echo "<hr />";
 		echo "<p><a href=\"".$this->Link()."?do=deleteobsoletetables\" onclick=\"return confirm('".$warning."');\">Delete all tables that are marked as obsolete</a></p>";
-
+		echo "<hr />";
 		echo "<p><a href=\"".$this->Link()."?do=deleteallversions\" onclick=\"return confirm('".$warning."');\">Delete all versioned data</a></p>";
+		echo "<hr />";
+		echo "<p><a href=\"".$this->Link()."?do=cleanupdb\" onclick=\"return confirm('".$warning."');\">Clean up Database (remove obsolete records)</a></p>";
 		echo "<hr />";
 		echo "<p><a href=\"/dev/tasks/DataIntegrityTestInnoDB/\" onclick=\"return confirm('".$warning."');\">Set all tables to innoDB</a></p>";
 		echo "<p><a href=\"/dev/tasks/DataIntegrityTestUTF8/\" onclick=\"return confirm('".$warning."');\">Set all tables to utf-8</a></p>";
@@ -351,6 +354,13 @@ class DataIntegrityTest extends BuildTask {
 			DB::alteration_message("COULD NOT delete $field from $table now", "deleted");
 		}
 		DB::alteration_message("<a href=\"".Director::absoluteURL("dev/tasks/DataIntegrityTest/?do=obsoletefields")."\">return to list of obsolete fields</a>", "created");
+		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
+	}
+
+	private function cleanupdb(){
+		$obj = new DatabaseAdmin();
+		$obj->cleanup();
+		DB::alteration_message("============= COMPLETED =================", "");
 		echo "<a href=\"".Director::absoluteURL("/dev/tasks/DataIntegrityTest/")."\">back to main menu.</a>";
 	}
 
