@@ -10,6 +10,20 @@ interface MyFancyDataObject {
 
 	private static $has_one;
 
+	/**
+	 * A meta-relationship that allows you to define the reverse side of a {@link DataObject::$has_one}.
+	 *
+	 * This does not actually create any data structures, but allows you to query the other object in a one-to-one
+	 * relationship from the child object. If you have multiple belongs_to links to another object you can use the
+	 * syntax "ClassName.HasOneName" to specify which foreign has_one key on the other object to use.
+	 *
+	 * Note that you cannot have a has_one and belongs_to relationship with the same name.
+	 *
+	 * @var array
+	 * @config
+	 */
+	private static $belongs_to;
+
 	private static $has_many;
 
 	private static $many_many;
@@ -35,8 +49,9 @@ interface MyFancyDataObject {
 	private static $searchable_fields;
 
 	/**
-	 * 		$controller = singleton("DesignPortfolioAdmin");
-	 * 		return $controller->Link().$this->ClassName."/EditForm/field/".$this->ClassName."/item/".$this->ID."/edit";
+	 * e.g.
+	 *    $controller = singleton("MyModelAdmin");
+	 *    return $controller->Link().$this->ClassName."/EditForm/field/".$this->ClassName."/item/".$this->ID."/edit";
  	 */
 	public function CMSEditLink();
 
