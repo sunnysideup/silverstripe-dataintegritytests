@@ -2,9 +2,11 @@
 
 interface MyFancyDataObject {
 
-	private static $singular_name;
+	private static $singular_name = "Service Search";
+		function i18n_singular_name() { return self::$singular_name;}
 
-	private static $plural_name;
+	private static $plural_name = "Service Searches";
+		function i18n_plural_name() { return self::$plural_name;}
 
 	private static $db;
 
