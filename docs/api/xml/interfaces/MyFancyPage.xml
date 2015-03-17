@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface xmlns="http://xml.phpdox.net/src" full="MyFancyPage" namespace="" name="MyFancyPage" abstract="false" final="false" start="3" end="244">
+  <file path="/var/www/_modules/dataintegritytests/trunk/docs/en/phpdox/../../../code/interfaces" file="MyFancyPage.php" realpath="/var/www/_modules/dataintegritytests/trunk/code/interfaces/MyFancyPage.php" size="6490" time="2015-03-14T10:23:11+13:00" unixtime="1426281791" sha1="1fbce67001069b043055a02a7ee42d0b1405b5ca" relative="code/interfaces/MyFancyPage.php"/>
+  <member name="allowed_children" type="{unknown}" visibility="private" line="18">
+    <docblock>
+      <description compact="Indicates what kind of children this page type can have.">This can be an array of allowed child classes, or the string "none" -
+indicating that this page type can't have children.
+If a classname is prefixed by "*", such as "*Page", then only that
+class is allowed - no subclasses. Otherwise, the class and all its
+subclasses are allowed.
+To control allowed children on root level (no parent), use <link xmlns="http://xml.phpdox.net/src" value="$can_be_root"/>.
+Note that this setting is cached when used in the CMS, use the "flush" query parameter to clear it.
+</description>
+      <var type="array"/>
+    </docblock>
+  </member>
+  <member name="default_child" type="{unknown}" visibility="private" line="26">
+    <docblock>
+      <description compact="The default child class for this page.">Note: Value might be cached, see <link xmlns="http://xml.phpdox.net/src" value="$allowed_chilren"/>.
+</description>
+      <var type="string"/>
+    </docblock>
+  </member>
+  <member name="default_parent" type="{unknown}" visibility="private" line="34">
+    <docblock>
+      <description compact="The default parent class for this page.">Note: Value might be cached, see <link xmlns="http://xml.phpdox.net/src" value="$allowed_chilren"/>.
+</description>
+      <var type="string"/>
+    </docblock>
+  </member>
+  <member name="can_be_root" type="{unknown}" visibility="private" line="42">
+    <docblock>
+      <description compact="Controls whether a page can be in the root of the site tree.">Note: Value might be cached, see <link xmlns="http://xml.phpdox.net/src" value="$allowed_chilren"/>.
+</description>
+      <var type="object">
+        <type full="bool" namespace="" name="bool"/>
+      </var>
+    </docblock>
+  </member>
+  <member name="need_permission" type="{unknown}" visibility="private" line="50">
+    <docblock>
+      <description compact="List of permission codes a user can have to allow a user to create a page of this type.">Note: Value might be cached, see <link xmlns="http://xml.phpdox.net/src" value="$allowed_chilren"/>.
+</description>
+      <var type="array"/>
+    </docblock>
+  </member>
+  <member name="hide_ancestor" type="{unknown}" visibility="private" line="59">
+    <docblock>
+      <description compact="If you extend a class, and don't want to be able to select the old class in the cms, set this to the old class name. Eg, if you extended Product to make ImprovedProduct, then you would set $hide_ancestor to Product."/>
+      <var type="string"/>
+    </docblock>
+  </member>
+  <member name="indexes" type="{unknown}" visibility="private" line="69">
+    <docblock>
+      <description compact="If a field is in this array, then create a database index on that field. This is a map from fieldname to index type.">See <link xmlns="http://xml.phpdox.net/src" value="SS_Database-&gt;requireIndex()"/> and custom subclasses for details on the array notation.
+</description>
+      <var type="array"/>
+    </docblock>
+  </member>
+  <member name="db" type="{unknown}" visibility="private" line="71"/>
+  <member name="has_one" type="{unknown}" visibility="private" line="72"/>
+  <member name="many_many" type="{unknown}" visibility="private" line="73"/>
+  <member name="belongs_many_many" type="{unknown}" visibility="private" line="74"/>
+  <member name="many_many_extraFields" type="{unknown}" visibility="private" line="75"/>
+  <member name="casting" type="{unknown}" visibility="private" line="86">
+    <docblock>
+      <description compact="Use a casting object for a field. This is a map from field name to class name of the casting object.">These are like pseudo-fields.  You will net to set up a method
+get{myCastedVariable} for each casted variable.</description>
+      <var type="array"/>
+    </docblock>
+  </member>
+  <member name="defaults" type="{unknown}" visibility="private" line="99">
+    <docblock>
+      <description compact="Inserts standard column-values when a DataObject is instanciated. Does not insert default records {@see $default_records}.">This is a map from fieldname to default value.
+
+ - If you would like to change a default value in a sub-class, just specify it.
+ - If you would like to disable the default value given by a parent class, set the default value to 0,'',
+   or false in your subclass.  Setting it to null won't work.</description>
+      <var type="array"/>
+    </docblock>
+  </member>
+  <member name="default_records" type="{unknown}" default="null" visibility="private" line="116">
+    <docblock>
+      <description compact="Multidimensional array which inserts default data into the database on a db/build-call as long as the database-table is empty. Please use this only for simple constructs, not for SiteTree-Objects etc. which need special behaviour such as publishing and ParentNodes.">Example:
+array(
+ array('Title' =&gt; "DefaultPage1", 'PageTitle' =&gt; 'page1'),
+ array('Title' =&gt; "DefaultPage2")
+).</description>
+      <var type="array"/>
+      <config/>
+    </docblock>
+  </member>
+  <member name="versioning" type="{unknown}" visibility="private" line="125">
+    <docblock>
+      <description compact="Sitree uses:     private static $versioning = array(       &quot;Stage&quot;,  &quot;Live&quot;     );"/>
+      <var type="object">
+        <type full="Arary" namespace="" name="Arary"/>
+      </var>
+    </docblock>
+  </member>
+  <member name="default_sort" type="{unknown}" visibility="private" line="133">
+    <docblock>
+      <description compact="The default sort expression. This will be inserted in the ORDER BY clause of a SQL query if no other sort expression is provided."/>
+      <var type="string"/>
+      <config/>
+    </docblock>
+  </member>
+  <member name="can_create" type="{unknown}" visibility="private" line="140">
+    <docblock>
+      <description compact="If this is false, the class cannot be created in the CMS by regular content authors, only by ADMINs."/>
+      <var type="boolean"/>
+      <config/>
+    </docblock>
+  </member>
+  <member name="icon" type="{unknown}" visibility="private" line="149">
+    <docblock>
+      <description compact="Icon to use in the CMS page tree. This should be the full filename, relative to the webroot.">Also supports custom CSS rule contents (applied to the correct selector for the tree UI implementation).</description>
+      <see value="CMSMain::generateTreeStylingCSS()"/>
+      <var type="string"/>
+    </docblock>
+  </member>
+  <member name="description" type="{unknown}" visibility="private" line="155">
+    <docblock>
+      <description/>
+      <var description="Description of the class functionality, typically shown to a user" type="object">when selecting which page type to create. Translated through <link xmlns="http://xml.phpdox.net/src" value="provideI18nEntities()"/>.
+<type full="String" namespace="" name="String"/></var>
+    </docblock>
+  </member>
+  <member name="singular_name" type="{unknown}" visibility="private" line="161">
+    <docblock>
+      <description compact="standard SS variable"/>
+      <var value="String"/>
+    </docblock>
+  </member>
+  <method name="i18n_singular_name" start="162" end="162" abstract="false" final="false" static="false" visibility="public"/>
+  <member name="plural_name" type="{unknown}" visibility="private" line="168">
+    <docblock>
+      <description compact="standard SS variable"/>
+      <var value="String"/>
+    </docblock>
+  </member>
+  <method name="i18n_plural_name" start="169" end="169" abstract="false" final="false" static="false" visibility="public"/>
+  <member name="extensions" type="{unknown}" visibility="private" line="175">
+    <docblock>
+      <description/>
+      <var type="object">
+        <type full="Array" namespace="" name="Array"/>
+      </var>
+    </docblock>
+  </member>
+  <member name="searchable_fields" type="{unknown}" visibility="private" line="211">
+    <docblock>
+      <description compact="Default list of fields that can be scaffolded by the ModelAdmin search interface.">Overriding the default filter, with a custom defined filter:
+&lt;code&gt;
+ static $searchable_fields = array(
+    "Name" =&gt; "PartialMatchFilter"
+ );
+&lt;/code&gt;
+Overriding the default form fields, with a custom defined field.
+The 'filter' parameter will be generated from <link xmlns="http://xml.phpdox.net/src" value="DBField::$default_search_filter_class"/>.
+The 'title' parameter will be generated from <link xmlns="http://xml.phpdox.net/src" value="DataObject-&gt;fieldLabels()"/>.
+&lt;code&gt;
+ static $searchable_fields = array(
+   "Name" =&gt; array(
+     "field" =&gt; "TextField"
+   )
+ );
+&lt;/code&gt;
+Overriding the default form field, filter and title:
+&lt;code&gt;
+ static $searchable_fields = array(
+   "Organisation.ZipCode" =&gt; array(
+     "field" =&gt; "TextField",
+     "filter" =&gt; "PartialMatchFilter",
+     "title" =&gt; 'Organisation ZIP'
+   )
+ );
+&lt;/code&gt;
+</description>
+      <config/>
+    </docblock>
+  </member>
+  <member name="field_labels" type="{unknown}" visibility="private" line="218">
+    <docblock>
+      <description compact="User defined labels for searchable_fields, used to override default display in the search form."/>
+      <config/>
+    </docblock>
+  </member>
+  <member name="create_default_pages" type="{unknown}" visibility="private" line="224">
+    <docblock>
+      <description/>
+      <var type="object">
+        <type full="Boolan" namespace="" name="Boolan"/>
+      </var>
+    </docblock>
+  </member>
+  <member name="runCMSFieldsExtensions" type="{unknown}" visibility="private" line="229">
+    <docblock>
+      <description compact="This controls whether of not extendCMSFields() is called by getCMSFields."/>
+    </docblock>
+  </member>
+  <member name="enforce_strict_hierarchy" type="{unknown}" default="true" visibility="private" line="234">
+    <docblock>
+      <description/>
+      <var type="boolean"/>
+    </docblock>
+  </member>
+  <member name="meta_generator" type="string" default="'SilverStripe - http://silverstripe.org'" visibility="private" line="241">
+    <docblock>
+      <description compact="The value used for the meta generator tag.  Leave blank to omit the tag."/>
+      <var type="string"/>
+    </docblock>
+  </member>
+</interface>

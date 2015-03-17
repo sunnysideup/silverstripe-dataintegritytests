@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<class xmlns="http://xml.phpdox.net/src" full="DataIntegrityTestUTF8" namespace="" name="DataIntegrityTestUTF8" abstract="false" final="false" start="4" end="92">
+  <file path="/var/www/_modules/dataintegritytests/trunk/docs/en/phpdox/../../../code" file="DataIntegrityTestUTF8.php" realpath="/var/www/_modules/dataintegritytests/trunk/code/DataIntegrityTestUTF8.php" size="2936" time="2015-03-14T10:23:11+13:00" unixtime="1426281791" sha1="509c0252137b775b99625a6366a4c2a227ecb4ff" relative="code/DataIntegrityTestUTF8.php"/>
+  <extends full="BuildTask" namespace="" name="BuildTask"/>
+  <member name="replacement_array" type="array" visibility="private" line="6"/>
+  <member name="title" type="string" default="&quot;Convert tables to utf-8 and replace funny characters.&quot;" visibility="protected" line="23">
+    <docblock>
+      <description compact="standard SS variable"/>
+      <var type="object">
+        <type full="String" namespace="" name="String"/>
+      </var>
+    </docblock>
+  </member>
+  <member name="description" type="string" default="&quot;Converts table to utf-8 by replacing a bunch of characters that show up in the Silverstripe Conversion. CAREFUL: replaces all tables in Database to utf-8!&quot;" visibility="protected" line="29">
+    <docblock>
+      <description compact="standard SS variable"/>
+      <var type="object">
+        <type full="String" namespace="" name="String"/>
+      </var>
+    </docblock>
+  </member>
+  <method name="run" start="31" end="80" abstract="false" final="false" static="false" visibility="public">
+    <parameter name="request" byreference="false" type="{unknown}"/>
+  </method>
+  <method name="flushNow" start="82" end="90" abstract="false" final="false" static="false" visibility="private">
+    <inline>
+      <comment value="check that buffer is actually set before flushing" line="83"/>
+    </inline>
+  </method>
+</class>
