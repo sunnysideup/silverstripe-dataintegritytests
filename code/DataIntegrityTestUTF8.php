@@ -39,9 +39,15 @@ class DataIntegrityTestUTF8 extends BuildTask {
 			DB::query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");
 			DB::alteration_message("<h2>Resetting $table to utf8</h2>");
 			$this->flushNow();
-			$originatingTable = str_replace($table."_Live", $table, $table);
-			if(class_exists($originatingTable)) {
-				$fields = Config::inst()->get($originatingTable, "db", $uninherited = 1);
+			$originatingClass = str_replace("_Live", "", $table);
+			if(class_exists($originatingClass) && !class_exists($table)) {
+				
+			}
+			else {
+				$originatingClass = $table;
+			}
+			if(class_exists($originatingClass)) {
+				$fields = Config::inst()->get($originatingClass, "db", $uninherited = 1);
 				if($fields && count($fields)) {
 					$unusedFields = array();
 					foreach($fields as $fieldName => $type) {
