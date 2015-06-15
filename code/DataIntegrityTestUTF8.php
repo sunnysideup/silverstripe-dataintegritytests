@@ -76,11 +76,11 @@ class DataIntegrityTestUTF8 extends BuildTask {
 					}
 				}
 				else {
-					DB::alteration_message("No fields for $originatingTable");
+					DB::alteration_message("No fields for $originatingClass");
 				}
 			}
 			else {
-				DB::alteration_message("Skipping $originatingTable - class can not be found");
+				DB::alteration_message("Skipping $originatingClass - class can not be found");
 			}
 		}
 		DB::alteration_message("<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />");
