@@ -78,7 +78,7 @@ class DataIntegrityTest extends BuildTask {
 		$warning = Config::inst()->get("DataIntegrityTest", "warning");
 		echo "<h2>Database Administration Helpers</h2>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
-		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deletesafeones=1\" onclick=\"return confirm('".$warning."');\">Prepare a list of obsolete fields and delete obsolete fields without any data.</a></p>";
+		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deletesafeones=1\" onclick=\"return confirm('".$warning."');\">Prepare a list of obsolete fields and DELETE! obsolete fields without any data.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;fixbrokendataobjects=1\" onclick=\"return confirm('".$warning."');\">Fix broken dataobjects.</a></p>";
 		echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deleteall=1\" onclick=\"return confirm('".$warning."');\">Delete all obsolete fields now!</a></p>";
 		echo "<hr />";
