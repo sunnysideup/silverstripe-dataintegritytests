@@ -21,13 +21,13 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 	 */
 	function run($request) {
 		echo "<style>table {width: 100%;} th, td {padding: 5px; font-size: 12px; border: 1px solid #ccc; vertical-align: top;}</style>";
-
-		if($minutes = intval($request->getVar("m"))-0) {
+		$minutes = intval($request->getVar("m"))-0;
+		if($request->getVar("m") === $minutes) {
 			//do nothing
 		}
 		else {
 			$tsFrom = strtotime($request->getVar("m"));
-			if($time) {
+			if($tsFrom) {
 				$tsUntil = strtotime("NOW");
 				$minutes = round(($tsUntil - $tsFrom) / 60);
 			}
@@ -78,7 +78,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 		}
 		echo "
 			<form method=\"get\" action=\"".Director::absoluteURL("dev/tasks/".$this->class."/")."\">
-				<label for=\"m\">minutes ago</label>
+				<label for=\"m\">please enter minutes ago or any date (e.g. last week, yesterday, 2011-11-11, etc...)</label>
 				<input name=\"m\" id=\"m\" value=\"".$_GET["m"]."\">
 			</form>";
 	}
