@@ -16,8 +16,10 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 	 */
 	protected $description = "Go through all tables in the database and see what records have been edited in the last xxx minutes.  You can set the minutes using a GET variable (http://www.sunnysideup.co.nz/dev/tasks/DataIntegrityTestRecentlyChanged/?x=123 where 123 is the number of minutes).";
 
+	/**
+	 * runs the task and outputs directly to the screen
+	 */
 	function run($request) {
-		ini_set('max_execution_time', 3000);
 		echo "<style>table {width: 100%;} th, td {padding: 5px; font-size: 12px; border: 1px solid #ccc; vertical-align: top;}</style>";
 		if($minutes = intval($request->getVar("m"))-0) {
 			$whereStatementFixed = "UNIX_TIMESTAMP(\"LastEdited\") > ".strtotime($minutes." minutes ago")." ";
@@ -67,10 +69,5 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 			</form>";
 	}
 
-
-	private function tableExists($table){
-		$db = DB::getConn();
-		return $db->hasTable($table);
-	}
 
 }
