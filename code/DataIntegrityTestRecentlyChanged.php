@@ -54,19 +54,20 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 						}
 						$fields = array("ID" => "Int", "Created" => "SS_DateAndTime", "LastEdited" => "SS_DateAndTime")+$fields;
 						if($count) {
-							echo "<h2>".$singleton->singular_name()."(".$count.")</h2><table><thead>";
-							echo "<tr><th>".implode("</th><th>",array_keys($fields))."</th></tr></thead><tbody>";
+							echo "<h2>".$singleton->singular_name()."(".$count.")</h2>";
 							$objects = $dataClass::get()->where($whereStatement)->limit(1000);
 							foreach($objects as $object) {
+								echo "<h4>".$object->getTitle()."</h4><ul>";
 								if(count($fields)) {
 									$array = array();
 									foreach($fields as $field => $typeOfField) {
-										$array[] = substr(strip_tags($object->$field), 0, 1000);
+										echo "<li><strong>".$field."</strong><pre>\t\t".htmlentities($object->$field)."</pre></li>";
 									}
-									echo "<tr><td>".implode("</td><td>", $array)."</td></li>";
+
 								}
+								echo "</ul>";
 							}
-							echo "</tbody></table>";
+							echo "</blockquote>";
 						}
 					}
 				}
