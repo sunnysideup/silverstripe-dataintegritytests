@@ -21,8 +21,22 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 	 */
 	function run($request) {
 		echo "<style>table {width: 100%;} th, td {padding: 5px; font-size: 12px; border: 1px solid #ccc; vertical-align: top;}</style>";
+
 		if($minutes = intval($request->getVar("m"))-0) {
-			$whereStatementFixed = "UNIX_TIMESTAMP(\"LastEdited\") > ".strtotime($minutes." minutes ago")." ";
+			//do nothing
+		}
+		else {
+			$tsFrom = strtotime($request->getVar("m"));
+			if($time) {
+				$tsUntil = strtotime("NOW");
+				$minutes = round(($tsUntil - $tsFrom) / 60);
+			}
+		}
+		if($minutes) {
+			$ts = strtotime($minutes." minutes ago");
+			$date =  date(DATE_RFC2822, $ts);
+			echo "<hr /><h3>changes in the last ".$this->minutesToTime($minutes)."<br />from: ".$date."<br />make sure you see THE END at the bottom of this list</h3><hr />";
+			$whereStatementFixed = "UNIX_TIMESTAMP(\"LastEdited\") > ".$ts." ";
 			$dataClasses = ClassInfo::subclassesFor('DataObject');
 			array_shift($dataClasses);
 			foreach($dataClasses as $dataClass) {
@@ -57,7 +71,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 					}
 				}
 			}
-			echo "<h1>-------- END --------</h1>";
+			echo "<hr /><h1>-------- THE END --------</h1>";
 		}
 		if(empty($_GET["m"])) {
 			$_GET["m"] = 0;
@@ -69,5 +83,11 @@ class DataIntegrityTestRecentlyChanged extends BuildTask {
 			</form>";
 	}
 
+	protected function minutesToTime($minutes) {
+		$seconds = $minutes * 60;
+		$dtF = new DateTime("@0");
+		$dtT = new DateTime("@$seconds");
+		return $dtF->diff($dtT)->format('%a days, %h hours,  and %i minutes');
+	}
 
 }
