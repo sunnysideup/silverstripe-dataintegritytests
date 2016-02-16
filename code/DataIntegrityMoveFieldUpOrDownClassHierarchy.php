@@ -32,8 +32,8 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask {
 		if($oldTable && $newTable && $field) {
 			if(class_exists($oldTable)) {
 				if(class_exists($newTable)) {
-					$oldFields = $this->swapArray(DB::fieldList($oldTable));
-					$newFields = $this->swapArray(DB::fieldList($newTable));
+					$oldFields = array_keys(DB::fieldList($oldTable));
+					$newFields = array_keys(DB::fieldList($newTable));
 					$jointFields = array_intersect($oldFields, $newFields);
 					if(in_array($field, $jointFields)) {
 						if($forreal) {
@@ -148,7 +148,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask {
 		$completed = array();
 		foreach ($tablesToCheck as $tableToCheck) {
 			$tableToCheck = array_pop($tableToCheck);
-			$fieldsToCheck = $this->swapArray(DB::fieldList($tableToCheck));
+			$fieldsToCheck = array_keys(DB::fieldList($tableToCheck));
 			$fieldsToCheck = array_diff($fieldsToCheck, array("ID"));
 			$array[$tableToCheck] = $fieldsToCheck;
 		}
@@ -245,14 +245,24 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask {
 		echo "<h1>======================== THE END ====================== </h1>";
 	}
 
+	/**
+	 *
+	 *
+	 * @return string
+	 */ 
 	protected function Link(){
 		return "/dev/tasks/DataIntegrityMoveFieldUpOrDownClassHierarchy/";
 	}
 
-
-
+	/**
+	 *
+	 * @param string $table
+	 * @param string $field
+	 *
+	 * @return boolean
+	 */ 
 	private function deleteField($table, $field) {
-		$fields = $this->swapArray(DB::fieldList($table));
+		$fields = array_keys(DB::fieldList($table));
 		if(!DB::query("SHOW TABLES LIKE '".$table."'")->value()) {
 			DB::alteration_message ("tried to delete $table.$field but TABLE does not exist", "deleted");
 			return false;
@@ -280,15 +290,6 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask {
 		}
 	}
 
-	private function swapArray($array) {
-		$newArray = array();
-		if(is_array($array)) {
-			foreach($array as $key => $value) {
-				$newArray[] = $key;
-			}
-		}
-		return $newArray;
-	}
 
 
 }
