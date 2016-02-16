@@ -21,128 +21,219 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask {
 		ini_set('max_execution_time', 3000);
 		$oldTable = $request->getVar("oldtable");
 		$newTable = $request->getVar("newtable");
-		if(!$oldTable && !$newTable) {
-			$tables = DB::query('SHOW tables');
-			$array = array();
-			$completed = array();
-			foreach ($tables as $table) {
-				$table = array_pop($table);
-				$fields = $this->swapArray(DB::fieldList($table));
-				$fields = array_diff($fields, array("ID"));
-				$array[$table] = $fields;
-			}
-			$testArray1 = $array;
-			$testArray2 = $array;
-			$link = array();
-			foreach($testArray1 as $testTable1 => $testFields1) {
-				foreach($testArray2 as $testTable2 => $testFields2) {
-					if(class_exists($testTable1)) {
-						$parentArray1 = class_parents($testTable1);
-					}
-					else {
-						$parentArray1 = array("MATCH");
-					}
-					if(class_exists($testTable2)) {
-						$parentArray2 = class_parents($testTable2);
-					}
-					else {
-						$parentArray2 = array("MATCH");
-					}
-					if(in_array($testTable2, $parentArray1) || in_array($testTable1, $parentArray2)) {
-						$interSect = array_intersect($testFields1, $testFields2);
-						if(count($interSect)) {
-							if(
-								(
-									isset($completed[$testTable1."_".$testTable2]) ||
-									isset($completed[$testTable2."_".$testTable1])
-								)
-								&& (
-									(isset($completed[$testTable1."_".$testTable2]) ? count($completed[$testTable1."_".$testTable2]) : rand(0,9999999)) == count($interSect) ||
-									(isset($completed[$testTable2."_".$testTable1]) ? count($completed[$testTable2."_".$testTable1]) : rand(0,9999999)) == count($interSect)
-								)
-							) {
-								//do nothing
-							}
-							else {
-
-								$completed[$testTable1."_".$testTable2] = $interSect;
-
-								$link["backward"] = "<a href=\"".$this->Link()."?oldtable=$testTable2&newtable=$testTable1\">move $testTable2 fields into $testTable1</a>";
-								if(in_array("DataObject", $parentArray1)) {
-									$modelFields1 = array_keys((array)Config::inst()->get($testTable1, "db", Config::UNINHERITED )) +
-									$hasOneArray = array_keys((array)Config::inst()->get($testTable1, "has_one", Config::UNINHERITED ));
-									$hasOneArray = array_map(
-										function($val) {return $val."ID";},
-										$hasOneArray
-									);
-									$modelFields1 + $hasOneArray;
-									//$modelFields1 = array_keys((array)Injector::inst()->get($testTable1)->db()) + array_keys((array)Injector::inst()->get($testTable1)->has_one());
-									foreach($interSect as $moveableField) {
-										if(!in_array($moveableField, $modelFields1)) {
-											$link["backward"] = "";
-										}
-									}
-								}
-								$link["forward"] = "<a href=\"".$this->Link()."?oldtable=$testTable1&newtable=$testTable2\">move $testTable1 fields into $testTable2</a>";
-								if(in_array("DataObject", $parentArray1)) {
-									$modelFields2 = array_keys((array)Config::inst()->get($testTable2, "db", Config::UNINHERITED )) + array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED ));
-									$hasOneArray = array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED ));
-									$hasOneArray = array_map(
-										function($val) {return $val."ID";},
-										$hasOneArray
-									);
-									$modelFields2 + $hasOneArray;
-									//$modelFields2 = array_keys((array)Injector::inst()->get($testTable2)->db()) + array_keys((array)Injector::inst()->get($testTable2)->has_one());
-									foreach($interSect as $moveableField) {
-										if(!in_array($moveableField, $modelFields2)) {
-											$link["forward"] = "";
-										}
-									}
-								}
-								$str = array();
-								if($link["backward"]){
-									$str[] = $link["backward"];
-								}
-								if($link["forward"]){
-									$str[] = $link["forward"];
-								}
-								if(!count($str)) {
-									$str[] = "fields missing in both $testTable1 and $testTable2";
-								}
-								DB::alteration_message(implode(" ||| ", $str)."<br /><ul><li>".implode("</li><li>", $interSect)."</li></ul>");
-							}
-						}
-					}
-				}
-			}
-		}
-		else {
+		$field = $request->getVar("field");
+		$forreal = $request->getVar("forreal");
+		if($oldTable && $newTable && $field) {
 			if(class_exists($oldTable)) {
 				if(class_exists($newTable)) {
 					$oldFields = $this->swapArray(DB::fieldList($oldTable));
 					$newFields = $this->swapArray(DB::fieldList($newTable));
-					$fields = array_intersect($oldFields, $newFields);
-					foreach($fields as $field) {
-						DB::alteration_message("Moving $field from $oldTable to $newTable");
-						$sql = "
-							UPDATE \"".$newTable."\"
-								INNER JOIN
-								 ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
-							SET \"".$newTable."\".\"".$field."\" = \"".$oldTable."\".\"".$field."\"
-							WHERE
-								\"".$newTable."\".\"".$field."\" = 0 OR
-								\"".$newTable."\".\"".$field."\" IS NULL OR
-								\"".$newTable."\".\"".$field."\" = ''
-								;";
-						$this->deleteField($oldTable, $field);
+					$jointFields = array_intersect($oldFields, $newFields);
+					if(in_array($field, $jointFields)) {
+						if($forreal) {
+							DB::alteration_message("Moving $field from $oldTable to $newTable", "deleted");
+							$sql = "
+								UPDATE \"".$newTable."\"
+									INNER JOIN \"".$oldTable."\"
+									 ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
+								SET \"".$newTable."\".\"".$field."\" = \"".$oldTable."\".\"".$field."\"
+								WHERE
+									\"".$newTable."\".\"".$field."\" = 0 OR
+									\"".$newTable."\".\"".$field."\" IS NULL OR
+									\"".$newTable."\".\"".$field."\" = '0.00' OR
+									\"".$newTable."\".\"".$field."\" = ''
+									;";
+							DB::query($sql);
+							$sql = "
+								INSERT IGNORE INTO \"".$newTable."\" (ID, \"$field\")
+								SELECT \"".$oldTable."\".ID, \"".$oldTable."\".\"$field\"
+								FROM \"".$oldTable."\"
+									LEFT JOIN \"".$newTable."\"
+									 ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
+								WHERE
+									\"".$newTable."\".\"ID\" IS NULL
+									;";
+							DB::query($sql);
+							$this->deleteField($oldTable, $field);
+						}
+						else {
+							DB::alteration_message("TESTING a move of $field from $oldTable to $newTable");
+							$sql = "
+								SELECT 
+									COUNT(\"".$newTable."\".\"ID\") AS C
+									FROM \"".$oldTable."\"
+										INNER JOIN \"".$newTable."\"
+										ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
+									;";
+							$matchingRowCount = DB::query($sql)->value();
+							$sql = "
+								SELECT 
+									\"".$newTable."\".\"ID\"
+									FROM \"".$oldTable."\"
+										INNER JOIN \"".$newTable."\"
+										ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
+									;";
+							$rows = DB::query($sql);
+							$matchingRows = array();
+							foreach($rows as $row){
+								$matchingRows[$row["ID"]] = $row["ID"];
+							}
+							
+							$sql = "
+								SELECT 
+									\"".$newTable."\".\"ID\",
+									\"".$newTable."\".\"".$field."\" AS NEW".$field.",
+									\"".$oldTable."\".\"".$field."\" AS OLD".$field."
+									FROM \"".$oldTable."\"
+										INNER JOIN \"".$newTable."\"
+										ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
+								WHERE
+									(
+										\"".$newTable."\".\"".$field."\" <> \"".$oldTable."\".\"".$field."\"
+									)
+									OR
+									(
+										(\"".$newTable."\".\"".$field."\" IS NULL AND \"".$oldTable."\".\"".$field."\" IS NOT NULL)
+										 OR
+										(\"".$newTable."\".\"".$field."\" IS NOT NULL AND \"".$oldTable."\".\"".$field."\" IS NULL)
+									)
+									;";
+							$rows = DB::query($sql);
+							if($rows->numRecords()) {
+								echo "<h3>DIFFERENCES in MATCHING ROWS ($matchingRowCount)</h3><table border=\"1\"><thead><tr><th>ID</th><th>OLD</th><th>NEW</th><th>ACTION</th></tr></thead><tbody>";
+								foreach($rows as $row) {
+									$action = "do nothing";
+									if(!$row["NEW".$field] || $row["NEW".$field] == '0.00') {
+										$action = "override";
+									}
+									echo "<tr><td>".$row["ID"]."</td><td>".$row["OLD".$field]."</td><td>".$row["NEW".$field]."</td><td>".$action."</td></tr>";
+								}
+								echo "</tbody></table>";
+							}
+							else {
+								echo "<p>No differences!</p>";
+							}
+							$sql = "
+								SELECT 
+									COUNT(\"".$oldTable."\".\"ID\") AS C
+									FROM \"".$oldTable."\"
+										LEFT JOIN \"".$newTable."\"
+										ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
+									WHERE \"".$newTable."\".\"ID\" IS NULL;
+									;";
+							$nonMatchingRowCount = DB::query($sql)->value();
+							echo "<h3>Number of rows to insert: ".$nonMatchingRowCount."</h3>";
+							echo "<h2><a href=\"".$this->Link()."?oldtable=$oldTable&newtable=$newTable&field=$field&forreal=1\">move now!</a></h2>";
+
+						}
 					}
 				}
 				else {
-					user_error("Specificy valid newtable using get var");
+					user_error("Field is not in both tables.  We recommend that you run a <em>dev/build</em> first as this may solve the problem....");
 				}
 			}
 			else {
 				user_error("Specificy valid oldtable using get var");
+			}
+		}
+		echo "<hr />";
+		$tablesToCheck = DB::query('SHOW tables');
+		$array = array();
+		$completed = array();
+		foreach ($tablesToCheck as $tableToCheck) {
+			$tableToCheck = array_pop($tableToCheck);
+			$fieldsToCheck = $this->swapArray(DB::fieldList($tableToCheck));
+			$fieldsToCheck = array_diff($fieldsToCheck, array("ID"));
+			$array[$tableToCheck] = $fieldsToCheck;
+		}
+		$testArray1 = $array;
+		$testArray2 = $array;
+		$link = array();
+		foreach($testArray1 as $testTable1 => $testFields1) {
+			foreach($testArray2 as $testTable2 => $testFields2) {
+				if(class_exists($testTable1)) {
+					$parentArray1 = class_parents($testTable1);
+				}
+				else {
+					$parentArray1 = array("MATCH");
+				}
+				if(class_exists($testTable2)) {
+					$parentArray2 = class_parents($testTable2);
+				}
+				else {
+					$parentArray2 = array("MATCH");
+				}
+				if(in_array($testTable2, $parentArray1) || in_array($testTable1, $parentArray2)) {
+					$interSect = array_intersect($testFields1, $testFields2);
+					if(count($interSect)) {
+						if(
+							(
+								isset($completed[$testTable1."_".$testTable2]) ||
+								isset($completed[$testTable2."_".$testTable1])
+							)
+							&& (
+								(isset($completed[$testTable1."_".$testTable2]) ? count($completed[$testTable1."_".$testTable2]) : rand(0,9999999)) == count($interSect) ||
+								(isset($completed[$testTable2."_".$testTable1]) ? count($completed[$testTable2."_".$testTable1]) : rand(0,9999999)) == count($interSect)
+							)
+						) {
+							//do nothing
+						}
+						else {
+
+							$completed[$testTable1."_".$testTable2] = $interSect;
+
+							$link["movetoparent"] = array();
+							if(in_array("DataObject", $parentArray1)) {
+								$modelFields1 = array_keys((array)Config::inst()->get($testTable1, "db", Config::UNINHERITED )) +
+								$hasOneArray = array_keys((array)Config::inst()->get($testTable1, "has_one", Config::UNINHERITED ));
+								$hasOneArray = array_map(
+									function($val) {return $val."ID";},
+									$hasOneArray
+								);
+								$modelFields1 + $hasOneArray;
+								//$modelFields1 = array_keys((array)Injector::inst()->get($testTable1)->db()) + array_keys((array)Injector::inst()->get($testTable1)->has_one());
+								foreach($interSect as $moveableField) {
+									if(in_array($moveableField, $modelFields1)) {
+										$link["movetoparent"][$moveableField] = "<a href=\"".$this->Link()."?oldtable=$testTable2&newtable=$testTable1&field=$moveableField\">move from $testTable2 into $testTable1</a>";;
+									}
+								}
+							}
+							$link["movetochild"] = array();
+							if(in_array("DataObject", $parentArray1)) {
+								$modelFields2 = array_keys((array)Config::inst()->get($testTable2, "db", Config::UNINHERITED )) + array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED ));
+								$hasOneArray = array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED ));
+								$hasOneArray = array_map(
+									function($val) {return $val."ID";},
+									$hasOneArray
+								);
+								$modelFields2 + $hasOneArray;
+								//$modelFields2 = array_keys((array)Injector::inst()->get($testTable2)->db()) + array_keys((array)Injector::inst()->get($testTable2)->has_one());
+								foreach($interSect as $moveableField) {
+									if(in_array($moveableField, $modelFields2)) {
+										$link["movetochild"][$moveableField] = "<a href=\"".$this->Link()."?oldtable=$testTable1&newtable=$testTable2&field=$moveableField\">move from $testTable1  into $testTable2</a>";
+									}
+								}
+							}
+							$str = "$testTable1 &lt;&gt; $testTable2<br /><ul>";
+							foreach($interSect as $moveableField) {
+								$str .= "<li>$moveableField: ";
+								
+								if(isset($link["movetoparent"][$moveableField])) {
+									$str .= $link["movetoparent"][$moveableField];
+								}
+								if(isset($link["movetoparent"][$moveableField]) && isset($link["movetochild"][$moveableField])) {
+									$str .= " ||| ";
+								}
+								if(isset($link["movetochild"][$moveableField])) {
+									$str .= $link["movetochild"][$moveableField];
+								}
+								$str .= "</li>";
+							}
+							$str .= "</ul>";
+							DB::alteration_message($str);
+						}
+					}
+				}
 			}
 		}
 		echo "<h1>======================== THE END ====================== </h1>";
