@@ -8,13 +8,19 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask {
 	 * standard SS variable
 	 * @var String
 	 */
-	protected $title = "Move field up or down class hierarchy";
+	protected $title = "Move data field up or down class (table) hierarchy.";
 
 	/**
 	 * standard SS variable
 	 * @var String
 	 */
-	protected $description = "This is useful in case you change the hierarchy of classes and data ends up in the wrong field. You first need to run a dev/build - after that all the eligible fields will be move from old Table to new Table";
+	protected $description = "
+		This is useful in case you change the hierarchy of classes
+		and as a consequence your data ends up in the wrong table.
+		To run this task you will first need to run a dev/build -
+		after that all the eligible fields will be listed
+		and the task gives you the ability to move each field individually as required.
+	";
 
 
 	function run($request) {
