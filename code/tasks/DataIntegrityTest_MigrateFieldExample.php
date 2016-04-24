@@ -46,10 +46,10 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 				DB::query('
 					UPDATE "'.$table.'"
 					'.$join.'
-					SET "'.$this->tableNameOld.'"."'.$this->fieldNameOld.'" = "'.$this->tableNameNew.'"."'.$this->fieldNameNew.'"
+					SET "'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = "'.$this->tableNameOld.'"."'.$this->fieldNameOld.'"
 					WHERE (
 						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = 0 OR
-						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = '' OR
+						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = \'\' OR
 						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" IS NULL
 					)
 					;'
@@ -58,10 +58,10 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 			}
 		}
 		if($migrationSucess) {
-			DB::alteration_message("Migrated data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->FieldNameNew, "created");
+			DB::alteration_message("Migrated data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->fieldNameNew, "created");
 		}
 		else {
-			DB::alteration_message("ERROR IN migrating data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->FieldNameNew, "deleted");
+			DB::alteration_message("ERROR IN migrating data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->fieldNameNew, "deleted");
 		}
 	
 		
