@@ -44,7 +44,7 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 					$join = ' INNER JOIN "'.$this->tableNameOld.'" ON "'.$this->tableNameOld.'"."ID" = "'.$this->tableNameNew.'"."ID" ';
 				}
 				DB::query('
-					UPDATE "'.$table.'"
+					UPDATE "'.$this->tableNameNew.'"
 					'.$join.'
 					SET "'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = "'.$this->tableNameOld.'"."'.$this->fieldNameOld.'"
 					WHERE (
