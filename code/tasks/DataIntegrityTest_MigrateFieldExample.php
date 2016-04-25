@@ -11,30 +11,30 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 
 	/**
 	 * @var string
-	 */ 
+	 */
 	protected $fieldNameOld = "OldField";
 
 	/**
 	 * @var string
-	 */ 	
+	 */
 	protected $fieldNameNew = "NewField";
 
 	/**
 	 * @var string
-	 */ 	
+	 */
 	protected $tableNameOld = "TableName";
 
 	/**
 	 * @var string
-	 */ 	
+	 */
 	protected $tableNameNew = "TableName";
 
 	public function run($request)
 	{
 		if(!$this->tableNameNew) {
-			$this->tableNameNew = $this->tableNameOld; 
+			$this->tableNameNew = $this->tableNameOld;
 		}
-		
+
 		//move data
 		$migrationSucess = false;
 		if($this->hasTableAndField($this->tableNameOld, $this->fieldNameOld)) {
@@ -44,12 +44,12 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 					$join = ' INNER JOIN "'.$this->tableNameOld.'" ON "'.$this->tableNameOld.'"."ID" = "'.$this->tableNameNew.'"."ID" ';
 				}
 				DB::query('
-					UPDATE "'.$table.'"
+					UPDATE "'.$this->tableNameNew.'"
 					'.$join.'
-					SET "'.$this->tableNameOld.'"."'.$this->fieldNameOld.'" = "'.$this->tableNameNew.'"."'.$this->fieldNameNew.'"
+					SET "'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = "'.$this->tableNameOld.'"."'.$this->fieldNameOld.'"
 					WHERE (
 						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = 0 OR
-						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = '' OR
+						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" = \'\' OR
 						"'.$this->tableNameNew.'"."'.$this->fieldNameNew.'" IS NULL
 					)
 					;'
@@ -58,13 +58,13 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 			}
 		}
 		if($migrationSucess) {
-			DB::alteration_message("Migrated data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->FieldNameNew, "created");
+			DB::alteration_message("Migrated data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->fieldNameNew, "created");
 		}
 		else {
-			DB::alteration_message("ERROR IN migrating data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->FieldNameNew, "deleted");
+			DB::alteration_message("ERROR IN migrating data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->fieldNameNew, "deleted");
 		}
-	
-		
+
+
 		//make obsolete
 		if($this->hasTableAndField($this->tableNameOld, $this->fieldNameOld)) {
 			$db = DB::getConn();
@@ -84,7 +84,7 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 	 * Otherwise it returns false.
 	 * @param string - $field - name of the field to be tested
 	 * @param string - $table - name of the table to be tested
-	 * 
+	 *
 	 * @return Boolean
 	 */
 	protected function hasTableAndField($table, $field) {
