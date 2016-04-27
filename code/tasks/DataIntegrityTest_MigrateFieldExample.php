@@ -11,30 +11,30 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 
 	/**
 	 * @var string
-	 */ 
+	 */
 	protected $fieldNameOld = "OldField";
 
 	/**
 	 * @var string
-	 */ 	
+	 */
 	protected $fieldNameNew = "NewField";
 
 	/**
 	 * @var string
-	 */ 	
+	 */
 	protected $tableNameOld = "TableName";
 
 	/**
 	 * @var string
-	 */ 	
+	 */
 	protected $tableNameNew = "TableName";
 
 	public function run($request)
 	{
 		if(!$this->tableNameNew) {
-			$this->tableNameNew = $this->tableNameOld; 
+			$this->tableNameNew = $this->tableNameOld;
 		}
-		
+
 		//move data
 		$migrationSucess = false;
 		if($this->hasTableAndField($this->tableNameOld, $this->fieldNameOld)) {
@@ -63,8 +63,8 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 		else {
 			DB::alteration_message("ERROR IN migrating data from ".$this->tableNameOld.".".$this->fieldNameOld." to ".$this->tableNameNew.".".$this->fieldNameNew, "deleted");
 		}
-	
-		
+
+
 		//make obsolete
 		if($this->hasTableAndField($this->tableNameOld, $this->fieldNameOld)) {
 			$db = DB::getConn();
@@ -84,7 +84,7 @@ abstract class DataIntegrityTest_MigrateFieldExample extends Buildtask
 	 * Otherwise it returns false.
 	 * @param string - $field - name of the field to be tested
 	 * @param string - $table - name of the table to be tested
-	 * 
+	 *
 	 * @return Boolean
 	 */
 	protected function hasTableAndField($table, $field) {
