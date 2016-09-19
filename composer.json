@@ -3,8 +3,10 @@
     "type": "silverstripe-module",
     "description": "check your database for obsolete fields and related data-structure errors",
     "keywords": [
+        "Silverstripe-CMS",
+        "CMS",
+        "Silverstripe",
         "dataintegritytests",
-        "silverstripe",
         "mysql",
         "check database",
         "database",
