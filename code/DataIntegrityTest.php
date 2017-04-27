@@ -152,11 +152,11 @@ class DataIntegrityTest extends BuildTask
                                         DB::alteration_message("<br /><br />\n\n$dataClass.$actualField $link - unique entries: $distinctCount", "deleted");
                                         if ($distinctCount) {
                                             $rows = DB::query("
-												SELECT \"$actualField\" as N, COUNT(\"$actualField\") as C
-												FROM \"$dataClass\"
-												GROUP BY \"$actualField\"
-												ORDER BY C DESC
-												LIMIT 7");
+                                                SELECT \"$actualField\" as N, COUNT(\"$actualField\") as C
+                                                FROM \"$dataClass\"
+                                                GROUP BY \"$actualField\"
+                                                ORDER BY C DESC
+                                                LIMIT 7");
                                             if ($rows) {
                                                 foreach ($rows as $row) {
                                                     DB::alteration_message(" &nbsp; &nbsp; &nbsp; ".$row["C"].": ".$row["N"]);
@@ -452,7 +452,7 @@ class DataIntegrityTest extends BuildTask
             if ($endOfTable == "_versions") {
                 $className = substr($table, 0, strlen($table) - 9);
                 if (class_exists($className)) {
-                    $obj = $className::get()->first();
+                    $obj = DataObject::get_one($className);
                     if ($obj) {
                         if ($obj->hasExtension("Versioned")) {
                             DB::alteration_message("Removing all records from $table", "created");
