@@ -16,7 +16,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      */
     protected $description = "Goes through all DataObjects to check if pagination can cause data-errors.";
 
-    protected $limit = 200;
+    protected $limit = 10;
 
     protected $step = 2;
 
@@ -53,6 +53,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     // check table size
                     $count = $class::get()->count();
                     if($count > $this->step) {
+                        $this->flushNowQuick('<br />'.$table.': '.);
                         if(! isset($errors[$class])) {
                             $errors[$class] = [];
                         }
@@ -75,8 +76,8 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         //start looping through summary fields ...
                         $summaryFields = $obj->summaryFields();
                         foreach ($summaryFields as $field => $value) {
-
                             if(isset($dbFields[$field]) || isset($hasOneFields[$field])) {
+                                $this->flushNowQuick(' / '.$field.': '.);
                                 // reset comparisonArray - this is important ...
                                 $comparisonArray = [];
                                 //fix has one field
@@ -98,11 +99,11 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                                 $id = $row['ID'];
                                                 if(isset($comparisonArray[$id])) {
                                                     if(! isset($errors[$class][$field][$id])) {
-                                                        $errors[$class][$field][$id] = 0;
+                                                        $errors[$class][$field][$id] = 1;
                                                     }
                                                     $errors[$class][$field][$id]++;
                                                 } else {
-                                                    echo '.';
+                                                    $this->flushNowQuick('.');
                                                 }
                                                 $comparisonArray[$id] = $id;
                                             }
@@ -137,8 +138,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                     $this->flushNowDebug($error, 'deleted');
                                     $errors[$class][$field] = $error;
                                 }
-                                $this->flushNowQuick(' / ');
-
                             } else {
                                 $this->flushNowDebug('<strong>SKIP: '.$class.'.'.$field.' field</strong> because it is not a DB field.');
                             }
