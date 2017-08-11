@@ -16,9 +16,9 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      */
     protected $description = "Goes through all DataObjects to check if pagination can cause data-errors.";
 
-    protected $limit = 10;
+    protected $limit = 100;
 
-    protected $step = 2;
+    protected $step = 15;
 
     protected $quickAndDirty = false;
 
@@ -53,7 +53,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     // check table size
                     $count = $class::get()->count();
                     if($count > $this->step) {
-                        $this->flushNowQuick('<br />'.$table.': '.);
+                        $this->flushNowQuick('<br />'.$class.': ');
                         if(! isset($errors[$class])) {
                             $errors[$class] = [];
                         }
@@ -77,7 +77,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         $summaryFields = $obj->summaryFields();
                         foreach ($summaryFields as $field => $value) {
                             if(isset($dbFields[$field]) || isset($hasOneFields[$field])) {
-                                $this->flushNowQuick(' / '.$field.': '.);
+                                $this->flushNowQuick(' / '.$field.': ');
                                 // reset comparisonArray - this is important ...
                                 $comparisonArray = [];
                                 //fix has one field
@@ -130,8 +130,8 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                     }
                                 }
                                 if(count($errors[$class][$field])) {
-                                    $error =    '<br /><strong>Found double entries in '.$class.' table,'.
-                                                ' when sorting with '.$field.'</strong> ...';
+                                    $error =    '<br /><strong>Found double entries in <u>'.$class.'</u> table,'.
+                                                ' sorting by <u>'.$field.'</u></strong> ...';
                                     foreach($errors[$class][$field] as $tempID => $tempCount) {
                                         $error .= ' ID: '.$tempID.' occurred '.$tempCount.' times /';
                                     }
