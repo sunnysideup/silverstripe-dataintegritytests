@@ -16,7 +16,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      */
     protected $description = "Goes through all DataObjects to check if pagination can cause data-errors.";
 
-    protected $limit = 20;
+    protected $limit = 200;
 
     protected $step = 2;
 
@@ -24,53 +24,76 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     public function run($request)
     {
+        // give us some time to run this
         ini_set('max_execution_time', 3000);
+        echo '<style>li {list-style: none!important;}</style>';
+        $this->flushNow('<h3>Running through all DataObjects, limiting to '.$this->limit.' records and doing '.$this->step.' records at the time.</h3>', 'notice');
+        // array of errors
+        $errors = [];
+
+        // get all DataObjects and loop through them
         $classes = ClassInfo::subclassesFor('DataObject');
         foreach($classes as $class) {
+            // skip irrelevant ones
             if($class !== 'DataObject') {
+                //skip test ones
                 $obj = Injector::inst()->get($class);
-                print_r($obj->class);
                 if($obj instanceof FunctionalTest || $obj instanceof TestOnly) {
                     $this->flushNow('<h2>SKIPPING: '.$class.'</h2>');
                     continue;
                 }
+                //start the process ...
                 $this->flushNow('<h2>'.$class.'</h2>');
-                $count = $class::get()->count();
+
+                // must exist is its own table to avoid doubling-up on tests
+                // e.g. test SiteTree and Page where Page is not its own table ...
                 if($this->tableExists($class)) {
+                    $count = $class::get()->count();
                     if($count > $this->step) {
-                        $comparisonArray = [];
                         $summaryFields = $obj->summaryFields();
-                        $dbFields = $obj->stat('db');
+                        $dbFields = $obj->db();
                         if(! is_array($dbFields)) {
                             $dbFields = [];
                         }
+                        //adding base fields.
+                        $dbFields['ClassName'] = 'ClassName';
+                        $dbFields['Created'] = 'Created';
+                        $dbFields['LastEdited'] = 'LastEdited';
 
-                        $hasOneFields = $obj->stat('has_one');
+                        $hasOneFields = $obj->hasOne();
                         if(! is_array($hasOneFields)) {
                             $hasOneFields = [];
                         }
                         foreach ($summaryFields as $field => $value) {
+                            $comparisonArray = [];
                             if(isset($dbFields[$field])) {
-                                $this->flushNow('<h4>Sorting by '.$field.'</h4>');
+                                $this->flushNow('- Sorting by '.$field);
                                 for($i = 0; $i < $this->limit && $i < ($count - $this->step); $i += $this->step) {
                                     if($this->quickAndDirty) {
-                                        $tempRows = DB::query('SELECT "ID" FROM "'.$class.'" ORDER BY "'.$field.'" ASC LIMIT '.$i.', '.$this->step.';');
-                                        foreach($tempRows as $row) {
-                                            $id = $row['ID'];
-                                            if(isset($comparisonArray[$id])) {
-                                                $error = 'Found double entry: '.$id.' in '.$class;
-                                                $this->flushNow($error, 'deleted');
-                                            } else {
-                                                echo '.';
+                                        if(DataObject::has_own_table_database_field($class, $field)) {
+                                            $tempRows = DB::query('SELECT "ID" FROM "'.$class.'" ORDER BY "'.$field.'" ASC LIMIT '.$i.', '.$this->step.';');
+                                            foreach($tempRows as $row) {
+                                                $id = $row['ID'];
+                                                if(isset($comparisonArray[$id])) {
+                                                    $error = 'Found double entry: '.$id.' in '.$class;
+                                                    $this->flushNow($error, 'deleted');
+                                                    $errors[$class.$id] = $error;
+                                                } else {
+                                                    echo '.';
+                                                }
+                                                $comparisonArray[$id] = $id;
                                             }
-                                            $comparisonArray[$id] = $id;
+                                        } else {
+                                            $this->flushNow('<strong>SKIP: '.$class.'.'.$field.'</strong> does not exist');
                                         }
                                     } else {
                                         $tempObjects = $class::get()->sort($field)->limit($this->step, $i);
                                         foreach($tempObjects as $tempObject) {
-                                            if(isset($comparisonArray[$tempObject->ID])) {
-                                                $error = 'Found double entry: '.$tempObject->ID.' in '.$class;
+                                            $id = $tempObject->ID;
+                                            if(isset($comparisonArray[$id])) {
+                                                $error = 'Found double entry: '.$id.' in '.$class;
                                                 $this->flushNow($error, 'deleted');
+                                                $errors[$class.$id] = $error;
                                             } else {
                                                 echo '.';
                                             }
@@ -79,17 +102,23 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                     }
                                 }
                             } else {
-                                $this->flushNow('<h4>Not sorting by '.$field.'</h4>');
+                                $this->flushNow('<strong>SKIP: '.$class.'.'.$field.' field</strong> because it is not a DB field.');
                             }
                         }
+                        $this->flushNow('No issues in '.$class, 'created');
                     } else {
-                       $this->flushNow('<h3>There are not enough records available</h3>');
+                       $this->flushNow('<strong>SKIP: table '.$class.'</strong> because it does not have enough records. ');
                    }
                 } else {
-                    $this->flushNow($class.' table does not exist');
+                    $this->flushNow('SKIP: '.$class.' because table does not exist. ');
                 }
             }
 
+        }
+        echo '<hr /><hr /><hr /><hr />------------------------- END -----------------------------<hr /><hr /><hr /><hr />';
+        //print out errors again ...
+        foreach($errors as $error) {
+            $this->flushNow($error, 'deleted');
         }
     }
 
