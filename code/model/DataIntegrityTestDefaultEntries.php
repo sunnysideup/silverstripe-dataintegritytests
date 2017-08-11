@@ -1,7 +1,7 @@
 <?php
 
 
-class DataIntegrityTestDefaulEntries extends Object
+class DataIntegrityTestDefaultEntries extends Object
 {
     public static function update($baseTable, $field, $value, $id = 0, $replace = false, $addLive = false)
     {
