@@ -294,19 +294,19 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $isFirstRound = true;
             }
             if($testLetter === 'A') {
-                $objects = $className::get()->limit(10,20);
+                $objects = $className::get();
                 $testAResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if($testLetter === 'B') {
-                $objects = $className::get()->sort(['ID' => 'ASC'])->limit(10,20);
+                $objects = $className::get()->sort(['ID' => 'ASC']);
                 $testBResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if($testLetter === 'C') {
                 $defaultSortField = Config::inst()->get($className, 'default_sort');
                 Config::inst()->update($className, 'default_sort', null);
-                $objects = $className::get()->limit(10,20);
+                $objects = $className::get();
                 $testCResult += $this->runObjects($objects, $className, $isFirstRound);
                 Config::inst()->update($className, 'default_sort', $defaultSortField);
             }
@@ -331,6 +331,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
     protected function runObjects($objects, $className, $isFirstRound)
     {
         $time = 0;
+        $objects = $objects->limit(10, 20);
         for($i = 0; $i < 50; $i++) {
             if($i === 0 && $isFirstRound) {
                 $this->flushNowDebug($objects->sql());
