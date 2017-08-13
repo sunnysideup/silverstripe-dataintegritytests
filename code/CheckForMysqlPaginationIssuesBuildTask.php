@@ -4,6 +4,8 @@
 class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 {
 
+    private static $skip_tables = [];
+
     /**
      * standard SS variable
      * @var String
@@ -24,21 +26,39 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected $debug = false;
 
+    protected $testTableCustom = '';
+
     protected $timePerClass = [];
 
     public function run($request)
     {
+
         // give us some time to run this
         ini_set('max_execution_time', 3000);
+        $classes = ClassInfo::subclassesFor('DataObject');
         $array = [
             'l' => 'limit',
             's' => 'step',
             'd' => 'debug',
             'q' => 'quickAndDirty',
+            't' => 'testTableCustom'
         ];
         foreach($array as $getParam => $field) {
             if(isset($_GET[$getParam])) {
-                $this->$field = intval($_GET[$getParam]);
+                $v = $_GET[$getParam];
+                echo $field;
+                echo $_GET[$getParam];
+                echo $getParam;
+                switch ($getParam) {
+                    case 't':
+                        if(in_array($v, $classes)) {
+                            $this->$field = $v;
+                        }
+                        break;
+                    default:
+                        $this->$field = intval($v);
+
+                }
             }
         }
         $this->flushNowQuick('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
@@ -53,6 +73,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SETTINGS </h2><hr /><hr /><hr /><hr />');
         $this->flushNow('
             <form method="get" action="/dev/tasks/CheckForMysqlPaginationIssuesBuildTask">
+                <br /><br />test table:<br /><input name="t" placeholder="e.g. SiteTree" value="'.$this->testTableCustom.'" />
                 <br /><br />limit:<br /><input name="l" placeholder="limit" value="'.$this->limit.'" />
                 <br /><br />step:<br /><input name="s" placeholder="step" value="'.$this->step.'" />
                 <br /><br />debug:<br /><select name="d" placeholder="debug" /><option value="0">false</option><option value="1" '.($this->debug ? 'selected="selected"' : '').'>true</option></select>
@@ -65,10 +86,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $errors = [];
         $largestTable = '';
         $largestTableCount = 0;
-
+        $skipTables = $this->Config()->get('skip_tables');
         // get all DataObjects and loop through them
-        $classes = ClassInfo::subclassesFor('DataObject');
+
         foreach($classes as $class) {
+            if(in_array($class, $skipTables)) {
+                continue;
+            }
             // skip irrelevant ones
             if($class !== 'DataObject') {
                 //skip test ones
@@ -89,7 +113,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     $count = $class::get()->count();
                     $checkCount = DB::query('SELECT COUNT("ID") FROM "'.$class.'"')->value();
                     if(intval($checkCount) !== intval($count)) {
-                        $this->flushNow('Count error in '.$class.' ::get results in '.$count.' rows and DB::query(SELECT COUNT in '.$checkCount.' rows', 'deleted');
+                        $this->flushNow('Count error in '.$class.' ::get results in '.$count.' rows and DB::query(SELECT COUNT in '.$checkCount.'...) rows | DIFFERENCE:  '.($count - $checkCount).'', 'deleted');
                     }
                     if($count > $this->step) {
                         if($count > $largestTableCount) {
@@ -212,69 +236,10 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNow('No errors', 'created');
             }
         }
-
-        $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
-        $testAResult = 0;
-        $testBResult = 0;
-        $testCResult = 0;
-        foreach($testSeq as $testIndex => $testLetter) {
-            if($testLetter === 'A') {
-                for($i = 0; $i < 10; $i++) {
-                    $testAStart = microtime(true);
-                    $objects = $largestTable::get()->limit(10,20);
-                    if($i === 0 && $testIndex < 3) {
-                        $this->flushNowDebug($objects->sql());
-                    }
-                    foreach($objects as $object) {
-                        $this->flushNowDebug($largestTable.' with ID = '.$object->ID.' (not sorted)');
-                    }
-                    $testAEnd = microtime(true);
-                    $testAResult += $testAEnd - $testAStart;
-                }
-            }
-
-            if($testLetter === 'B') {
-                for($i = 0; $i < 10; $i++) {
-                    $testBStart = microtime(true);
-                    $objects = $largestTable::get()->sort(['ID' => 'ASC'])->limit(10,20);
-                    if($i === 0 && $testIndex < 3) {
-                        $this->flushNowDebug($objects->sql());
-                    }
-                    foreach($objects as $object) {
-                        $this->flushNowDebug($largestTable.' with ID = '.$object->ID.' (not sorted)');
-                    }
-                    $testBEnd = microtime(true);
-                    $testBResult += $testBEnd - $testBStart;
-                }
-            }
-
-            if($testLetter === 'C') {
-                $defaultSortField = Config::inst()->get($largestTable, 'default_sort');
-                Config::inst()->update($largestTable, 'default_sort', '');
-                for($i = 0; $i < 10; $i++) {
-                    $testCStart = microtime(true);
-                    $objects = $largestTable::get()->limit(10,20);
-                    if($i === 0 && $testIndex < 3) {
-                        $this->flushNowDebug($objects->sql());
-                    }
-                    foreach($objects as $object) {
-                        $this->flushNowDebug($largestTable.' with ID = '.$object->ID.' (not sorted)');
-                    }
-                    $testCEnd = microtime(true);
-                    $testCResult += $testCEnd - $testCStart;
-                }
-                Config::inst()->update($largestTable, 'default_sort', $defaultSortField);
-            }
+        if($this->testTableCustom) {
+            $largestTable = $this->testTableCustom;
         }
-        $testAResult = round($testAResult * 10000);
-        $testBResult = round($testBResult * 10000);
-        $testCResult = round($testCResult * 10000);
-
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON</h2><hr /><hr /><hr /><hr />');
-
-        $this->flushNow('Default sort ('.$defaultSortField.'): '.$testAResult);
-        $this->flushNow('ID sort '.$testBResult);
-        $this->flushNow('No sort '.$testCResult);
+        $this->speedComparison($largestTable);
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
     }
 
@@ -313,4 +278,70 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $db = DB::getConn();
         return $db->hasTable($table);
     }
+
+    protected function speedComparison($className)
+    {
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR '.$className.'</h2><hr /><hr /><hr /><hr />');
+        $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
+        $testAResult = 0;
+        $testBResult = 0;
+        $testCResult = 0;
+        $isFirstRound = false;
+        foreach($testSeq as $testIndex => $testLetter) {
+            if($testIndex > 2) {
+                $isFirstRound = true;
+            }
+            if($testLetter === 'A') {
+                $objects = $className::get()->limit(10,20);
+                $testAResult += $this->runObjects($objects, $className, $isFirstRound);
+            }
+
+            if($testLetter === 'B') {
+                $objects = $className::get()->sort(['ID' => 'ASC'])->limit(10,20);
+                $testBResult += $this->runObjects($objects, $className, $isFirstRound);
+            }
+
+            if($testLetter === 'C') {
+                $defaultSortField = Config::inst()->get($className, 'default_sort');
+                Config::inst()->update($className, 'default_sort', null);
+                $objects = $className::get()->limit(10,20);
+                $testCResult += $this->runObjects($objects, $className, $isFirstRound);
+                Config::inst()->update($className, 'default_sort', $defaultSortField);
+            }
+        }
+        $testAResult = round($testAResult * 1000);
+        $testBResult = round($testBResult * 1000);
+        $testCResult = round($testCResult * 1000);
+
+        $this->flushNow('Default sort ('.print_r($defaultSortField, 1).'): '.$testAResult.'μs');
+        $this->flushNow('ID sort '.$testBResult.'μs, '.(100-(round($testBResult / $testAResult, 2)*100)).'% faster than the default sort');
+        $this->flushNow('No sort '.$testCResult.'μs, '.(100-(round($testCResult / $testAResult, 2)*100)).'% faster than the default sort');
+    }
+
+    /**
+     *
+     * @param  DataList  $dataList
+     * @param  string  $className
+     * @param  boolean $isFirstRound
+     *
+     * @return float
+     */
+    protected function runObjects($objects, $className, $isFirstRound)
+    {
+        $time = 0;
+        for($i = 0; $i < 50; $i++) {
+            if($i === 0 && $isFirstRound) {
+                $this->flushNowDebug($objects->sql());
+            }
+            $start = microtime(true);
+            foreach($objects as $object) {
+                $this->flushNowDebug($className.' with ID = '.$object->ID.' (not sorted)');
+            }
+            $end = microtime(true);
+            $time += $end - $start;
+        }
+        return $time;
+    }
+
+
 }
