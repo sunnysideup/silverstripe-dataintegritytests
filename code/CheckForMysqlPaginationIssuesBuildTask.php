@@ -24,12 +24,43 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected $debug = false;
 
+    protected $timePerClass = [];
+
     public function run($request)
     {
         // give us some time to run this
         ini_set('max_execution_time', 3000);
-        echo '<style>li {list-style: none!important;}</style>';
-        $this->flushNow('<h3>Running through all DataObjects, limiting to '.$this->limit.' records and doing '.$this->step.' records at the time. Scroll down to bottom to see results.</h3>', 'notice');
+        $array = [
+            'l' => 'limit',
+            's' => 'step',
+            'd' => 'debug',
+            'q' => 'quickAndDirty',
+        ];
+        foreach($array as $getParam => $field) {
+            if(isset($_GET[$getParam])) {
+                $this->$field = intval($_GET[$getParam]);
+            }
+        }
+        $this->flushNow('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
+        $this->flushNow('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>', 'notice');
+        $this->flushNow(
+            '
+                We run through all the summary fields for all dataobjects and select <i>limits</i> (segments) of the datalist.
+                After that we check if the same ID shows up on different segments.
+                If there are duplicates then Pagination is broken.
+            ', 'notice'
+        );
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SETTINGS </h2><hr /><hr /><hr /><hr />');
+        $this->flushNow('
+            <form method="get" action="/dev/tasks/CheckForMysqlPaginationIssuesBuildTask">
+                <br /><br />limit:<br /><input name="l" placeholder="limit" value="'.$this->limit.'" />
+                <br /><br />step:<br /><input name="s" placeholder="step" value="'.$this->step.'" />
+                <br /><br />debug:<br /><select name="d" placeholder="debug" /><option value="0">false</option><option value="1" '.($this->debug ? 'selected="selected"' : '').'>true</option></select>
+                <br /><br />quick:<br /><select name="q" placeholder="quick" /><option value="0">false</option><option value="1" '.($this->quickAndDirty ? ' selected="selected"' : '').'>true</option></select>
+                <br /><br /><input type="submit" value="run again with variables above" />
+            </form>
+        ');
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">CALCULATIONS </h2><hr /><hr /><hr /><hr />');
         // array of errors
         $errors = [];
 
@@ -50,6 +81,8 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 // must exist is its own table to avoid doubling-up on tests
                 // e.g. test SiteTree and Page where Page is not its own table ...
                 if($this->tableExists($class)) {
+                    $this->timePerClass[$class] = [];
+                    $this->timePerClass[$class]['start'] = microtime(true);
                     // check table size
                     $count = $class::get()->count();
                     if($count > $this->step) {
@@ -145,16 +178,19 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     } else {
                        $this->flushNowDebug('<strong>SKIP: table '.$class.'</strong> because it does not have enough records. ');
                    }
+                   $this->timePerClass[$class]['end'] = microtime(true);
                 } else {
                     $this->flushNowDebug('SKIP: '.$class.' because table does not exist. ');
                 }
             }
 
         }
-        echo '<hr /><hr /><hr /><hr />------------------------- END -----------------------------<hr /><hr /><hr /><hr />';
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">RESULTS </h2><hr /><hr /><hr /><hr />');
         //print out errors again ...
         foreach($errors as $class => $fieldValues) {
             $this->flushNow('<h4>'.$class.'</h4>');
+            $time = round(($this->timePerClass[$class]['end'] - $this->timePerClass[$class]['start']) * 1000);
+            $this->flushNow('Time taken: '.$time.'μs');
             $errorCount = 0;
             foreach($fieldValues as $field => $errorMessage) {
                 if(is_string($errorMessage) && $errorMessage) {
@@ -166,6 +202,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNow('No errors', 'created');
             }
         }
+        echo '<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />';
     }
 
     protected function flushNowDebug($error, $style = '')
