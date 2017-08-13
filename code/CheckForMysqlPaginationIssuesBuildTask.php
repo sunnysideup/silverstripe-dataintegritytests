@@ -284,6 +284,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR '.$className.'</h2><hr /><hr /><hr /><hr />');
         $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
         shuffle($testSeq);
+        $this->flushNow('Test sequence: '.print_r(implode(', ', $testSeq)));
         $testAResult = 0;
         $testBResult = 0;
         $testCResult = 0;
