@@ -41,9 +41,9 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->$field = intval($_GET[$getParam]);
             }
         }
-        $this->flushNow('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
+        $this->flushNowQuick('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
         $this->flushNow('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>', 'notice');
-        $this->flushNow(
+        $this->flushNowQuick(
             '
                 We run through all the summary fields for all dataobjects and select <i>limits</i> (segments) of the datalist.
                 After that we check if the same ID shows up on different segments.
@@ -63,6 +63,8 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">CALCULATIONS </h2><hr /><hr /><hr /><hr />');
         // array of errors
         $errors = [];
+        $largestTable = '';
+        $largestTableCount = 0;
 
         // get all DataObjects and loop through them
         $classes = ClassInfo::subclassesFor('DataObject');
@@ -85,7 +87,15 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     $this->timePerClass[$class]['start'] = microtime(true);
                     // check table size
                     $count = $class::get()->count();
+                    $checkCount = DB::query('SELECT COUNT("ID") FROM "'.$class.'"')->value();
+                    if(intval($checkCount) !== intval($count)) {
+                        $this->flushNow('Count error in '.$class.' ::get results in '.$count.' rows and DB::query(SELECT COUNT in '.$checkCount.' rows', 'deleted');
+                    }
                     if($count > $this->step) {
+                        if($count > $largestTableCount) {
+                            $largestTableCount = $count;
+                            $largestTable = $class;
+                        }
                         $this->flushNowQuick('<br />'.$class.': ');
                         if(! isset($errors[$class])) {
                             $errors[$class] = [];
@@ -202,7 +212,70 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNow('No errors', 'created');
             }
         }
-        echo '<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />';
+
+        $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
+        $testAResult = 0;
+        $testBResult = 0;
+        $testCResult = 0;
+        foreach($testSeq as $testIndex => $testLetter) {
+            if($testLetter === 'A') {
+                for($i = 0; $i < 10; $i++) {
+                    $testAStart = microtime(true);
+                    $objects = $largestTable::get()->limit(10,20);
+                    if($i === 0 && $testIndex < 3) {
+                        $this->flushNowDebug($objects->sql());
+                    }
+                    foreach($objects as $object) {
+                        $this->flushNowDebug($largestTable.' with ID = '.$object->ID.' (not sorted)');
+                    }
+                    $testAEnd = microtime(true);
+                    $testAResult += $testAEnd - $testAStart;
+                }
+            }
+
+            if($testLetter === 'B') {
+                for($i = 0; $i < 10; $i++) {
+                    $testBStart = microtime(true);
+                    $objects = $largestTable::get()->sort(['ID' => 'ASC'])->limit(10,20);
+                    if($i === 0 && $testIndex < 3) {
+                        $this->flushNowDebug($objects->sql());
+                    }
+                    foreach($objects as $object) {
+                        $this->flushNowDebug($largestTable.' with ID = '.$object->ID.' (not sorted)');
+                    }
+                    $testBEnd = microtime(true);
+                    $testBResult += $testBEnd - $testBStart;
+                }
+            }
+
+            if($testLetter === 'C') {
+                $defaultSortField = Config::inst()->get($largestTable, 'default_sort');
+                Config::inst()->update($largestTable, 'default_sort', '');
+                for($i = 0; $i < 10; $i++) {
+                    $testCStart = microtime(true);
+                    $objects = $largestTable::get()->limit(10,20);
+                    if($i === 0 && $testIndex < 3) {
+                        $this->flushNowDebug($objects->sql());
+                    }
+                    foreach($objects as $object) {
+                        $this->flushNowDebug($largestTable.' with ID = '.$object->ID.' (not sorted)');
+                    }
+                    $testCEnd = microtime(true);
+                    $testCResult += $testCEnd - $testCStart;
+                }
+                Config::inst()->update($largestTable, 'default_sort', $defaultSortField);
+            }
+        }
+        $testAResult = round($testAResult * 10000);
+        $testBResult = round($testBResult * 10000);
+        $testCResult = round($testCResult * 10000);
+
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON</h2><hr /><hr /><hr /><hr />');
+
+        $this->flushNow('Default sort ('.$defaultSortField.'): '.$testAResult);
+        $this->flushNow('ID sort '.$testBResult);
+        $this->flushNow('No sort '.$testCResult);
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
     }
 
     protected function flushNowDebug($error, $style = '')
