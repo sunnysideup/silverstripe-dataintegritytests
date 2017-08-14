@@ -110,7 +110,11 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     $count = $class::get()->count();
                     $checkCount = DB::query('SELECT COUNT("ID") FROM "'.$class.'"')->value();
                     if(intval($checkCount) !== intval($count)) {
-                        $this->flushNow('Count error in '.$class.' ::get results in '.$count.' rows and DB::query(SELECT COUNT in '.$checkCount.'...) rows | DIFFERENCE:  '.($count - $checkCount).'', 'deleted');
+                        $this->flushNow('
+                            COUNT error!
+                            '.$class.' ::get: '.$count.' rows BUT 
+                            DB::query(...): '.$checkCount.' rows | 
+                            DIFFERENCE:  '.abs($count - $checkCount).'', 'deleted');
                     }
                     if($count > $this->step) {
                         if($count > $largestTableCount) {
