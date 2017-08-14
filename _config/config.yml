@@ -1,0 +1,10 @@
+---
+Name: dataintegritytest
+After:
+    - 'framework/*'
+    - 'cms/*'
+---
+
+SiteTree:
+  indexes:
+    Sort: true

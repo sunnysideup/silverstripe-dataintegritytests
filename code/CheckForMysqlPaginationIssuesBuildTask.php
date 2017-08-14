@@ -46,9 +46,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         foreach($array as $getParam => $field) {
             if(isset($_GET[$getParam])) {
                 $v = $_GET[$getParam];
-                echo $field;
-                echo $_GET[$getParam];
-                echo $getParam;
                 switch ($getParam) {
                     case 't':
                         if(in_array($v, $classes)) {
