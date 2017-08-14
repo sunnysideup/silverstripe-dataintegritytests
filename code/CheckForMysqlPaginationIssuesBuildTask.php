@@ -281,7 +281,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected function speedComparison($className)
     {
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR '.$className.' with '.$className::get()->count.' records</h2><hr /><hr /><hr /><hr />');
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR '.$className.' with '.$className::get()->count().' records</h2><hr /><hr /><hr /><hr />');
         $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
         shuffle($testSeq);
         $this->flushNow('Test sequence: '.print_r(implode(', ', $testSeq)));
