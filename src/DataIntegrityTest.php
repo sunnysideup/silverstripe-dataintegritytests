@@ -158,7 +158,7 @@ class DataIntegrityTest extends BuildTask
             if (class_exists($dataClass)) {
                 $dataObject = $dataClass::create();
                 if (!($dataObject instanceof TestOnly)) {
-                    $requiredFields = $this->swapArray(DataObject::database_fields($dataObject->ClassName));
+                    $requiredFields = $this->swapArray(DataObject::getSchema()->databaseFields($dataObject->ClassName));
                     if (count($requiredFields)) {
                         foreach ($requiredFields as $field) {
                             if (!$dataObject->hasOwnTableDatabaseField($field)) {

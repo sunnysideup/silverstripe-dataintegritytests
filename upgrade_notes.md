@@ -592,3 +592,91 @@ then
 else
                     git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Look for single use statements and comment them out as they are not correct."
                 fi
+ 1 file changed, 61 insertions(+)
+[temp-upgradeto4-branch 2995c08] MAJOR: upgrade to new version of Silverstripe - step: Look for single use statements and comment them out as they are not correct.
+ 1 file changed, 61 insertions(+)
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   927a840..2995c08  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   927a840..2995c08  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# After load fixes (inspect) (InspectAPIChanges-1)
+# --------------------
+# Runs the silverstripe/upgrade task "inpect". See:
+# https://github.com/silverstripe/silverstripe-upgrader#inspect. Once a
+# project has all class names migrated, and is brought up to a "loadable"
+# state (that is, where all classes reference or extend real classes) then
+# the inspect command can be run to perform additional automatic code
+# rewrites. This step will also warn of any upgradable code issues that may
+# prevent a succesful upgrade.
+# --------------------
+# run composer dump-autoload to create autoload classes
+cd /var/www/upgrades/__upgradeto4__
+composer dump-autoload
+Generating autoload filesGenerated autoload files containing 465 classes
+Generating autoload filesGenerated autoload files containing 465 classes
+✔✔✔
+# running php upgrade inspect see: https://github.com/silverstripe/silverstripe-upgrader
+cd /var/www/upgrades/__upgradeto4__
+php /var/www/upgrader/vendor/silverstripe/upgrader/bin/upgrade-code inspect /var/www/upgrades/__upgradeto4__/dataintegritytests  --root-dir=/var/www/upgrades/__upgradeto4__ --write -vvv
+Writing changes for 1 files
+Running post-upgrade on "/var/www/upgrades/__upgradeto4__/dataintegritytests"
+[2019-05-14 20:08:31] Applying ApiChangeWarningsRule to DataIntegrityTestInnoDB.php...
+[2019-05-14 20:08:32] Applying UpdateVisibilityRule to DataIntegrityTestInnoDB.php...
+[2019-05-14 20:08:32] Applying ApiChangeWarningsRule to DataIntegrityTest.php...
+[2019-05-14 20:08:33] Applying UpdateVisibilityRule to DataIntegrityTest.php...
+[2019-05-14 20:08:34] Applying ApiChangeWarningsRule to DataIntegrityTestYML.php...
+[2019-05-14 20:08:34] Applying UpdateVisibilityRule to DataIntegrityTestYML.php...
+[2019-05-14 20:08:34] Applying ApiChangeWarningsRule to DataIntegrityTestUTF8.php...
+[2019-05-14 20:08:34] Applying UpdateVisibilityRule to DataIntegrityTestUTF8.php...
+[2019-05-14 20:08:34] Applying ApiChangeWarningsRule to DataIntegrityTestRecentlyChanged.php...
+[2019-05-14 20:08:34] Applying UpdateVisibilityRule to DataIntegrityTestRecentlyChanged.php...
+[2019-05-14 20:08:34] Applying ApiChangeWarningsRule to DataIntegrityMoveFieldUpOrDownClassHierarchy.php...
+[2019-05-14 20:08:35] Applying UpdateVisibilityRule to DataIntegrityMoveFieldUpOrDownClassHierarchy.php...
+[2019-05-14 20:08:36] Applying ApiChangeWarningsRule to CheckForMysqlPaginationIssuesBuildTask.php...
+[2019-05-14 20:08:36] Applying UpdateVisibilityRule to CheckForMysqlPaginationIssuesBuildTask.php...
+[2019-05-14 20:08:37] Applying ApiChangeWarningsRule to DataIntegrityTestDefaultEntries.php...
+[2019-05-14 20:08:37] Applying UpdateVisibilityRule to DataIntegrityTestDefaultEntries.php...
+[2019-05-14 20:08:37] Applying ApiChangeWarningsRule to _config.php...
+[2019-05-14 20:08:37] Applying UpdateVisibilityRule to _config.php...
+modified:	src/DataIntegrityTest.php
+@@ -158,7 +158,7 @@
+             if (class_exists($dataClass)) {
+                 $dataObject = $dataClass::create();
+                 if (!($dataObject instanceof TestOnly)) {
+-                    $requiredFields = $this->swapArray(DataObject::database_fields($dataObject->ClassName));
++                    $requiredFields = $this->swapArray(DataObject::getSchema()->databaseFields($dataObject->ClassName));
+                     if (count($requiredFields)) {
+                         foreach ($requiredFields as $field) {
+                             if (!$dataObject->hasOwnTableDatabaseField($field)) {
+
+Warnings for src/DataIntegrityTest.php:
+ - src/DataIntegrityTest.php:161 SilverStripe\ORM\DataObject::database_fields(): DataObject::database_fields() moved to DataObjectSchema->databaseFields(). Access through getSchema()
+unchanged:	src/DataIntegrityTestRecentlyChanged.php
+Warnings for src/DataIntegrityTestRecentlyChanged.php:
+ - src/DataIntegrityTestRecentlyChanged.php:103 class: $this->class access has been removed (https://docs.silverstripe.org/en/4/changelogs/4.0.0#object-replace)
+ - src/DataIntegrityTestRecentlyChanged.php:104 class: $this->class access has been removed (https://docs.silverstripe.org/en/4/changelogs/4.0.0#object-replace)
+ - src/DataIntegrityTestRecentlyChanged.php:108 class: $this->class access has been removed (https://docs.silverstripe.org/en/4/changelogs/4.0.0#object-replace)
+unchanged:	src/CheckForMysqlPaginationIssuesBuildTask.php
+Warnings for src/CheckForMysqlPaginationIssuesBuildTask.php:
+ - src/CheckForMysqlPaginationIssuesBuildTask.php:194 SilverStripe\ORM\DataObject::has_own_table_database_field(): DataObject::has_own_table_database_field() has been replaced with DataObjectSchema::fieldSpec(). Access through getSchema() (https://docs.silverstripe.org/en/4/changelogs/4.0.0#dataobject-has-own)
+Writing changes for 1 files
+✔✔✔
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests"
+                fi
