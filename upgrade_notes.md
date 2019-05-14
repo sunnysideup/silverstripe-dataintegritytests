@@ -531,3 +531,64 @@ then
 else
                     git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Add PSR-4 Autoloading to the composer file."
                 fi
+ 2 files changed, 97 insertions(+), 1 deletion(-)
+[temp-upgradeto4-branch 927a840] MAJOR: upgrade to new version of Silverstripe - step: Add PSR-4 Autoloading to the composer file.
+ 2 files changed, 97 insertions(+), 1 deletion(-)
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   33289e7..927a840  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   33289e7..927a840  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# Look for single use statements and comment them out as they are not correct. (FixBadUseStatements)
+# --------------------
+# Goes through code and removes, for example, "use bool;", lines, as they do
+# not make sense.
+# --------------------
+No replacements for  php
+
+------------------------------------
+Files Searched
+------------------------------------
+/src/DataIntegrityTestInnoDB.php
+/src/DataIntegrityTest.php
+/src/DataIntegrityTestYML.php
+/src/DataIntegrityTestUTF8.php
+/src/DataIntegrityTestRecentlyChanged.php
+/src/DataIntegrityMoveFieldUpOrDownClassHierarchy.php
+/src/CheckForMysqlPaginationIssuesBuildTask.php
+/src/Api/DataIntegrityTestDefaultEntries.php
+
+------------------------------------
+Summary: by search key
+------------------------------------
+
+------------------------------------
+Summary: by directory
+------------------------------------
+
+------------------------------------
+Summary: by root directory (/)
+------------------------------------
+
+------------------------------------
+Total replacements: 0
+------------------------------------
+
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: upgrade to new version of Silverstripe - step: Look for single use statements and comment them out as they are not correct.
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Look for single use statements and comment them out as they are not correct."
+                fi
