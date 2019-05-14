@@ -1,6 +1,6 @@
 {
     "name": "sunnysideup/dataintegritytests",
-    "type": "silverstripe-module",
+    "type": "silverstripe-vendormodule",
     "description": "check your database for obsolete fields and related data-structure errors",
     "keywords": [
         "Silverstripe-CMS",

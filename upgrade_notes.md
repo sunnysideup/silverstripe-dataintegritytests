@@ -739,3 +739,57 @@ then
 else
                     git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Copy legacy data to database migration file"
                 fi
+ create mode 100644 _config/database.legacy.yml
+[temp-upgradeto4-branch 6499259] MAJOR: upgrade to new version of Silverstripe - step: Copy legacy data to database migration file
+ 2 files changed, 69 insertions(+)
+ create mode 100644 _config/database.legacy.yml
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   38b773a..6499259  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   38b773a..6499259  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# move mysite/code folder to app/src (Reorganise)
+# --------------------
+# Runs the silverstripe/upgrade task "reorganise". See:
+# https://github.com/silverstripe/silverstripe-upgrader#reorganise You can
+# use this command to reorganise your folder structure to conform to the new
+# structure introduced with SilverStripe 4.1. Your mysite folder will be
+# renamed to app and your code folder will be renamed to src.
+# --------------------
+
+
+# --------------------
+# Update composer type to silverstripe-vendormodule  (UpdateComposerModuleType)
+# --------------------
+# Replaces the composer type from silverstripe-module to
+# silverstripe-vendormodule in line with SS4 standards. This means your
+# module will be installed in the vendor folder after this upgrade.
+# --------------------
+# Update composer module type from silverstripe-module to silverstripe-vendormodule --- in /var/www/upgrades/__upgradeto4__/dataintegritytests/composer.json
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+php -r  '$jsonString = file_get_contents("/var/www/upgrades/__upgradeto4__/dataintegritytests/composer.json")
+$data = json_decode($jsonString, true)
+if(isset($data["type"])
+$data["type"] === "silverstripe-module") {     $data["type"] = "silverstripe-vendormodule"
+}$newJsonString = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+file_put_contents("/var/www/upgrades/__upgradeto4__/dataintegritytests/composer.json", $newJsonString)
+'
+✔✔✔
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: Update composer type to silverstripe-vendormodule 
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: Update composer type to silverstripe-vendormodule "
+                fi
