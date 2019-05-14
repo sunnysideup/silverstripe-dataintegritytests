@@ -2,20 +2,11 @@
 
 namespace Sunnysideup\DataIntegrityTest\Api;
 
-
-
-
-
-
 use SilverStripe\ORM\DataObject;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Convert;
 use SilverStripe\ORM\DB;
 use SilverStripe\View\ViewableData;
-
-
-
-
 
 /**
   * ### @@@@ START REPLACEMENT @@@@ ###

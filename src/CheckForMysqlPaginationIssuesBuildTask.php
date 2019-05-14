@@ -2,14 +2,6 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-
-
-
-
-
-
-
-
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injector;
@@ -18,9 +10,6 @@ use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DB;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
-
-
-
 
 class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 {
@@ -148,14 +137,14 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         }
                         // get fields ...
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: ->db() (case sensitive)
-  * NEW: ->Config()->get('db') (COMPLEX)
-  * EXP: Check implementation
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                        /**
+                          * ### @@@@ START REPLACEMENT @@@@ ###
+                          * WHY: upgrade to SS4
+                          * OLD: ->db() (case sensitive)
+                          * NEW: ->Config()->get('db') (COMPLEX)
+                          * EXP: Check implementation
+                          * ### @@@@ STOP REPLACEMENT @@@@ ###
+                          */
                         $dbFields = $obj->Config()->get('db');
                         if (! is_array($dbFields)) {
                             $dbFields = [];
@@ -310,14 +299,14 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
     }
 
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+    /**
+      * ### @@@@ START REPLACEMENT @@@@ ###
+      * WHY: upgrade to SS4
+      * OLD: $className (case sensitive)
+      * NEW: $className (COMPLEX)
+      * EXP: Check if the class name can still be used as such
+      * ### @@@@ STOP REPLACEMENT @@@@ ###
+      */
     protected function speedComparison($className)
     {
 
@@ -353,14 +342,14 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
   */
                 $objects = $className::get();
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                /**
+                  * ### @@@@ START REPLACEMENT @@@@ ###
+                  * WHY: upgrade to SS4
+                  * OLD: $className (case sensitive)
+                  * NEW: $className (COMPLEX)
+                  * EXP: Check if the class name can still be used as such
+                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                  */
                 $testAResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
@@ -376,14 +365,14 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
   */
                 $objects = $className::get()->sort(['ID' => 'ASC']);
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                /**
+                  * ### @@@@ START REPLACEMENT @@@@ ###
+                  * WHY: upgrade to SS4
+                  * OLD: $className (case sensitive)
+                  * NEW: $className (COMPLEX)
+                  * EXP: Check if the class name can still be used as such
+                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                  */
                 $testBResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
@@ -399,44 +388,44 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
   */
                 $defaultSortField = Config::inst()->get($className, 'default_sort');
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                /**
+                  * ### @@@@ START REPLACEMENT @@@@ ###
+                  * WHY: upgrade to SS4
+                  * OLD: $className (case sensitive)
+                  * NEW: $className (COMPLEX)
+                  * EXP: Check if the class name can still be used as such
+                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                  */
                 Config::modify()->update($className, 'default_sort', null);
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                /**
+                  * ### @@@@ START REPLACEMENT @@@@ ###
+                  * WHY: upgrade to SS4
+                  * OLD: $className (case sensitive)
+                  * NEW: $className (COMPLEX)
+                  * EXP: Check if the class name can still be used as such
+                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                  */
                 $objects = $className::get();
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                /**
+                  * ### @@@@ START REPLACEMENT @@@@ ###
+                  * WHY: upgrade to SS4
+                  * OLD: $className (case sensitive)
+                  * NEW: $className (COMPLEX)
+                  * EXP: Check if the class name can still be used as such
+                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                  */
                 $testCResult += $this->runObjects($objects, $className, $isFirstRound);
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                /**
+                  * ### @@@@ START REPLACEMENT @@@@ ###
+                  * WHY: upgrade to SS4
+                  * OLD: $className (case sensitive)
+                  * NEW: $className (COMPLEX)
+                  * EXP: Check if the class name can still be used as such
+                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                  */
                 Config::modify()->update($className, 'default_sort', $defaultSortField);
             }
         }
@@ -458,14 +447,14 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      * @return float
      */
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+    /**
+      * ### @@@@ START REPLACEMENT @@@@ ###
+      * WHY: upgrade to SS4
+      * OLD: $className (case sensitive)
+      * NEW: $className (COMPLEX)
+      * EXP: Check if the class name can still be used as such
+      * ### @@@@ STOP REPLACEMENT @@@@ ###
+      */
     protected function runObjects($objects, $className, $isFirstRound)
     {
         $time = 0;

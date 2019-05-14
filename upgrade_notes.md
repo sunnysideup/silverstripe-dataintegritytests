@@ -900,3 +900,49 @@ then
 else
                     git commit . -m "MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests"
                 fi
+ 1 file changed, 76 insertions(+)
+[temp-upgradeto4-branch 708ee88] MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests
+ 1 file changed, 76 insertions(+)
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   a06e6fa..708ee88  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   a06e6fa..708ee88  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# Apply PSR2 Cleanup. (ApplyPSR2)
+# --------------------
+# Applies a light cleanup of the code to match PSR-2 standards.
+# --------------------
+# Apply PSR-2 to /var/www/upgrades/__upgradeto4__/dataintegritytests/src (Sunnysideup\DataIntegrityTest\)
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests/src
+/var/www/upgrader/vendor/bin/php-cs-fixer fix /var/www/upgrades/__upgradeto4__/dataintegritytests/src --using-cache=no --rules=@PSR2
+Fixed all files in 0.309 seconds, 12.000 MB memory used
+Loaded config default.
+   1) src/DataIntegrityTestInnoDB.php
+   2) src/DataIntegrityTest.php
+   3) src/DataIntegrityTestYML.php
+   4) src/DataIntegrityTestUTF8.php
+   5) src/DataIntegrityTestRecentlyChanged.php
+   6) src/DataIntegrityMoveFieldUpOrDownClassHierarchy.php
+   7) src/CheckForMysqlPaginationIssuesBuildTask.php
+   8) src/Api/DataIntegrityTestDefaultEntries.php
+
+Fixed all files in 0.309 seconds, 12.000 MB memory used
+✔✔✔
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: upgrade to new version of Silverstripe - step: Apply PSR2 Cleanup.
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Apply PSR2 Cleanup."
+                fi

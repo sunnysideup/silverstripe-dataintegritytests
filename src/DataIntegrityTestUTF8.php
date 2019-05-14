@@ -2,16 +2,10 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-
-
-
 use SilverStripe\ORM\DB;
 use SilverStripe\Core\Config\Config;
 use Sunnysideup\DataIntegrityTest\DataIntegrityTestUTF8;
 use SilverStripe\Dev\BuildTask;
-
-
-
 
 class DataIntegrityTestUTF8 extends BuildTask
 {

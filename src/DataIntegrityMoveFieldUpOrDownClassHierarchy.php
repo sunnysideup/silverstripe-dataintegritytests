@@ -2,18 +2,11 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-
-
-
-
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Dev\BuildTask;
-
-
-
 
 class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
 {

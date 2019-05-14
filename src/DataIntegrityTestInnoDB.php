@@ -2,13 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-
-
 use SilverStripe\ORM\DB;
 use SilverStripe\Dev\BuildTask;
-
-
-
 
 class DataIntegrityTestInnoDB extends BuildTask
 {

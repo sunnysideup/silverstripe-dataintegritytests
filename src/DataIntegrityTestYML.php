@@ -2,8 +2,6 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-
-
 use db;
 
 use Spyc;
@@ -13,9 +11,6 @@ use Sunnysideup\DataIntegrityTest\DataIntegrityTestYML;
 use SilverStripe\Control\Director;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Dev\BuildTask;
-
-
-
 
 class DataIntegrityTestYML extends BuildTask
 {
@@ -55,14 +50,14 @@ class DataIntegrityTestYML extends BuildTask
     {
         ini_set('max_execution_time', 3000);
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: require_once ' (case sensitive)
-  * NEW: require_once ' (COMPLEX)
-  * EXP: This should probably be replaced by PSR-4 autoloading!
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+        /**
+          * ### @@@@ START REPLACEMENT @@@@ ###
+          * WHY: upgrade to SS4
+          * OLD: require_once ' (case sensitive)
+          * NEW: require_once ' (COMPLEX)
+          * EXP: This should probably be replaced by PSR-4 autoloading!
+          * ### @@@@ STOP REPLACEMENT @@@@ ###
+          */
         require_once 'thirdparty/spyc/spyc.php';
         $filesArray = Config::inst()->get(DataIntegrityTestYML::class, "config_files");
         $classesToSkip = Config::inst()->get(DataIntegrityTestYML::class, "classes_to_skip");
@@ -76,14 +71,14 @@ class DataIntegrityTestYML extends BuildTask
             $parser = new Spyc();
             $arrayOfSettings = $parser->loadFile($fixtureFolderAndFile);
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+            /**
+              * ### @@@@ START REPLACEMENT @@@@ ###
+              * WHY: upgrade to SS4
+              * OLD: $className (case sensitive)
+              * NEW: $className (COMPLEX)
+              * EXP: Check if the class name can still be used as such
+              * ### @@@@ STOP REPLACEMENT @@@@ ###
+              */
             foreach ($arrayOfSettings as $className => $variables) {
 
 /**
@@ -108,14 +103,14 @@ class DataIntegrityTestYML extends BuildTask
                 } else {
                     echo "<br /><br />";
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                    /**
+                      * ### @@@@ START REPLACEMENT @@@@ ###
+                      * WHY: upgrade to SS4
+                      * OLD: $className (case sensitive)
+                      * NEW: $className (COMPLEX)
+                      * EXP: Check if the class name can still be used as such
+                      * ### @@@@ STOP REPLACEMENT @@@@ ###
+                      */
                     if (!class_exists($className)) {
 
 /**
@@ -143,14 +138,14 @@ class DataIntegrityTestYML extends BuildTask
                                 $fileLocationForOthers = Director::baseFolder().'/'.$setting;
                                 $fileLocationForSiteTree = Director::baseFolder().'/'.$setting.'-file.gif';
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                                /**
+                                  * ### @@@@ START REPLACEMENT @@@@ ###
+                                  * WHY: upgrade to SS4
+                                  * OLD: $className (case sensitive)
+                                  * NEW: $className (COMPLEX)
+                                  * EXP: Check if the class name can still be used as such
+                                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                                  */
                                 if ($className::create() instanceof SiteTree) {
                                     if (!file_exists($fileLocationForSiteTree)) {
 

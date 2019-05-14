@@ -2,12 +2,6 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-
-
-
-
-
-
 use DateTime;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Core\ClassInfo;
@@ -16,9 +10,6 @@ use SilverStripe\Dev\TestOnly;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Control\Director;
 use SilverStripe\Dev\BuildTask;
-
-
-
 
 class DataIntegrityTestRecentlyChanged extends BuildTask
 {

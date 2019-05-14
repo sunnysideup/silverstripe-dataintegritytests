@@ -2,17 +2,6 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-
-
-
-
-
-
-
-
-
-
-
 use SilverStripe\Core\Config\Config;
 use Sunnysideup\DataIntegrityTest\DataIntegrityTest;
 use SilverStripe\ORM\DataObject;
@@ -25,9 +14,6 @@ use SilverStripe\ORM\DataExtension;
 use SilverStripe\ORM\DatabaseAdmin;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Dev\BuildTask;
-
-
-
 
 class DataIntegrityTest extends BuildTask
 {
@@ -489,14 +475,14 @@ class DataIntegrityTest extends BuildTask
   */
                 $className = substr($table, 0, strlen($table) - 9);
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
+                /**
+                  * ### @@@@ START REPLACEMENT @@@@ ###
+                  * WHY: upgrade to SS4
+                  * OLD: $className (case sensitive)
+                  * NEW: $className (COMPLEX)
+                  * EXP: Check if the class name can still be used as such
+                  * ### @@@@ STOP REPLACEMENT @@@@ ###
+                  */
                 if (class_exists($className)) {
 
 /**
