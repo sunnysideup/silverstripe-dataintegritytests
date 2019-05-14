@@ -1,0 +1,10 @@
+SilverStripe\ORM\DatabaseAdmin:
+  classname_value_remapping:
+    DataIntegrityTestInnoDB: Sunnysideup\DataIntegrityTest\DataIntegrityTestInnoDB
+    DataIntegrityTest: Sunnysideup\DataIntegrityTest\DataIntegrityTest
+    DataIntegrityTestYML: Sunnysideup\DataIntegrityTest\DataIntegrityTestYML
+    DataIntegrityTestUTF8: Sunnysideup\DataIntegrityTest\DataIntegrityTestUTF8
+    DataIntegrityTestRecentlyChanged: Sunnysideup\DataIntegrityTest\DataIntegrityTestRecentlyChanged
+    DataIntegrityMoveFieldUpOrDownClassHierarchy: Sunnysideup\DataIntegrityTest\DataIntegrityMoveFieldUpOrDownClassHierarchy
+    CheckForMysqlPaginationIssuesBuildTask: Sunnysideup\DataIntegrityTest\CheckForMysqlPaginationIssuesBuildTask
+    DataIntegrityTestDefaultEntries: Sunnysideup\DataIntegrityTest\Api\DataIntegrityTestDefaultEntries

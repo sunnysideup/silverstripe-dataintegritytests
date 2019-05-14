@@ -1,5 +1,9 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use SilverStripe\ORM\DB;
+use SilverStripe\Dev\BuildTask;
 
 class DataIntegrityTestInnoDB extends BuildTask
 {
@@ -26,7 +30,7 @@ class DataIntegrityTestInnoDB extends BuildTask
             $this->flushNow();
             $indexRows = DB::query("SHOW INDEX FROM \"$table\" WHERE Index_type = 'FULLTEXT'");
             unset($done);
-            $done = array();
+            $done = [];
             foreach ($indexRows as $indexRow) {
                 $key = $indexRow["Key_name"];
                 if (!isset($done[$key])) {

@@ -1,7 +1,22 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest\Api;
 
-class DataIntegrityTestDefaultEntries extends Object
+use SilverStripe\ORM\DataObject;
+use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Convert;
+use SilverStripe\ORM\DB;
+use SilverStripe\View\ViewableData;
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD:  extends Object (ignore case)
+  * NEW:  extends ViewableData (COMPLEX)
+  * EXP: This used to extend Object, but object does not exist anymore. You can also manually add use Extensible, use Injectable, and use Configurable
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
+class DataIntegrityTestDefaultEntries extends ViewableData
 {
     public static function update($baseTable, $field, $value, $id = 0, $replace = false, $addLive = false)
     {
@@ -14,7 +29,7 @@ class DataIntegrityTestDefaultEntries extends Object
             foreach ($tableArray as $table) {
                 $value = Convert::raw2sql($value);
                 $sql = "UPDATE \"$table\" SET \"$table\".\"$field\" = '$value'";
-                $where = array();
+                $where = [];
                 if ($id) {
                     $where[] = "  \"$table\".\"ID\" = ".$id;
                 }

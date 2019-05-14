@@ -5,6 +5,6 @@ After:
     - 'cms/*'
 ---
 
-SiteTree:
+SilverStripe\CMS\Model\SiteTree:
   indexes:
     Sort: true

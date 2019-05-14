@@ -1,6 +1,6 @@
 {
     "name": "sunnysideup/dataintegritytests",
-    "type": "silverstripe-module",
+    "type": "silverstripe-vendormodule",
     "description": "check your database for obsolete fields and related data-structure errors",
     "keywords": [
         "Silverstripe-CMS",
@@ -23,10 +23,12 @@
         }
     ],
     "require": {
-        "silverstripe/framework": "~3.6",
-        "silverstripe/cms": "~3.6"
+        "silverstripe/recipe-cms": "^4.3"
     },
-    "extra": {
-        "installer-name": "dataintegritytests"
+    "extra": [],
+    "autoload": {
+        "psr-4": {
+            "Sunnysideup\\DataIntegrityTest\\": "src/"
+        }
     }
 }
