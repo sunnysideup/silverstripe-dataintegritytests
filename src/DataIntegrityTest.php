@@ -1,5 +1,20 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use BuildTask;
+use Config;
+use ClassInfo;
+use DB;
+use TestOnly;
+use DataObject;
+use Director;
+use Versioned;
+use DataExtension;
+use DatabaseAdmin;
+use SiteTree;
+
+
 
 class DataIntegrityTest extends BuildTask
 {

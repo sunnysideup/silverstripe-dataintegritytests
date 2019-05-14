@@ -1,5 +1,14 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest\Api;
+
+use ViewableData;
+use DataObject;
+use SiteTree;
+use Convert;
+use DB;
+
+
 
 
 /**

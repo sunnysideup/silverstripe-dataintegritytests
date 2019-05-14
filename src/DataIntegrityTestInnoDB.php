@@ -1,5 +1,11 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use BuildTask;
+use DB;
+
+
 
 class DataIntegrityTestInnoDB extends BuildTask
 {

@@ -1,5 +1,12 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use BuildTask;
+use DB;
+use Config;
+
+
 
 class DataIntegrityTestUTF8 extends BuildTask
 {

@@ -1,5 +1,13 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use BuildTask;
+use DB;
+use Config;
+use SiteTree;
+
+
 
 class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
 {

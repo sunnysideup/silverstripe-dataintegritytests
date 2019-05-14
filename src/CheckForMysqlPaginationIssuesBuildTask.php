@@ -1,5 +1,17 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use BuildTask;
+use ClassInfo;
+use Injector;
+use FunctionalTest;
+use TestOnly;
+use DB;
+use DataObject;
+use Config;
+
+
 
 class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 {

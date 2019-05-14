@@ -1,5 +1,16 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use BuildTask;
+use ClassInfo;
+use Injector;
+use TestOnly;
+use Config;
+use Director;
+use DateTime;
+
+
 
 class DataIntegrityTestRecentlyChanged extends BuildTask
 {

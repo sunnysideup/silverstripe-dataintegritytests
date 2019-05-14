@@ -1,5 +1,15 @@
 <?php
 
+namespace Sunnysideup\DataIntegrityTest;
+
+use BuildTask;
+use Config;
+use db;
+use Director;
+use Spyc;
+use SiteTree;
+
+
 
 class DataIntegrityTestYML extends BuildTask
 {
