@@ -680,3 +680,62 @@ then
 else
                     git commit . -m "MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests"
                 fi
+ 2 files changed, 89 insertions(+), 1 deletion(-)
+[temp-upgradeto4-branch 38b773a] MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests
+ 2 files changed, 89 insertions(+), 1 deletion(-)
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   2995c08..38b773a  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   2995c08..38b773a  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# Copy legacy data to database migration file (DatabaseMigrationLegacyYML)
+# --------------------
+# Take the data from .upgrade.yml and move it to _config/legay.yml with a
+# header.
+# --------------------
+# moving /var/www/upgrades/__upgradeto4__/dataintegritytests/.upgrade.yml to /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml -v is verbose, -n is only if destination does not exists
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if test -f /var/www/upgrades/__upgradeto4__/dataintegritytests/.upgrade.yml
+then cp -vn /var/www/upgrades/__upgradeto4__/dataintegritytests/.upgrade.yml /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml
+fi
+
+'/var/www/upgrades/__upgradeto4__/dataintegritytests/.upgrade.yml' -> '/var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml'
+'/var/www/upgrades/__upgradeto4__/dataintegritytests/.upgrade.yml' -> '/var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml'
+✔✔✔
+# removing the first line and placing into temp file
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+sed '1d' /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml > /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml.tmp
+mv /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml.tmp /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml
+✔✔✔
+# adding two additional spaces to the start of each line
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+sed -i -e 's/^/  /' /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml
+✔✔✔
+# adding `  classname_value_remapping:` to the start of /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+echo '  classname_value_remapping:' | cat - /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml > /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml.tmp
+mv /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml.tmp /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml
+✔✔✔
+# adding `SilverStripe\ORM\DatabaseAdmin:` to the start of /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+echo 'SilverStripe\ORM\DatabaseAdmin:' | cat - /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml > /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml.tmp
+mv /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml.tmp /var/www/upgrades/__upgradeto4__/dataintegritytests/_config/database.legacy.yml
+✔✔✔
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: upgrade to new version of Silverstripe - step: Copy legacy data to database migration file
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Copy legacy data to database migration file"
+                fi
