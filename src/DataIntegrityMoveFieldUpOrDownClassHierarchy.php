@@ -81,7 +81,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
 										ON \"".$newTable."\".\"ID\" = \"".$oldTable."\".\"ID\"
 									;";
                             $rows = DB::query($sql);
-                            $matchingRows = array();
+                            $matchingRows = [];
                             foreach ($rows as $row) {
                                 $matchingRows[$row["ID"]] = $row["ID"];
                             }
@@ -141,8 +141,8 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
         }
         echo "<hr />";
         $tablesToCheck = DB::query('SHOW tables');
-        $array = array();
-        $completed = array();
+        $array = [];
+        $completed = [];
         foreach ($tablesToCheck as $tableToCheck) {
             $tableToCheck = array_pop($tableToCheck);
             $fieldsToCheck = array_keys(DB::fieldList($tableToCheck));
@@ -151,7 +151,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
         }
         $testArray1 = $array;
         $testArray2 = $array;
-        $link = array();
+        $link = [];
         foreach ($testArray1 as $testTable1 => $testFields1) {
             foreach ($testArray2 as $testTable2 => $testFields2) {
                 if (class_exists($testTable1)) {
@@ -181,7 +181,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                         } else {
                             $completed[$testTable1."_".$testTable2] = $interSect;
 
-                            $link["movetoparent"] = array();
+                            $link["movetoparent"] = [];
                             if (in_array("DataObject", $parentArray1)) {
                                 $modelFields1 = array_keys((array)Config::inst()->get($testTable1, "db", Config::UNINHERITED)) +
                                 $hasOneArray = array_keys((array)Config::inst()->get($testTable1, "has_one", Config::UNINHERITED));
@@ -200,7 +200,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                                     }
                                 }
                             }
-                            $link["movetochild"] = array();
+                            $link["movetochild"] = [];
                             if (in_array("DataObject", $parentArray1)) {
                                 $modelFields2 = array_keys((array)Config::inst()->get($testTable2, "db", Config::UNINHERITED)) + array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED));
                                 $hasOneArray = array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED));

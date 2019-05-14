@@ -50,7 +50,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
                         $count = $dataClass::get()->where($whereStatement)->count();
                         $fields = Config::inst()->get($dataClass, "db", Config::INHERITED);
                         if (!is_array($fields)) {
-                            $fields = array();
+                            $fields = [];
                         }
                         $fields = array("ID" => "Int", "Created" => "SS_DateAndTime", "LastEdited" => "SS_DateAndTime")+$fields;
                         if ($count) {
@@ -59,7 +59,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
                             foreach ($objects as $object) {
                                 echo "<h4>".$object->getTitle()."</h4><ul>";
                                 if (count($fields)) {
-                                    $array = array();
+                                    $array = [];
                                     foreach ($fields as $field => $typeOfField) {
                                         echo "<li><strong>".$field."</strong><pre>\t\t".htmlentities($object->$field)."</pre></li>";
                                     }
@@ -77,6 +77,15 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
             $_GET["m"] = 0;
         }
         echo "
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $this->class (case sensitive)
+  * NEW: $this->class (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
 			<form method=\"get\" action=\"".Director::absoluteURL("dev/tasks/".$this->class."/")."\">
 				<label for=\"m\">please enter minutes ago or any date (e.g. last week, yesterday, 2011-11-11, etc...)</label>
 				<input name=\"m\" id=\"m\" value=\"".$_GET["m"]."\">

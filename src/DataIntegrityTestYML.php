@@ -8,7 +8,7 @@ class DataIntegrityTestYML extends BuildTask
      * list of files you want to check
      * @var array
      */
-    private static $config_files = array("mysite/_config/config.yml");
+    private static $config_files = array("app/_config/config.yml");
 
     /**
      * list of classes that do not need to be checked
@@ -21,7 +21,7 @@ class DataIntegrityTestYML extends BuildTask
      * list of variables that do not need checking...
      * @var array
      */
-    private static $variables_to_skip = array();
+    private static $variables_to_skip = [];
 
     /**
      * standard SS variable
@@ -38,6 +38,15 @@ class DataIntegrityTestYML extends BuildTask
     public function run($request)
     {
         ini_set('max_execution_time', 3000);
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: require_once ' (case sensitive)
+  * NEW: require_once ' (COMPLEX)
+  * EXP: This should probably be replaced by PSR-4 autoloading!
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
         require_once 'thirdparty/spyc/spyc.php';
         $filesArray = Config::inst()->get("DataIntegrityTestYML", "config_files");
         $classesToSkip = Config::inst()->get("DataIntegrityTestYML", "classes_to_skip");
@@ -50,50 +59,212 @@ class DataIntegrityTestYML extends BuildTask
             }
             $parser = new Spyc();
             $arrayOfSettings = $parser->loadFile($fixtureFolderAndFile);
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
             foreach ($arrayOfSettings as $className => $variables) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 if (in_array(strtolower($className), $classesToSkip)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                     db::alteration_message("$className : skipped");
                 } else {
                     echo "<br /><br />";
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                     if (!class_exists($className)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                         db::alteration_message("$className does not exist", "deleted");
                     } else {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                         db::alteration_message("$className", "created");
                         foreach ($variables as $variable => $setting) {
                             if ($variable == "icon") {
                                 $fileLocationForOthers = Director::baseFolder().'/'.$setting;
                                 $fileLocationForSiteTree = Director::baseFolder().'/'.$setting.'-file.gif';
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                 if ($className::create() instanceof SiteTree) {
                                     if (!file_exists($fileLocationForSiteTree)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                         db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> icon $fileLocationForSiteTree can not be found", "deleted");
                                     } else {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                         db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> icon $fileLocationForSiteTree exists", "created");
                                     }
                                 } else {
                                     if (!file_exists($fileLocationForOthers)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                         db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> icon $fileLocationForOthers can not be found", "deleted");
                                     } else {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                         db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> icon $fileLocationForOthers exists", "created");
                                     }
                                 }
                             } elseif ($variable == "extensions") {
                                 if (!is_array($setting)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                     db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> extensions should be set as an array.", "deleted");
                                 } else {
                                     foreach ($setting as $extensionClassName) {
                                         if (!class_exists($extensionClassName)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                             db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> extension class <u>$extensionClassName</u> does not exist", "deleted");
                                         } else {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                             db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> extension class <u>$extensionClassName</u> found", "created");
                                         }
                                     }
                                 }
                             } elseif (in_array($variable, $variablesToSkip)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                 db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> skipped");
                             } else {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                 if (!property_exists($className, $variable)) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                     db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> does not exist", "deleted");
                                 } else {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                                     db::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.$variable</u> found", "created");
                                 }
                             }

@@ -126,7 +126,16 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                             $errors[$class] = [];
                         }
                         // get fields ...
-                        $dbFields = $obj->db();
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: ->db() (case sensitive)
+  * NEW: ->Config()->get('db') (COMPLEX)
+  * EXP: Check implementation
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
+                        $dbFields = $obj->Config()->get('db');
                         if (! is_array($dbFields)) {
                             $dbFields = [];
                         }
@@ -275,12 +284,30 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected function tableExists($table)
     {
-        $db = DB::getConn();
+        $db = DB::get_conn();
         return $db->hasTable($table);
     }
 
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
     protected function speedComparison($className)
     {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR '.$className.' with '.$className::get()->count().' records</h2><hr /><hr /><hr /><hr />');
         $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
         shuffle($testSeq);
@@ -294,21 +321,102 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $isFirstRound = true;
             }
             if ($testLetter === 'A') {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $objects = $className::get();
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $testAResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'B') {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $objects = $className::get()->sort(['ID' => 'ASC']);
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $testBResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'C') {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $defaultSortField = Config::inst()->get($className, 'default_sort');
-                Config::inst()->update($className, 'default_sort', null);
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
+                Config::modify()->update($className, 'default_sort', null);
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $objects = $className::get();
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $testCResult += $this->runObjects($objects, $className, $isFirstRound);
-                Config::inst()->update($className, 'default_sort', $defaultSortField);
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
+                Config::modify()->update($className, 'default_sort', $defaultSortField);
             }
         }
         $testAResult = round($testAResult * 1000);
@@ -328,6 +436,15 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      *
      * @return float
      */
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
     protected function runObjects($objects, $className, $isFirstRound)
     {
         $time = 0;
@@ -338,6 +455,15 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             }
             $start = microtime(true);
             foreach ($objects as $object) {
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: upgrade to SS4
+  * OLD: $className (case sensitive)
+  * NEW: $className (COMPLEX)
+  * EXP: Check if the class name can still be used as such
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
                 $this->flushNowDebug($className.' with ID = '.$object->ID.' (not sorted)');
             }
             $end = microtime(true);
