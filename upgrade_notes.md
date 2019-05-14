@@ -793,3 +793,34 @@ then
 else
                     git commit . -m "MAJOR: Update composer type to silverstripe-vendormodule "
                 fi
+ 2 files changed, 55 insertions(+), 1 deletion(-)
+[temp-upgradeto4-branch ab63a4d] MAJOR: Update composer type to silverstripe-vendormodule
+ 2 files changed, 55 insertions(+), 1 deletion(-)
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   6499259..ab63a4d  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   6499259..ab63a4d  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# Adds vendor expose data to composer (AddVendorExposeDataToComposer)
+# --------------------
+# By default we expose all the client related files (images, css and
+# javascript)
+# --------------------
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: upgrade to new version of Silverstripe - step: Adds vendor expose data to composer
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Adds vendor expose data to composer"
+                fi
