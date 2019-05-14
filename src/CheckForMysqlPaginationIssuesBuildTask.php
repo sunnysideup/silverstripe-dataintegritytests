@@ -2,14 +2,23 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use BuildTask;
-use ClassInfo;
-use Injector;
-use FunctionalTest;
-use TestOnly;
-use DB;
-use DataObject;
-use Config;
+
+
+
+
+
+
+
+
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Core\ClassInfo;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Dev\FunctionalTest;
+use SilverStripe\Dev\TestOnly;
+use SilverStripe\ORM\DB;
+use SilverStripe\Core\Config\Config;
+use SilverStripe\Dev\BuildTask;
+
 
 
 
@@ -46,7 +55,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
         // give us some time to run this
         ini_set('max_execution_time', 3000);
-        $classes = ClassInfo::subclassesFor('DataObject');
+        $classes = ClassInfo::subclassesFor(DataObject::class);
         $array = [
             'l' => 'limit',
             's' => 'step',
@@ -103,7 +112,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 continue;
             }
             // skip irrelevant ones
-            if ($class !== 'DataObject') {
+            if ($class !== DataObject::class) {
                 //skip test ones
                 $obj = Injector::inst()->get($class);
                 if ($obj instanceof FunctionalTest || $obj instanceof TestOnly) {

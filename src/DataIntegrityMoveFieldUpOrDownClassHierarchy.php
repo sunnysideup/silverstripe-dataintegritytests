@@ -2,10 +2,16 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use BuildTask;
-use DB;
-use Config;
-use SiteTree;
+
+
+
+
+use SilverStripe\ORM\DB;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Core\Config\Config;
+use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Dev\BuildTask;
+
 
 
 
@@ -190,7 +196,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                             $completed[$testTable1."_".$testTable2] = $interSect;
 
                             $link["movetoparent"] = [];
-                            if (in_array("DataObject", $parentArray1)) {
+                            if (in_array(DataObject::class, $parentArray1)) {
                                 $modelFields1 = array_keys((array)Config::inst()->get($testTable1, "db", Config::UNINHERITED)) +
                                 $hasOneArray = array_keys((array)Config::inst()->get($testTable1, "has_one", Config::UNINHERITED));
                                 $hasOneArray = array_map(
@@ -209,7 +215,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                                 }
                             }
                             $link["movetochild"] = [];
-                            if (in_array("DataObject", $parentArray1)) {
+                            if (in_array(DataObject::class, $parentArray1)) {
                                 $modelFields2 = array_keys((array)Config::inst()->get($testTable2, "db", Config::UNINHERITED)) + array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED));
                                 $hasOneArray = array_keys((array)Config::inst()->get($testTable2, "has_one", Config::UNINHERITED));
                                 $hasOneArray = array_map(

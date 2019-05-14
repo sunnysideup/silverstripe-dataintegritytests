@@ -2,17 +2,30 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use BuildTask;
-use Config;
-use ClassInfo;
-use DB;
-use TestOnly;
-use DataObject;
-use Director;
-use Versioned;
-use DataExtension;
-use DatabaseAdmin;
-use SiteTree;
+
+
+
+
+
+
+
+
+
+
+
+use SilverStripe\Core\Config\Config;
+use Sunnysideup\DataIntegrityTest\DataIntegrityTest;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Core\ClassInfo;
+use SilverStripe\ORM\DB;
+use SilverStripe\Dev\TestOnly;
+use SilverStripe\Control\Director;
+use SilverStripe\Versioned\Versioned;
+use SilverStripe\ORM\DataExtension;
+use SilverStripe\ORM\DatabaseAdmin;
+use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Dev\BuildTask;
+
 
 
 
@@ -76,7 +89,7 @@ class DataIntegrityTest extends BuildTask
         if ($action = $request->getVar("do")) {
             $methodArray = explode("/", $action);
             $method = $methodArray[0];
-            $allowedActions = Config::inst()->get("DataIntegrityTest", "allowed_actions");
+            $allowedActions = Config::inst()->get(DataIntegrityTest::class, "allowed_actions");
             if (isset($allowedActions[$method])) {
                 if ($method == "obsoletefields") {
                     $deletesafeones = $fixbrokendataobjects = $deleteall = false;
@@ -97,7 +110,7 @@ class DataIntegrityTest extends BuildTask
                 user_error("could not find method: $method");
             }
         }
-        $warning = Config::inst()->get("DataIntegrityTest", "warning");
+        $warning = Config::inst()->get(DataIntegrityTest::class, "warning");
         echo "<h2>Database Administration Helpers</h2>";
         echo "<p><a href=\"".$this->Link()."?do=obsoletefields\">Prepare a list of obsolete fields.</a></p>";
         echo "<p><a href=\"".$this->Link()."?do=obsoletefields&amp;deletesafeones=1\" onclick=\"return confirm('".$warning."');\">Prepare a list of obsolete fields and DELETE! obsolete fields without any data.</a></p>";
@@ -124,7 +137,7 @@ class DataIntegrityTest extends BuildTask
     protected function obsoletefields($deleteSafeOnes = false, $fixBrokenDataObject = false, $deleteAll = false)
     {
         increase_time_limit_to(600);
-        $dataClasses = ClassInfo::subclassesFor('DataObject');
+        $dataClasses = ClassInfo::subclassesFor(DataObject::class);
         $notCheckedArray = [];
         $canBeSafelyDeleted = [];
         //remove dataobject
@@ -158,7 +171,7 @@ class DataIntegrityTest extends BuildTask
                                 if ($deleteAll) {
                                     $link = " !!!!!!!!!!! DELETED !!!!!!!!!";
                                 } else {
-                                    $warning = Config::inst()->get("DataIntegrityTest", "warning");
+                                    $warning = Config::inst()->get(DataIntegrityTest::class, "warning");
                                     $link = "<a href=\"".Director::absoluteBaseURL()."dev/tasks/DataIntegrityTest/?do=deleteonefield/".$dataClass."/".$actualField."/\" onclick=\"return confirm('".$warning."');\">delete field</a>";
                                 }
                                 if (!in_array($actualField, array("ID", "Version"))) {
@@ -222,9 +235,9 @@ class DataIntegrityTest extends BuildTask
                                     DB::alteration_message("Now trying to recreate missing items... COUNT = ".$objects->count(), "created");
                                     foreach ($objects as $object) {
                                         if (DB::query("SELECT COUNT(\"ID\") FROM \"$dataClass\" WHERE \"ID\" = ".$object->ID.";")->value() != 1) {
-                                            Config::modify()->update('DataObject', 'validation_enabled', false);
+                                            Config::modify()->update(DataObject::class, 'validation_enabled', false);
                                             $object->write(true, false, true, false);
-                                            Config::modify()->update('DataObject', 'validation_enabled', true);
+                                            Config::modify()->update(DataObject::class, 'validation_enabled', true);
                                         }
                                     }
                                     $objectCount = $dataClass::get()->count();
@@ -283,7 +296,7 @@ class DataIntegrityTest extends BuildTask
                     //not sure why we have this.
                     if ($obj instanceof DataExtension) {
                         $remove = false;
-                    } elseif (class_exists("Versioned") && $obj->hasExtension("Versioned")) {
+                    } elseif (class_exists(Versioned::class) && $obj->hasExtension(Versioned::class)) {
                         $remove = false;
                     }
                 } else {
@@ -334,7 +347,7 @@ class DataIntegrityTest extends BuildTask
 
     public function deletemarkedfields()
     {
-        $fieldsToDelete = Config::inst()->get("DataIntegrityTest", "fields_to_delete");
+        $fieldsToDelete = Config::inst()->get(DataIntegrityTest::class, "fields_to_delete");
         if (is_array($fieldsToDelete)) {
             if (count($fieldsToDelete)) {
                 foreach ($fieldsToDelete as $key => $tableDotField) {
@@ -381,7 +394,7 @@ class DataIntegrityTest extends BuildTask
     private function deleteField($table, $field)
     {
         $fields = $this->swapArray(DB::fieldList($table));
-        $globalExeceptions = Config::inst()->get("DataIntegrityTest", "global_exceptions");
+        $globalExeceptions = Config::inst()->get(DataIntegrityTest::class, "global_exceptions");
         if (count($globalExeceptions)) {
             foreach ($globalExeceptions as $exceptionTable => $exceptionField) {
                 if ($exceptionTable == $table && $exceptionField == $field) {
@@ -496,7 +509,7 @@ class DataIntegrityTest extends BuildTask
   */
                     $obj = DataObject::get_one($className);
                     if ($obj) {
-                        if ($obj->hasExtension("Versioned")) {
+                        if ($obj->hasExtension(Versioned::class)) {
                             DB::alteration_message("Removing all records from $table", "created");
                             DB::query("DELETE FROM \"$table\" ");
                         }

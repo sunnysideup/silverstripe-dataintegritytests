@@ -2,8 +2,11 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use BuildTask;
-use DB;
+
+
+use SilverStripe\ORM\DB;
+use SilverStripe\Dev\BuildTask;
+
 
 
 

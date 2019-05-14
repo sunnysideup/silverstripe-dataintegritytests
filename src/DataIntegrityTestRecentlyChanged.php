@@ -2,13 +2,21 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use BuildTask;
-use ClassInfo;
-use Injector;
-use TestOnly;
-use Config;
-use Director;
+
+
+
+
+
+
 use DateTime;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Core\ClassInfo;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Dev\TestOnly;
+use SilverStripe\Core\Config\Config;
+use SilverStripe\Control\Director;
+use SilverStripe\Dev\BuildTask;
+
 
 
 
@@ -49,7 +57,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
             $date =  date(DATE_RFC2822, $ts);
             echo "<hr /><h3>changes in the last ".$this->minutesToTime($minutes)."<br />from: ".$date."<br />make sure you see THE END at the bottom of this list</h3><hr />";
             $whereStatementFixed = "UNIX_TIMESTAMP(\"LastEdited\") > ".$ts." ";
-            $dataClasses = ClassInfo::subclassesFor('DataObject');
+            $dataClasses = ClassInfo::subclassesFor(DataObject::class);
             array_shift($dataClasses);
             foreach ($dataClasses as $dataClass) {
                 if (class_exists($dataClass)) {

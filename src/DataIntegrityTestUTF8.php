@@ -2,9 +2,14 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use BuildTask;
-use DB;
-use Config;
+
+
+
+use SilverStripe\ORM\DB;
+use SilverStripe\Core\Config\Config;
+use Sunnysideup\DataIntegrityTest\DataIntegrityTestUTF8;
+use SilverStripe\Dev\BuildTask;
+
 
 
 
@@ -41,7 +46,7 @@ class DataIntegrityTestUTF8 extends BuildTask
         ini_set('max_execution_time', 3000);
         $tables = DB::query('SHOW tables');
         $unique = [];
-        $arrayOfReplacements = Config::inst()->get("DataIntegrityTestUTF8", "replacement_array");
+        $arrayOfReplacements = Config::inst()->get(DataIntegrityTestUTF8::class, "replacement_array");
         foreach ($tables as $table) {
             $table = array_pop($table);
             DB::query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");

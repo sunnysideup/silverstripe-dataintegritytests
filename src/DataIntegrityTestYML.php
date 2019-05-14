@@ -2,12 +2,18 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use BuildTask;
-use Config;
+
+
 use db;
-use Director;
+
 use Spyc;
-use SiteTree;
+
+use SilverStripe\Core\Config\Config;
+use Sunnysideup\DataIntegrityTest\DataIntegrityTestYML;
+use SilverStripe\Control\Director;
+use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Dev\BuildTask;
+
 
 
 
@@ -58,9 +64,9 @@ class DataIntegrityTestYML extends BuildTask
   * ### @@@@ STOP REPLACEMENT @@@@ ###
   */
         require_once 'thirdparty/spyc/spyc.php';
-        $filesArray = Config::inst()->get("DataIntegrityTestYML", "config_files");
-        $classesToSkip = Config::inst()->get("DataIntegrityTestYML", "classes_to_skip");
-        $variablesToSkip = Config::inst()->get("DataIntegrityTestYML", "variables_to_skip");
+        $filesArray = Config::inst()->get(DataIntegrityTestYML::class, "config_files");
+        $classesToSkip = Config::inst()->get(DataIntegrityTestYML::class, "classes_to_skip");
+        $variablesToSkip = Config::inst()->get(DataIntegrityTestYML::class, "variables_to_skip");
         foreach ($filesArray as $folderAndFileLocation) {
             db::alteration_message("<h2>Checking $folderAndFileLocation</h2>");
             $fixtureFolderAndFile = Director::baseFolder().'/'. $folderAndFileLocation;
