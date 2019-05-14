@@ -440,3 +440,94 @@ then
 else
                     git commit . -m "MAJOR: core upgrade to SS4 - STEP 1 (upgrade) on /var/www/upgrades/__upgradeto4__/dataintegritytests"
                 fi
+ create mode 100644 upgrade_notes.md
+[temp-upgradeto4-branch 33289e7] MAJOR: core upgrade to SS4 - STEP 1 (upgrade) on /var/www/upgrades/__upgradeto4__/dataintegritytests
+ 9 files changed, 560 insertions(+), 62 deletions(-)
+ create mode 100644 upgrade_notes.md
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   324fc6f..33289e7  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   324fc6f..33289e7  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# Add PSR-4 Autoloading to the composer file. (AddPSR4Autoloading)
+# --------------------
+# Goes through all the folders in the code or src dir and adds them to the
+# composer.json file as autoloader. This must run after the folder names have
+# been changed to CamelCase (see: UpperCaseFolderNamesForPSR4).
+# --------------------
+# Adding autoload Page and Page controller details in /var/www/upgrades/__upgradeto4__/composer.json:  =>  --- in /var/www/upgrades/__upgradeto4__/composer.json
+cd /var/www/upgrades/__upgradeto4__
+php -r  '$jsonString = file_get_contents("/var/www/upgrades/__upgradeto4__/composer.json")
+$data = json_decode($jsonString, true)
+if(! isset($data["autoload"])) {
+                $data["autoload"] = []
+}
+            if(! isset($data["autoload"]["psr-4"])) {
+                $data["autoload"]["psr-4"] = []
+}
+        
+            if(! isset($data["autoload"]["files"])) {
+                $data["autoload"]["files"] = [
+                    "app/src/Page.php",
+                    "app/src/PageController.php"
+                ]
+}$newJsonString = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+file_put_contents("/var/www/upgrades/__upgradeto4__/composer.json", $newJsonString)
+'
+✔✔✔
+# Adding autoload psr-4 details in /var/www/upgrades/__upgradeto4__/composer.json: Sunnysideup\DataIntegrityTest\ => dataintegritytests/src/ --- in /var/www/upgrades/__upgradeto4__/composer.json
+cd /var/www/upgrades/__upgradeto4__
+php -r  '$jsonString = file_get_contents("/var/www/upgrades/__upgradeto4__/composer.json")
+$data = json_decode($jsonString, true)
+if(! isset($data["autoload"])) {
+                $data["autoload"] = []
+}
+            if(! isset($data["autoload"]["psr-4"])) {
+                $data["autoload"]["psr-4"] = []
+}
+        
+            $data["autoload"]["psr-4"]["Sunnysideup\\DataIntegrityTest\\"] = "dataintegritytests/src/"
+$newJsonString = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+file_put_contents("/var/www/upgrades/__upgradeto4__/composer.json", $newJsonString)
+'
+✔✔✔
+# Adding autoload psr-4 details in /var/www/upgrades/__upgradeto4__/dataintegritytests/composer.json: Sunnysideup\DataIntegrityTest\ => src/ --- in /var/www/upgrades/__upgradeto4__/dataintegritytests/composer.json
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+php -r  '$jsonString = file_get_contents("/var/www/upgrades/__upgradeto4__/dataintegritytests/composer.json")
+$data = json_decode($jsonString, true)
+if(! isset($data["autoload"])) {
+                $data["autoload"] = []
+}
+            if(! isset($data["autoload"]["psr-4"])) {
+                $data["autoload"]["psr-4"] = []
+}
+        
+                $data["autoload"]["psr-4"]["Sunnysideup\\DataIntegrityTest\\"] = "src/"
+$newJsonString = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+file_put_contents("/var/www/upgrades/__upgradeto4__/dataintegritytests/composer.json", $newJsonString)
+'
+✔✔✔
+# run composer dumpautoload
+cd /var/www/upgrades/__upgradeto4__
+composer dumpautoload
+Generating autoload filesGenerated autoload files containing 465 classes
+Generating autoload filesGenerated autoload files containing 465 classes
+✔✔✔
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: upgrade to new version of Silverstripe - step: Add PSR-4 Autoloading to the composer file.
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Add PSR-4 Autoloading to the composer file."
+                fi

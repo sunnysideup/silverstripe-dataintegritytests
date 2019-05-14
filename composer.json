@@ -25,5 +25,10 @@
     "require": {
         "silverstripe/recipe-cms": "^4.3"
     },
-    "extra": []
+    "extra": [],
+    "autoload": {
+        "psr-4": {
+            "Sunnysideup\\DataIntegrityTest\\": "src/"
+        }
+    }
 }
