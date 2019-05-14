@@ -824,3 +824,79 @@ then
 else
                     git commit . -m "MAJOR: upgrade to new version of Silverstripe - step: Adds vendor expose data to composer"
                 fi
+ create mode 100644 .upgrade_notes.md.swp
+[temp-upgradeto4-branch a06e6fa] MAJOR: upgrade to new version of Silverstripe - step: Adds vendor expose data to composer
+ 2 files changed, 31 insertions(+)
+ create mode 100644 .upgrade_notes.md.swp
+✔✔✔
+# pushing changes to origin on the temp-upgradeto4-branch branch
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git push origin temp-upgradeto4-branch
+   ab63a4d..a06e6fa  temp-upgradeto4-branch -> temp-upgradeto4-branch
+To github.com:sunnysideup/silverstripe-dataintegritytests.git
+   ab63a4d..a06e6fa  temp-upgradeto4-branch -> temp-upgradeto4-branch
+✔✔✔
+
+
+# --------------------
+# After load fixes (inspect) (InspectAPIChanges-2)
+# --------------------
+# Runs the silverstripe/upgrade task "inpect". See:
+# https://github.com/silverstripe/silverstripe-upgrader#inspect. Once a
+# project has all class names migrated, and is brought up to a "loadable"
+# state (that is, where all classes reference or extend real classes) then
+# the inspect command can be run to perform additional automatic code
+# rewrites. This step will also warn of any upgradable code issues that may
+# prevent a succesful upgrade.
+# --------------------
+# run composer dump-autoload to create autoload classes
+cd /var/www/upgrades/__upgradeto4__
+composer dump-autoload
+Generating autoload filesGenerated autoload files containing 465 classes
+Generating autoload filesGenerated autoload files containing 465 classes
+✔✔✔
+# running php upgrade inspect see: https://github.com/silverstripe/silverstripe-upgrader
+cd /var/www/upgrades/__upgradeto4__
+php /var/www/upgrader/vendor/silverstripe/upgrader/bin/upgrade-code inspect /var/www/upgrades/__upgradeto4__/dataintegritytests  --root-dir=/var/www/upgrades/__upgradeto4__ --write -vvv
+Writing changes for 0 files
+Running post-upgrade on "/var/www/upgrades/__upgradeto4__/dataintegritytests"
+[2019-05-14 20:09:03] Applying ApiChangeWarningsRule to DataIntegrityTestInnoDB.php...
+[2019-05-14 20:09:03] Applying UpdateVisibilityRule to DataIntegrityTestInnoDB.php...
+[2019-05-14 20:09:03] Applying ApiChangeWarningsRule to DataIntegrityTest.php...
+[2019-05-14 20:09:04] Applying UpdateVisibilityRule to DataIntegrityTest.php...
+[2019-05-14 20:09:05] Applying ApiChangeWarningsRule to DataIntegrityTestYML.php...
+[2019-05-14 20:09:05] Applying UpdateVisibilityRule to DataIntegrityTestYML.php...
+[2019-05-14 20:09:05] Applying ApiChangeWarningsRule to DataIntegrityTestUTF8.php...
+[2019-05-14 20:09:05] Applying UpdateVisibilityRule to DataIntegrityTestUTF8.php...
+[2019-05-14 20:09:05] Applying ApiChangeWarningsRule to DataIntegrityTestRecentlyChanged.php...
+[2019-05-14 20:09:05] Applying UpdateVisibilityRule to DataIntegrityTestRecentlyChanged.php...
+[2019-05-14 20:09:05] Applying ApiChangeWarningsRule to DataIntegrityMoveFieldUpOrDownClassHierarchy.php...
+[2019-05-14 20:09:06] Applying UpdateVisibilityRule to DataIntegrityMoveFieldUpOrDownClassHierarchy.php...
+[2019-05-14 20:09:07] Applying ApiChangeWarningsRule to CheckForMysqlPaginationIssuesBuildTask.php...
+[2019-05-14 20:09:08] Applying UpdateVisibilityRule to CheckForMysqlPaginationIssuesBuildTask.php...
+[2019-05-14 20:09:08] Applying ApiChangeWarningsRule to DataIntegrityTestDefaultEntries.php...
+[2019-05-14 20:09:08] Applying UpdateVisibilityRule to DataIntegrityTestDefaultEntries.php...
+[2019-05-14 20:09:08] Applying ApiChangeWarningsRule to _config.php...
+[2019-05-14 20:09:08] Applying UpdateVisibilityRule to _config.php...
+unchanged:	src/DataIntegrityTestRecentlyChanged.php
+Warnings for src/DataIntegrityTestRecentlyChanged.php:
+ - src/DataIntegrityTestRecentlyChanged.php:103 class: $this->class access has been removed (https://docs.silverstripe.org/en/4/changelogs/4.0.0#object-replace)
+ - src/DataIntegrityTestRecentlyChanged.php:104 class: $this->class access has been removed (https://docs.silverstripe.org/en/4/changelogs/4.0.0#object-replace)
+ - src/DataIntegrityTestRecentlyChanged.php:108 class: $this->class access has been removed (https://docs.silverstripe.org/en/4/changelogs/4.0.0#object-replace)
+unchanged:	src/CheckForMysqlPaginationIssuesBuildTask.php
+Warnings for src/CheckForMysqlPaginationIssuesBuildTask.php:
+ - src/CheckForMysqlPaginationIssuesBuildTask.php:194 SilverStripe\ORM\DataObject::has_own_table_database_field(): DataObject::has_own_table_database_field() has been replaced with DataObjectSchema::fieldSpec(). Access through getSchema() (https://docs.silverstripe.org/en/4/changelogs/4.0.0#dataobject-has-own)
+Writing changes for 0 files
+✔✔✔
+# git add all
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+git add . -A
+✔✔✔
+# commit changes: MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests
+cd /var/www/upgrades/__upgradeto4__/dataintegritytests
+if [ -z "$(git status --porcelain)" ]
+then
+                    echo 'OKI DOKI - Nothing to commit'
+else
+                    git commit . -m "MAJOR: core upgrade to SS4: running INSPECT on /var/www/upgrades/__upgradeto4__/dataintegritytests"
+                fi
