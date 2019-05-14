@@ -25,7 +25,5 @@
     "require": {
         "silverstripe/recipe-cms": "^4.3"
     },
-    "extra": {
-        "installer-name": "dataintegritytests"
-    }
+    "extra": []
 }
