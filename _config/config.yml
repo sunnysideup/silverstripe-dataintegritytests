@@ -1,8 +1,8 @@
 ---
 Name: dataintegritytests
 After:
-    - 'framework/*'
-    - 'cms/*'
+  - '#coreconfig'
+  - '#cmsextensions'
 ---
 
 SilverStripe\CMS\Model\SiteTree:
