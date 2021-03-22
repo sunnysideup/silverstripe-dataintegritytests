@@ -41,8 +41,8 @@ class DataIntegrityTestUTF8 extends BuildTask
         ini_set('max_execution_time', 3000);
         $tables = DB::query('SHOW tables');
         $arrayOfReplacements = Config::inst()->get(DataIntegrityTestUTF8::class, 'replacement_array');
-        $connCharset = Config::inst()->get(MySQLDatabase::class, 'connection_charset');
-        $connCollation = Config::inst()->get(MySQLDatabase::class, 'connection_collation');
+        $connCharset = Config::inst()->get(MySQLDatabase::class, 'connection_charset') ?: 'utf8mb4';
+        $connCollation = Config::inst()->get(MySQLDatabase::class, 'connection_collation') ?: 'utf8mb4_unicode_ci';
         $conn = DB::get_conn();
         // Assumes database class is like "MySQLDatabase" or "MSSQLDatabase" (suffixed with "Database")
         $databaseName = $conn->getSelectedDatabase();
