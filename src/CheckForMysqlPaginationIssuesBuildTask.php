@@ -2,30 +2,28 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use SilverStripe\ORM\DataObject;
 use SilverStripe\Core\ClassInfo;
+use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Dev\BuildTask;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Dev\TestOnly;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
-use SilverStripe\Core\Config\Config;
-use SilverStripe\Dev\BuildTask;
 
 class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 {
-    private static $skip_tables = [];
-
     /**
      * standard SS variable
-     * @var String
+     * @var string
      */
     protected $title = 'Goes through all tables and checks for bad pagination';
 
     /**
      * standard SS variable
-     * @var String
+     * @var string
      */
-    protected $description = "Goes through all DataObjects to check if pagination can cause data-errors.";
+    protected $description = 'Goes through all DataObjects to check if pagination can cause data-errors.';
 
     protected $limit = 100;
 
@@ -39,6 +37,8 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected $timePerClass = [];
 
+    private static $skip_tables = [];
+
     public function run($request)
     {
 
@@ -50,26 +50,25 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             's' => 'step',
             'd' => 'debug',
             'q' => 'quickAndDirty',
-            't' => 'testTableCustom'
+            't' => 'testTableCustom',
         ];
         foreach ($array as $getParam => $field) {
             if (isset($_GET[$getParam])) {
                 $v = $_GET[$getParam];
                 switch ($getParam) {
                     case 't':
-                        if (in_array($v, $classes)) {
-                            $this->$field = $v;
+                        if (in_array($v, $classes, true)) {
+                            $this->{$field} = $v;
                         }
                         break;
                     default:
-                        $this->$field = intval($v);
-
+                        $this->{$field} = intval($v);
                 }
             }
         }
         $this->flushNowQuick('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
         $this->flushNow('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>', 'notice');
-        $this->flushNowQuick(
+        $this->flushNow(
             '
                 We run through all the summary fields for all dataobjects and select <i>limits</i> (segments) of the datalist.
                 After that we check if the same ID shows up on different segments.
@@ -80,11 +79,11 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SETTINGS </h2><hr /><hr /><hr /><hr />');
         $this->flushNow('
             <form method="get" action="/dev/tasks/CheckForMysqlPaginationIssuesBuildTask">
-                <br /><br />test table:<br /><input name="t" placeholder="e.g. SiteTree" value="'.$this->testTableCustom.'" />
-                <br /><br />limit:<br /><input name="l" placeholder="limit" value="'.$this->limit.'" />
-                <br /><br />step:<br /><input name="s" placeholder="step" value="'.$this->step.'" />
-                <br /><br />debug:<br /><select name="d" placeholder="debug" /><option value="0">false</option><option value="1" '.($this->debug ? 'selected="selected"' : '').'>true</option></select>
-                <br /><br />quick:<br /><select name="q" placeholder="quick" /><option value="0">false</option><option value="1" '.($this->quickAndDirty ? ' selected="selected"' : '').'>true</option></select>
+                <br /><br />test table:<br /><input name="t" placeholder="e.g. SiteTree" value="' . $this->testTableCustom . '" />
+                <br /><br />limit:<br /><input name="l" placeholder="limit" value="' . $this->limit . '" />
+                <br /><br />step:<br /><input name="s" placeholder="step" value="' . $this->step . '" />
+                <br /><br />debug:<br /><select name="d" placeholder="debug" /><option value="0">false</option><option value="1" ' . ($this->debug ? 'selected="selected"' : '') . '>true</option></select>
+                <br /><br />quick:<br /><select name="q" placeholder="quick" /><option value="0">false</option><option value="1" ' . ($this->quickAndDirty ? ' selected="selected"' : '') . '>true</option></select>
                 <br /><br /><input type="submit" value="run again with variables above" />
             </form>
         ');
@@ -97,7 +96,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         // get all DataObjects and loop through them
 
         foreach ($classes as $class) {
-            if (in_array($class, $skipTables)) {
+            if (in_array($class, $skipTables, true)) {
                 continue;
             }
             // skip irrelevant ones
@@ -105,11 +104,11 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 //skip test ones
                 $obj = Injector::inst()->get($class);
                 if ($obj instanceof FunctionalTest || $obj instanceof TestOnly) {
-                    $this->flushNowDebug('<h2>SKIPPING: '.$class.'</h2>');
+                    $this->flushNowDebug('<h2>SKIPPING: ' . $class . '</h2>');
                     continue;
                 }
                 //start the process ...
-                $this->flushNowDebug('<h2>Testing '.$class.'</h2>');
+                $this->flushNowDebug('<h2>Testing ' . $class . '</h2>');
 
                 // must exist is its own table to avoid doubling-up on tests
                 // e.g. test SiteTree and Page where Page is not its own table ...
@@ -118,33 +117,33 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     $this->timePerClass[$class]['start'] = microtime(true);
                     // check table size
                     $count = $class::get()->count();
-                    $checkCount = DB::query('SELECT COUNT("ID") FROM "'.$class.'"')->value();
+                    $checkCount = DB::query('SELECT COUNT("ID") FROM "' . $class . '"')->value();
                     if (intval($checkCount) !== intval($count)) {
                         $this->flushNow('
                             COUNT error!
-                            '.$class.' ::get: '.$count.' rows BUT 
-                            DB::query(...): '.$checkCount.' rows | 
-                            DIFFERENCE:  '.abs($count - $checkCount).'', 'deleted');
+                            ' . $class . ' ::get: ' . $count . ' rows BUT
+                            DB::query(...): ' . $checkCount . ' rows |
+                            DIFFERENCE:  ' . abs($count - $checkCount) . '', 'deleted');
                     }
                     if ($count > $this->step) {
                         if ($count > $largestTableCount) {
                             $largestTableCount = $count;
                             $largestTable = $class;
                         }
-                        $this->flushNowQuick('<br />'.$class.': ');
+                        $this->flushNowQuick('<br />' . $class . ': ');
                         if (! isset($errors[$class])) {
                             $errors[$class] = [];
                         }
                         // get fields ...
 
                         /**
-                          * ### @@@@ START REPLACEMENT @@@@ ###
-                          * WHY: upgrade to SS4
-                          * OLD: ->db() (case sensitive)
-                          * NEW: ->Config()->get('db') (COMPLEX)
-                          * EXP: Check implementation
-                          * ### @@@@ STOP REPLACEMENT @@@@ ###
-                          */
+                         * ### @@@@ START REPLACEMENT @@@@ ###
+                         * WHY: upgrade to SS4
+                         * OLD: ->db() (case sensitive)
+                         * NEW: ->Config()->get('db') (COMPLEX)
+                         * EXP: Check implementation
+                         * ### @@@@ STOP REPLACEMENT @@@@ ###
+                         */
                         $dbFields = $obj->Config()->get('db');
                         if (! is_array($dbFields)) {
                             $dbFields = [];
@@ -162,9 +161,9 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
                         //start looping through summary fields ...
                         $summaryFields = $obj->summaryFields();
-                        foreach ($summaryFields as $field => $value) {
+                        foreach (array_keys($summaryFields) as $field) {
                             if (isset($dbFields[$field]) || isset($hasOneFields[$field])) {
-                                $this->flushNowQuick(' / '.$field.': ');
+                                $this->flushNowQuick(' / ' . $field . ': ');
                                 // reset comparisonArray - this is important ...
                                 $comparisonArray = [];
                                 //fix has one field
@@ -175,13 +174,12 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                     $errors[$class][$field] = [];
                                 }
                                 // start loop of limits ...
-                                $this->flushNowDebug('- Sorting by '.$field);
+                                $this->flushNowDebug('- Sorting by ' . $field);
                                 for ($i = 0; $i < $this->limit && $i < ($count - $this->step); $i += $this->step) {
-
                                     // OPTION 1
                                     if ($this->quickAndDirty) {
-                                        if (DataObject::has_own_table_database_field($class, $field)) {
-                                            $tempRows = DB::query('SELECT "ID" FROM "'.$class.'" ORDER BY "'.$field.'" ASC LIMIT '.$i.', '.$this->step.';');
+                                        if (DataObject::getSchema()->fieldSpec($class, $field)) {
+                                            $tempRows = DB::query('SELECT "ID" FROM "' . $class . '" ORDER BY "' . $field . '" ASC LIMIT ' . $i . ', ' . $this->step . ';');
                                             foreach ($tempRows as $row) {
                                                 $id = $row['ID'];
                                                 if (isset($comparisonArray[$id])) {
@@ -195,7 +193,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                                 $comparisonArray[$id] = $id;
                                             }
                                         } else {
-                                            $this->flushNowDebug('<strong>SKIP: '.$class.'.'.$field.'</strong> does not exist');
+                                            $this->flushNowDebug('<strong>SKIP: ' . $class . '.' . $field . '</strong> does not exist');
                                             break;
                                         }
 
@@ -217,35 +215,36 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                     }
                                 }
                                 if (count($errors[$class][$field])) {
-                                    $error =    '<br /><strong>Found double entries in <u>'.$class.'</u> table,'.
-                                                ' sorting by <u>'.$field.'</u></strong> ...';
+                                    $error = '<br /><strong>Found double entries in <u>' . $class . '</u> table,' .
+                                                ' sorting by <u>' . $field . '</u></strong> ...';
                                     foreach ($errors[$class][$field] as $tempID => $tempCount) {
-                                        $error .= ' ID: '.$tempID.' occurred '.$tempCount.' times /';
+                                        $error .= ' ID: ' . $tempID . ' occurred ' . $tempCount . ' times /';
                                     }
                                     $this->flushNowDebug($error, 'deleted');
                                     $errors[$class][$field] = $error;
                                 }
                             } else {
-                                $this->flushNowDebug('<strong>SKIP: '.$class.'.'.$field.' field</strong> because it is not a DB field.');
+                                $this->flushNowDebug('<strong>SKIP: ' . $class . '.' . $field . ' field</strong> because it is not a DB field.');
                             }
                         }
                     } else {
-                        $this->flushNowDebug('<strong>SKIP: table '.$class.'</strong> because it does not have enough records. ');
+                        $this->flushNowDebug('<strong>SKIP: table ' . $class . '</strong> because it does not have enough records. ');
                     }
                     $this->timePerClass[$class]['end'] = microtime(true);
                 } else {
-                    $this->flushNowDebug('SKIP: '.$class.' because table does not exist. ');
+                    $this->flushNowDebug('SKIP: ' . $class . ' because table does not exist. ');
                 }
             }
         }
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">RESULTS </h2><hr /><hr /><hr /><hr />');
         //print out errors again ...
         foreach ($errors as $class => $fieldValues) {
-            $this->flushNow('<h4>'.$class.'</h4>');
+            $this->flushNow('<h4>' . $class . '</h4>');
             $time = round(($this->timePerClass[$class]['end'] - $this->timePerClass[$class]['start']) * 1000);
-            $this->flushNow('Time taken: '.$time.'μs');
+            $this->flushNow('Time taken: ' . $time . 'μs');
             $errorCount = 0;
-            foreach ($fieldValues as $field => $errorMessage) {
+            // key is field
+            foreach ($fieldValues as $errorMessage) {
                 if (is_string($errorMessage) && $errorMessage) {
                     $errorCount++;
                     $this->flushNow($errorMessage, 'deleted');
@@ -298,30 +297,29 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         return $db->hasTable($table);
     }
 
-
     /**
-      * ### @@@@ START REPLACEMENT @@@@ ###
-      * WHY: upgrade to SS4
-      * OLD: $className (case sensitive)
-      * NEW: $className (COMPLEX)
-      * EXP: Check if the class name can still be used as such
-      * ### @@@@ STOP REPLACEMENT @@@@ ###
-      */
+     * ### @@@@ START REPLACEMENT @@@@ ###
+     * WHY: upgrade to SS4
+     * OLD: $className (case sensitive)
+     * NEW: $className (COMPLEX)
+     * EXP: Check if the class name can still be used as such
+     * ### @@@@ STOP REPLACEMENT @@@@ ###
+     */
     protected function speedComparison($className)
     {
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR '.$className.' with '.$className::get()->count().' records</h2><hr /><hr /><hr /><hr />');
+        /**
+         * ### @@@@ START REPLACEMENT @@@@ ###
+         * WHY: upgrade to SS4
+         * OLD: $className (case sensitive)
+         * NEW: $className (COMPLEX)
+         * EXP: Check if the class name can still be used as such
+         * ### @@@@ STOP REPLACEMENT @@@@ ###
+         */
+        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR ' . $className . ' with ' . $className::get()->count() . ' records</h2><hr /><hr /><hr /><hr />');
         $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
         shuffle($testSeq);
-        $this->flushNow('Test sequence: '.print_r(implode(', ', $testSeq)));
+        $this->flushNow('Test sequence: ' . print_r(implode(', ', $testSeq)));
         $testAResult = 0;
         $testBResult = 0;
         $testCResult = 0;
@@ -330,102 +328,31 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             if ($testIndex > 2) {
                 $isFirstRound = true;
             }
+            $defaultSortField = '';
             if ($testLetter === 'A') {
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
                 $objects = $className::get();
 
-                /**
-                  * ### @@@@ START REPLACEMENT @@@@ ###
-                  * WHY: upgrade to SS4
-                  * OLD: $className (case sensitive)
-                  * NEW: $className (COMPLEX)
-                  * EXP: Check if the class name can still be used as such
-                  * ### @@@@ STOP REPLACEMENT @@@@ ###
-                  */
                 $testAResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'B') {
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
                 $objects = $className::get()->sort(['ID' => 'ASC']);
 
-                /**
-                  * ### @@@@ START REPLACEMENT @@@@ ###
-                  * WHY: upgrade to SS4
-                  * OLD: $className (case sensitive)
-                  * NEW: $className (COMPLEX)
-                  * EXP: Check if the class name can still be used as such
-                  * ### @@@@ STOP REPLACEMENT @@@@ ###
-                  */
                 $testBResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'C') {
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
                 $defaultSortField = Config::inst()->get($className, 'default_sort');
 
-                /**
-                  * ### @@@@ START REPLACEMENT @@@@ ###
-                  * WHY: upgrade to SS4
-                  * OLD: $className (case sensitive)
-                  * NEW: $className (COMPLEX)
-                  * EXP: Check if the class name can still be used as such
-                  * ### @@@@ STOP REPLACEMENT @@@@ ###
-                  */
                 Config::modify()->update($className, 'default_sort', null);
 
-                /**
-                  * ### @@@@ START REPLACEMENT @@@@ ###
-                  * WHY: upgrade to SS4
-                  * OLD: $className (case sensitive)
-                  * NEW: $className (COMPLEX)
-                  * EXP: Check if the class name can still be used as such
-                  * ### @@@@ STOP REPLACEMENT @@@@ ###
-                  */
                 $objects = $className::get();
 
-                /**
-                  * ### @@@@ START REPLACEMENT @@@@ ###
-                  * WHY: upgrade to SS4
-                  * OLD: $className (case sensitive)
-                  * NEW: $className (COMPLEX)
-                  * EXP: Check if the class name can still be used as such
-                  * ### @@@@ STOP REPLACEMENT @@@@ ###
-                  */
                 $testCResult += $this->runObjects($objects, $className, $isFirstRound);
 
-                /**
-                  * ### @@@@ START REPLACEMENT @@@@ ###
-                  * WHY: upgrade to SS4
-                  * OLD: $className (case sensitive)
-                  * NEW: $className (COMPLEX)
-                  * EXP: Check if the class name can still be used as such
-                  * ### @@@@ STOP REPLACEMENT @@@@ ###
-                  */
                 Config::modify()->update($className, 'default_sort', $defaultSortField);
             }
         }
@@ -433,14 +360,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $testBResult = round($testBResult * 1000);
         $testCResult = round($testCResult * 1000);
 
-        $this->flushNow('Default sort ('.print_r($defaultSortField, 1).'): '.$testAResult.'μs');
-        $this->flushNow('ID sort '.$testBResult.'μs, '.(100-(round($testBResult / $testAResult, 2)*100)).'% faster than the default sort');
-        $this->flushNow('No sort '.$testCResult.'μs, '.(100-(round($testCResult / $testAResult, 2)*100)).'% faster than the default sort');
+        $this->flushNow('Default sort (' . print_r($defaultSortField, 1) . '): ' . $testAResult . 'μs');
+        $this->flushNow('ID sort ' . $testBResult . 'μs, ' . (100 - (round($testBResult / $testAResult, 2) * 100)) . '% faster than the default sort');
+        $this->flushNow('No sort ' . $testCResult . 'μs, ' . (100 - (round($testCResult / $testAResult, 2) * 100)) . '% faster than the default sort');
     }
 
     /**
-     *
-     * @param  DataList  $dataList
+     * @param  DataList  $objects
      * @param  string  $className
      * @param  boolean $isFirstRound
      *
@@ -448,13 +374,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      */
 
     /**
-      * ### @@@@ START REPLACEMENT @@@@ ###
-      * WHY: upgrade to SS4
-      * OLD: $className (case sensitive)
-      * NEW: $className (COMPLEX)
-      * EXP: Check if the class name can still be used as such
-      * ### @@@@ STOP REPLACEMENT @@@@ ###
-      */
+     * ### @@@@ START REPLACEMENT @@@@ ###
+     * WHY: upgrade to SS4
+     * OLD: $className (case sensitive)
+     * NEW: $className (COMPLEX)
+     * EXP: Check if the class name can still be used as such
+     * ### @@@@ STOP REPLACEMENT @@@@ ###
+     */
     protected function runObjects($objects, $className, $isFirstRound)
     {
         $time = 0;
@@ -466,15 +392,15 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             $start = microtime(true);
             foreach ($objects as $object) {
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: $className (case sensitive)
-  * NEW: $className (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
-                $this->flushNowDebug($className.' with ID = '.$object->ID.' (not sorted)');
+                /**
+                 * ### @@@@ START REPLACEMENT @@@@ ###
+                 * WHY: upgrade to SS4
+                 * OLD: $className (case sensitive)
+                 * NEW: $className (COMPLEX)
+                 * EXP: Check if the class name can still be used as such
+                 * ### @@@@ STOP REPLACEMENT @@@@ ###
+                 */
+                $this->flushNowDebug($className . ' with ID = ' . $object->ID . ' (not sorted)');
             }
             $end = microtime(true);
             $time += $end - $start;

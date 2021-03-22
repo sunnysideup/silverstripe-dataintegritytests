@@ -2,14 +2,26 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use SilverStripe\ORM\DB;
 use SilverStripe\Core\Config\Config;
-use Sunnysideup\DataIntegrityTest\DataIntegrityTestUTF8;
 use SilverStripe\Dev\BuildTask;
+use SilverStripe\ORM\Connect\MySQLDatabase;
+use SilverStripe\ORM\DB;
 
 class DataIntegrityTestUTF8 extends BuildTask
 {
-    private static $replacement_array = array(
+    /**
+     * standard SS variable
+     * @var string
+     */
+    protected $title = 'Convert tables to utf-8 and replace funny characters.';
+
+    /**
+     * standard SS variable
+     * @var string
+     */
+    protected $description = 'Converts table to utf-8 by replacing a bunch of characters that show up in the Silverstripe Conversion. CAREFUL: replaces all tables in Database to utf-8!';
+
+    private static $replacement_array = [
         'Â' => '',
         'Â' => '',
         'Â' => '',
@@ -18,74 +30,55 @@ class DataIntegrityTestUTF8 extends BuildTask
         'â€¨' => '',
         'â€œ' => '&quot;',
         'â€^Ý' => '&quot;',
-        '<br>' => '<br />',
         'â€¢' => '&#8226',
-        'Ý' => '- '
-    );
-
-    /**
-     * standard SS variable
-     * @var String
-     */
-    protected $title = "Convert tables to utf-8 and replace funny characters.";
-
-    /**
-     * standard SS variable
-     * @var String
-     */
-    protected $description = "Converts table to utf-8 by replacing a bunch of characters that show up in the Silverstripe Conversion. CAREFUL: replaces all tables in Database to utf-8!";
+        'Ý' => '- ',
+    ];
 
     public function run($request)
     {
         ini_set('max_execution_time', 3000);
         $tables = DB::query('SHOW tables');
-        $unique = [];
-        $arrayOfReplacements = Config::inst()->get(DataIntegrityTestUTF8::class, "replacement_array");
+        $arrayOfReplacements = Config::inst()->get(DataIntegrityTestUTF8::class, 'replacement_array');
+        $connCharset = Config::inst()->get(MySQLDatabase::class, 'connection_charset');
+        $connCollation = Config::inst()->get(MySQLDatabase::class, 'connection_collation');
+        $conn = DB::get_conn();
+        // Assumes database class is like "MySQLDatabase" or "MSSQLDatabase" (suffixed with "Database")
+        $databaseName = $conn->getSelectedDatabase();
         foreach ($tables as $table) {
             $table = array_pop($table);
-            DB::query("ALTER TABLE \"$table\" CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci");
-            DB::alteration_message("<h2>Resetting $table to utf8</h2>");
-            $this->flushNow();
-            $originatingClass = str_replace("_Live", "", $table);
-            if (class_exists($originatingClass) && !class_exists($table)) {
-            } else {
-                $originatingClass = $table;
-            }
-            if (class_exists($originatingClass)) {
-                $fields = Config::inst()->get($originatingClass, "db", $uninherited = 1);
-                if ($fields && count($fields)) {
-                    $unusedFields = [];
-                    foreach ($fields as $fieldName => $type) {
-                        $usedFieldsChanged = array("CHECKING $table.$fieldName : ");
-                        if (substr($type, 0, 4) == "HTML") {
-                            foreach ($arrayOfReplacements as $from => $to) {
-                                DB::query("UPDATE \"$table\" SET \"$fieldName\" = REPLACE(\"$fieldName\", '$from', '$to');");
-                                $count = DB::get_conn()->affectedRows();
-                                $toWord = $to;
-                                if ($to == '') {
-                                    $toWord = '[NOTHING]';
-                                }
-                                $usedFieldsChanged[] = "$count Replacements <strong>$from</strong> with <strong>$toWord</strong>";
-                            }
-                        } else {
-                            $unusedFields[] = $fieldName;
-                        }
-                        if (count($usedFieldsChanged)) {
-                            DB::alteration_message(implode("<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ", $usedFieldsChanged));
-                            $this->flushNow();
-                        }
-                    }
-                    if (count($unusedFields)) {
-                        DB::alteration_message("Skipped the following fields: ".implode(",", $unusedFields));
-                    }
-                } else {
-                    DB::alteration_message("No fields for $originatingClass");
+            $currentCollation = DB::query('
+            SELECT TABLE_COLLATION
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_NAME = \'' . $table . '\' AND table_schema = \'' . $databaseName . '\';')->value();
+            DB::alteration_message('<strong>Resetting "' . $table . '" table to "' . $connCharset . '", collation "' . $connCollation . '", with current collation: "' . $currentCollation . '"</strong>');
+            DB::query('ALTER TABLE "' . $table . '" CONVERT TO CHARACTER SET ' . $connCharset . ' COLLATE ' . $connCollation);
+            $rows = DB::query('SHOW FULL COLUMNS FROM "' . $table . '"');
+            foreach ($rows as $row) {
+                $fieldName = $row['Field'];
+                $fieldCollation = $row['Collation'] ?? '';
+                if ($fieldCollation && $fieldCollation !== $connCollation) {
+                    DB::alteration_message('Error in ' . $fieldName . ' collation: ' . $fieldCollation, 'deleted');
+                    $this->flushNow();
                 }
-            } else {
-                DB::alteration_message("Skipping $originatingClass - class can not be found");
+                $usedFieldsChanged = ["CHECKING ${table}.${fieldName} : "];
+                foreach ($arrayOfReplacements as $from => $to) {
+                    @DB::query("UPDATE \"${table}\" SET \"${fieldName}\" = REPLACE(\"${fieldName}\", '${from}', '${to}');");
+                    $count = DB::get_conn()->affectedRows();
+                    $toWord = $to;
+                    if ($to === '') {
+                        $toWord = '[NOTHING]';
+                    }
+                    if ($count) {
+                        $usedFieldsChanged[] = "${count} Replacements <strong>${from}</strong> with <strong>${toWord}</strong>";
+                    }
+                }
+                if (count($usedFieldsChanged) > 1) {
+                    DB::alteration_message(implode('<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ', $usedFieldsChanged));
+                    $this->flushNow();
+                }
             }
         }
-        DB::alteration_message("<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />");
+        DB::alteration_message('<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
     }
 
     private function flushNow()

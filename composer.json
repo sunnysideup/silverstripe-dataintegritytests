@@ -12,7 +12,9 @@
         "database",
         "test data structure",
         "clean database",
-        "obsolete fields"
+        "obsolete fields",
+        "utf-8",
+        "utf8"
     ],
     "license": "BSD-3-Clause",
     "authors": [
