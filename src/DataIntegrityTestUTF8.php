@@ -19,7 +19,9 @@ class DataIntegrityTestUTF8 extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = 'Converts table to utf-8 by replacing a bunch of characters that show up in the Silverstripe Conversion. CAREFUL: replaces all tables in Database to utf-8!';
+    protected $description = '
+        Converts table to utf-8 by replacing a bunch of characters that show up in the Silverstripe Conversion.
+        CAREFUL: replaces all tables in Database to utf-8!';
 
     private static $replacement_array = [
         'Â' => '',
@@ -47,9 +49,9 @@ class DataIntegrityTestUTF8 extends BuildTask
         foreach ($tables as $table) {
             $table = array_pop($table);
             $currentCollation = DB::query('
-            SELECT TABLE_COLLATION
-            FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_NAME = \'' . $table . '\' AND table_schema = \'' . $databaseName . '\';')->value();
+                SELECT TABLE_COLLATION
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_NAME = \'' . $table . '\' AND table_schema = \'' . $databaseName . '\';')->value();
             DB::alteration_message('<strong>Resetting "' . $table . '" table to "' . $connCharset . '", collation "' . $connCollation . '", with current collation: "' . $currentCollation . '"</strong>');
             DB::query('ALTER TABLE "' . $table . '" CONVERT TO CHARACTER SET ' . $connCharset . ' COLLATE ' . $connCollation);
             $rows = DB::query('SHOW FULL COLUMNS FROM "' . $table . '"');

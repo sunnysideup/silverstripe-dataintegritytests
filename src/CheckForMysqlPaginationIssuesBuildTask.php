@@ -330,21 +330,18 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             }
             $defaultSortField = '';
             if ($testLetter === 'A') {
-
                 $objects = $className::get();
 
                 $testAResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'B') {
-
                 $objects = $className::get()->sort(['ID' => 'ASC']);
 
                 $testBResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'C') {
-
                 $defaultSortField = Config::inst()->get($className, 'default_sort');
 
                 Config::modify()->update($className, 'default_sort', null);

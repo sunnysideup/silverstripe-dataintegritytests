@@ -16,7 +16,7 @@ use SilverStripe\View\ViewableData;
  * EXP: This used to extend Object, but object does not exist anymore. You can also manually add use Extensible, use Injectable, and use Configurable
  * ### @@@@ STOP REPLACEMENT @@@@ ###
  */
-class DataIntegrityTestDefaultEntries extends ViewableData
+class DataIntegrityTestDefaultEntries
 {
     public static function update($baseTable, $field, $value, $id = 0, $replace = false, $addLive = false)
     {
