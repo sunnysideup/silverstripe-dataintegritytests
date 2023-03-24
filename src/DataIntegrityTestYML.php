@@ -78,7 +78,6 @@ class DataIntegrityTestYML extends BuildTask
              * ### @@@@ STOP REPLACEMENT @@@@ ###
              */
             foreach ($arrayOfSettings as $className => $variables) {
-
                 /**
                  * ### @@@@ START REPLACEMENT @@@@ ###
                  * WHY: upgrade to SS4
@@ -88,7 +87,6 @@ class DataIntegrityTestYML extends BuildTask
                  * ### @@@@ STOP REPLACEMENT @@@@ ###
                  */
                 if (in_array(strtolower($className), $classesToSkip, true)) {
-
                     /**
                      * ### @@@@ START REPLACEMENT @@@@ ###
                      * WHY: upgrade to SS4
@@ -110,7 +108,6 @@ class DataIntegrityTestYML extends BuildTask
                      * ### @@@@ STOP REPLACEMENT @@@@ ###
                      */
                     if (! class_exists($className)) {
-
                         /**
                          * ### @@@@ START REPLACEMENT @@@@ ###
                          * WHY: upgrade to SS4
@@ -121,7 +118,6 @@ class DataIntegrityTestYML extends BuildTask
                          */
                         db::alteration_message("${className} does not exist", 'deleted');
                     } else {
-
                         /**
                          * ### @@@@ START REPLACEMENT @@@@ ###
                          * WHY: upgrade to SS4
@@ -146,7 +142,6 @@ class DataIntegrityTestYML extends BuildTask
                                  */
                                 if ($className::create() instanceof SiteTree) {
                                     if (! file_exists($fileLocationForSiteTree)) {
-
                                         /**
                                          * ### @@@@ START REPLACEMENT @@@@ ###
                                          * WHY: upgrade to SS4
@@ -157,7 +152,6 @@ class DataIntegrityTestYML extends BuildTask
                                          */
                                         db::alteration_message("&nbsp; &nbsp; &nbsp; <u>${className}.${variable}</u> icon ${fileLocationForSiteTree} can not be found", 'deleted');
                                     } else {
-
                                         /**
                                          * ### @@@@ START REPLACEMENT @@@@ ###
                                          * WHY: upgrade to SS4
@@ -170,7 +164,6 @@ class DataIntegrityTestYML extends BuildTask
                                     }
                                 } else {
                                     if (! file_exists($fileLocationForOthers)) {
-
                                         /**
                                          * ### @@@@ START REPLACEMENT @@@@ ###
                                          * WHY: upgrade to SS4
@@ -181,7 +174,6 @@ class DataIntegrityTestYML extends BuildTask
                                          */
                                         db::alteration_message("&nbsp; &nbsp; &nbsp; <u>${className}.${variable}</u> icon ${fileLocationForOthers} can not be found", 'deleted');
                                     } else {
-
                                         /**
                                          * ### @@@@ START REPLACEMENT @@@@ ###
                                          * WHY: upgrade to SS4
@@ -195,7 +187,6 @@ class DataIntegrityTestYML extends BuildTask
                                 }
                             } elseif ($variable === 'extensions') {
                                 if (! is_array($setting)) {
-
                                     /**
                                      * ### @@@@ START REPLACEMENT @@@@ ###
                                      * WHY: upgrade to SS4
@@ -208,7 +199,6 @@ class DataIntegrityTestYML extends BuildTask
                                 } else {
                                     foreach ($setting as $extensionClassName) {
                                         if (! class_exists($extensionClassName)) {
-
                                             /**
                                              * ### @@@@ START REPLACEMENT @@@@ ###
                                              * WHY: upgrade to SS4
@@ -219,7 +209,6 @@ class DataIntegrityTestYML extends BuildTask
                                              */
                                             db::alteration_message("&nbsp; &nbsp; &nbsp; <u>${className}.${variable}</u> extension class <u>${extensionClassName}</u> does not exist", 'deleted');
                                         } else {
-
                                             /**
                                              * ### @@@@ START REPLACEMENT @@@@ ###
                                              * WHY: upgrade to SS4
@@ -233,7 +222,6 @@ class DataIntegrityTestYML extends BuildTask
                                     }
                                 }
                             } elseif (in_array($variable, $variablesToSkip, true)) {
-
                                 /**
                                  * ### @@@@ START REPLACEMENT @@@@ ###
                                  * WHY: upgrade to SS4
@@ -244,7 +232,6 @@ class DataIntegrityTestYML extends BuildTask
                                  */
                                 db::alteration_message("&nbsp; &nbsp; &nbsp; <u>${className}.${variable}</u> skipped");
                             } else {
-
                                 /**
                                  * ### @@@@ START REPLACEMENT @@@@ ###
                                  * WHY: upgrade to SS4
@@ -254,7 +241,6 @@ class DataIntegrityTestYML extends BuildTask
                                  * ### @@@@ STOP REPLACEMENT @@@@ ###
                                  */
                                 if (! property_exists($className, $variable)) {
-
                                     /**
                                      * ### @@@@ START REPLACEMENT @@@@ ###
                                      * WHY: upgrade to SS4
@@ -265,7 +251,6 @@ class DataIntegrityTestYML extends BuildTask
                                      */
                                     db::alteration_message("&nbsp; &nbsp; &nbsp; <u>${className}.${variable}</u> does not exist", 'deleted');
                                 } else {
-
                                     /**
                                      * ### @@@@ START REPLACEMENT @@@@ ###
                                      * WHY: upgrade to SS4

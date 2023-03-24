@@ -453,7 +453,6 @@ class DataIntegrityTest extends BuildTask
             $table = array_pop($table);
             $endOfTable = substr($table, -9);
             if ($endOfTable === '_versions') {
-
                 /**
                  * ### @@@@ START REPLACEMENT @@@@ ###
                  * WHY: upgrade to SS4
@@ -473,7 +472,6 @@ class DataIntegrityTest extends BuildTask
                  * ### @@@@ STOP REPLACEMENT @@@@ ###
                  */
                 if (class_exists($className)) {
-
                     /**
                      * ### @@@@ START REPLACEMENT @@@@ ###
                      * WHY: upgrade to SS4
@@ -490,7 +488,6 @@ class DataIntegrityTest extends BuildTask
                         }
                     }
                 } else {
-
                     /**
                      * ### @@@@ START REPLACEMENT @@@@ ###
                      * WHY: upgrade to SS4
