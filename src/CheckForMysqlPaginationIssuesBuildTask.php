@@ -130,21 +130,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                             $largestTable = $class;
                         }
                         $this->flushNowQuick('<br />' . $class . ': ');
-                        if (! isset($errors[$class])) {
+                        if (!isset($errors[$class])) {
                             $errors[$class] = [];
                         }
                         // get fields ...
 
-                        /**
-                         * ### @@@@ START REPLACEMENT @@@@ ###
-                         * WHY: upgrade to SS4
-                         * OLD: ->db() (case sensitive)
-                         * NEW: ->Config()->get('db') (COMPLEX)
-                         * EXP: Check implementation
-                         * ### @@@@ STOP REPLACEMENT @@@@ ###
-                         */
                         $dbFields = $obj->Config()->get('db');
-                        if (! is_array($dbFields)) {
+                        if (!is_array($dbFields)) {
                             $dbFields = [];
                         }
                         // adding base fields.
@@ -154,7 +146,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         $dbFields['LastEdited'] = 'LastEdited';
 
                         $hasOneFields = $obj->hasOne();
-                        if (! is_array($hasOneFields)) {
+                        if (!is_array($hasOneFields)) {
                             $hasOneFields = [];
                         }
 
@@ -169,7 +161,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                 if (isset($hasOneFields[$field])) {
                                     $field .= 'ID';
                                 }
-                                if (! isset($errors[$class][$field])) {
+                                if (!isset($errors[$class][$field])) {
                                     $errors[$class][$field] = [];
                                 }
                                 // start loop of limits ...
@@ -182,7 +174,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                             foreach ($tempRows as $row) {
                                                 $id = $row['ID'];
                                                 if (isset($comparisonArray[$id])) {
-                                                    if (! isset($errors[$class][$field][$id])) {
+                                                    if (!isset($errors[$class][$field][$id])) {
                                                         $errors[$class][$field][$id] = 1;
                                                     }
                                                     $errors[$class][$field][$id]++;
@@ -196,13 +188,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                             break;
                                         }
 
-                                    // OPTION 2
+                                        // OPTION 2
                                     } else {
                                         $tempObjects = $class::get()->sort($field)->limit($this->step, $i);
                                         foreach ($tempObjects as $tempObject) {
                                             $id = $tempObject->ID;
                                             if (isset($comparisonArray[$id])) {
-                                                if (! isset($errors[$class][$field][$id])) {
+                                                if (!isset($errors[$class][$field][$id])) {
                                                     $errors[$class][$field][$id] = 1;
                                                 }
                                                 $errors[$class][$field][$id]++;
@@ -215,7 +207,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                 }
                                 if (count($errors[$class][$field])) {
                                     $error = '<br /><strong>Found double entries in <u>' . $class . '</u> table,' .
-                                                ' sorting by <u>' . $field . '</u></strong> ...';
+                                        ' sorting by <u>' . $field . '</u></strong> ...';
                                     foreach ($errors[$class][$field] as $tempID => $tempCount) {
                                         $error .= ' ID: ' . $tempID . ' occurred ' . $tempCount . ' times /';
                                     }

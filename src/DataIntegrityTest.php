@@ -64,11 +64,6 @@ class DataIntegrityTest extends BuildTask
         'cleanupdb' => 'ADMIN',
     ];
 
-    public function init()
-    {
-        //this checks security
-        parent::init();
-    }
 
     public function run($request)
     {
@@ -539,7 +534,7 @@ class DataIntegrityTest extends BuildTask
                      * EXP: Check if the class name can still be used as such
                      * ### @@@@ STOP REPLACEMENT @@@@ ###
                      */
-                    DB::alteration_message("Could not find ${className} class... the ${table} may be obsolete", 'deleted');
+                    DB::alteration_message("Could not find $className class... the ${table} may be obsolete", 'deleted');
                 }
             }
         }

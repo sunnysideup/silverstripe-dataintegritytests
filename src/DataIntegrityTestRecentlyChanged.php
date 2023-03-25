@@ -85,14 +85,6 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
         }
         echo "
 
-/**
-  * ### @@@@ START REPLACEMENT @@@@ ###
-  * WHY: upgrade to SS4
-  * OLD: {$this->class} (case sensitive)
-  * NEW: {$this->class} (COMPLEX)
-  * EXP: Check if the class name can still be used as such
-  * ### @@@@ STOP REPLACEMENT @@@@ ###
-  */
 			<form method=\"get\" action=\"" . Director::absoluteURL('dev/tasks/' . $this->class . '/') . '">
 				<label for="m">please enter minutes ago or any date (e.g. last week, yesterday, 2011-11-11, etc...)</label>
 				<input name="m" id="m" value="' . $_GET['m'] . '">
@@ -103,7 +95,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
     {
         $seconds = $minutes * 60;
         $dtF = new DateTime('@0');
-        $dtT = new DateTime("@${seconds}");
+        $dtT = new DateTime("@$seconds");
         return $dtF->diff($dtT)->format('%a days, %h hours,  and %i minutes');
     }
 }
