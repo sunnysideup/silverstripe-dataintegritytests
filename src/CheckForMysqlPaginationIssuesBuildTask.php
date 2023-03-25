@@ -41,7 +41,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     public function run($request)
     {
-
         // give us some time to run this
         ini_set('max_execution_time', 3000);
         $classes = ClassInfo::subclassesFor(DataObject::class);
@@ -197,7 +196,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                             break;
                                         }
 
-                                        // OPTION 2
+                                    // OPTION 2
                                     } else {
                                         $tempObjects = $class::get()->sort($field)->limit($this->step, $i);
                                         foreach ($tempObjects as $tempObject) {
@@ -307,7 +306,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      */
     protected function speedComparison($className)
     {
-
         /**
          * ### @@@@ START REPLACEMENT @@@@ ###
          * WHY: upgrade to SS4
@@ -388,7 +386,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             }
             $start = microtime(true);
             foreach ($objects as $object) {
-
                 /**
                  * ### @@@@ START REPLACEMENT @@@@ ###
                  * WHY: upgrade to SS4

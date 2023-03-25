@@ -21,6 +21,11 @@ class DataIntegrityTest extends BuildTask
      * @var string
      */
     protected $title = 'Check Database Integrity';
+    /**
+     * standard SS variable
+     * @var string
+     */
+    private static $segment = 'DataIntegrityTest';
 
     /**
      * standard SS variable
@@ -155,7 +160,7 @@ class DataIntegrityTest extends BuildTask
 
     protected function obsoletefields($deleteSafeOnes = false, $fixBrokenDataObject = false, $deleteAll = false)
     {
-        increase_time_limit_to(600);
+        set_time_limit(600);
         $dataClasses = ClassInfo::subclassesFor(DataObject::class);
         $notCheckedArray = [];
         $canBeSafelyDeleted = [];
@@ -176,116 +181,154 @@ class DataIntegrityTest extends BuildTask
             // Check if class exists before trying to instantiate - this sidesteps any manifest weirdness
             if (class_exists($dataClass)) {
                 $dataObject = $dataClass::create();
-                if (! ($dataObject instanceof TestOnly)) {
-                    $requiredFields = $this->swapArray(DataObject::getSchema()->databaseFields($dataObject->ClassName));
-                    if (count($requiredFields)) {
-                        foreach ($requiredFields as $field) {
-                            if (! $dataObject->hasOwnTableDatabaseField($field)) {
-                                DB::alteration_message("  **** ${dataClass}.${field} DOES NOT EXIST BUT IT SHOULD BE THERE!", 'deleted');
-                            }
+                if ($dataObject instanceof TestOnly) {
+                    continue;
+                }
+
+                $schema = $dataObject->getSchema();
+                $tableName = $schema->tableName($dataClass);
+
+                $requiredFields = array_keys($schema->databaseFields($dataObject->ClassName, false));
+                if (!count($requiredFields)) {
+                    continue;
+                }
+
+                $existingFields = array_keys(DB::field_list($tableName));
+                echo 'Checking <b>'.$tableName.'</b> ...';
+
+                $diff = array_diff($existingFields, $requiredFields);
+                foreach ($diff as $field) {
+                    DB::alteration_message(
+                        "<span style='color:red'>**** $tableName.$field EXIST BUT IT SHOULD BE THERE!</span>",
+                        'deleted'
+                    );
+                }
+
+                $diff2 = array_diff($requiredFields, $existingFields);
+                foreach ($diff2 as $field) {
+                    if (in_array($field, $requiredFields)) {
+                        DB::alteration_message(
+                            "<span style='color:red'>**** $tableName.$field DOES NOT EXIST BUT IT SHOULD BE THERE!</span>",
+                            'deleted'
+                        );
+                    }
+                }
+
+                if (!count($diff) && !count($diff2)) {
+                    echo "<span style='color:green'>OK</span><br/>";
+                }
+                continue;
+
+                // not implemented yet
+                $requiredFields = $this->swapArray(DataObject::getSchema()->databaseFields($dataObject->ClassName));
+                if (count($requiredFields)) {
+                    foreach ($requiredFields as $field) {
+                        if (! $dataObject->hasOwnTableDatabaseField($field)) {
+                            DB::alteration_message("  **** ${dataClass}.${field} DOES NOT EXIST BUT IT SHOULD BE THERE!", 'deleted');
                         }
-                        $actualFields = $this->swapArray(DB::fieldList($dataClass));
-                        if ($actualFields) {
-                            foreach ($actualFields as $actualField) {
-                                if ($deleteAll) {
-                                    $link = ' !!!!!!!!!!! DELETED !!!!!!!!!';
-                                } else {
-                                    $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
-                                    $link = '<a href="' . Director::absoluteBaseURL() . 'dev/tasks/DataIntegrityTest/?do=deleteonefield/' . $dataClass . '/' . $actualField . "/\" onclick=\"return confirm('" . $warning . "');\">delete field</a>";
-                                }
-                                if (! in_array($actualField, ['ID', 'Version'], true)) {
-                                    if (! in_array($actualField, $requiredFields, true)) {
-                                        $distinctCount = DB::query("SELECT COUNT(DISTINCT \"${actualField}\") FROM \"${dataClass}\" WHERE \"${actualField}\" IS NOT NULL AND \"${actualField}\" <> '' AND \"${actualField}\" <> '0';")->value();
-                                        DB::alteration_message("<br /><br />\n\n${dataClass}.${actualField} ${link} - unique entries: ${distinctCount}", 'deleted');
-                                        if ($distinctCount) {
-                                            $rows = DB::query("
-                                                SELECT \"${actualField}\" as N, COUNT(\"${actualField}\") as C
-                                                FROM \"${dataClass}\"
-                                                GROUP BY \"${actualField}\"
-                                                ORDER BY C DESC
-                                                LIMIT 7");
-                                            if ($rows) {
-                                                foreach ($rows as $row) {
-                                                    DB::alteration_message(' &nbsp; &nbsp; &nbsp; ' . $row['C'] . ': ' . $row['N']);
-                                                }
-                                            }
-                                        } else {
-                                            if (! isset($canBeSafelyDeleted[$dataClass])) {
-                                                $canBeSafelyDeleted[$dataClass] = [];
-                                            }
-                                            $canBeSafelyDeleted[$dataClass][$actualField] = "${dataClass}.${actualField}";
-                                        }
-                                        if ($deleteAll || ($deleteSafeOnes && $distinctCount === 0)) {
-                                            $this->deleteField($dataClass, $actualField);
-                                        }
-                                    }
-                                }
-                                if ($actualField === 'Version' && ! in_array($actualField, $requiredFields, true)) {
-                                    $versioningPresent = $dataObject->hasVersioning();
-                                    if (! $versioningPresent) {
-                                        DB::alteration_message("${dataClass}.${actualField} ${link}", 'deleted');
-                                        if ($deleteAll) {
-                                            $this->deleteField($dataClass, $actualField);
-                                        }
-                                    }
-                                }
+                    }
+                    $actualFields = $this->swapArray(DB::fieldList($dataClass));
+                    if ($actualFields) {
+                        foreach ($actualFields as $actualField) {
+                            if ($deleteAll) {
+                                $link = ' !!!!!!!!!!! DELETED !!!!!!!!!';
+                            } else {
+                                $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
+                                $link = '<a href="' . Director::absoluteBaseURL() . 'dev/tasks/DataIntegrityTest/?do=deleteonefield/' . $dataClass . '/' . $actualField . "/\" onclick=\"return confirm('" . $warning . "');\">delete field</a>";
                             }
-                        }
-                        $rawCount = DB::query("SELECT COUNT(\"ID\") FROM \"${dataClass}\"")->value();
-                        Versioned::set_reading_mode('Stage.Stage');
-                        $realCount = 0;
-                        $allSubClasses = array_unique([$dataClass] + ClassInfo::subclassesFor($dataClass));
-                        $objects = $dataClass::get()->filter(['ClassName' => $allSubClasses]);
-                        if ($objects->count()) {
-                            $realCount = $objects->count();
-                        }
-                        if ($rawCount !== $realCount) {
-                            echo '<hr />';
-                            $sign = ' > ';
-                            if ($rawCount < $realCount) {
-                                $sign = ' < ';
-                            }
-                            DB::alteration_message("The DB Table Row Count does not seem to match the DataObject Count for <strong>${dataClass} (${rawCount} ${sign} ${realCount})</strong>.  This could indicate an error as generally these numbers should match.", 'deleted');
-                            if ($fixBrokenDataObject) {
-                                $objects = $dataClass::get()->where('LinkedTable.ID IS NULL')->leftJoin($dataClass, "${dataClass}.ID = LinkedTable.ID", 'LinkedTable');
-                                if ($objects->count() > 500) {
-                                    DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in ${dataClass}. There are more than 500 records so it would take too long to do it now.", 'deleted');
-                                } else {
-                                    DB::alteration_message('Now trying to recreate missing items... COUNT = ' . $objects->count(), 'created');
-                                    foreach ($objects as $object) {
-                                        if (DB::query("SELECT COUNT(\"ID\") FROM \"${dataClass}\" WHERE \"ID\" = " . $object->ID . ';')->value() !== 1) {
-                                            Config::modify()->update(DataObject::class, 'validation_enabled', false);
-                                            $object->write(true, false, true, false);
-                                            Config::modify()->update(DataObject::class, 'validation_enabled', true);
-                                        }
-                                    }
-                                    $objectCount = $dataClass::get()->count();
-                                    DB::alteration_message("Consider deleting superfluous records from table ${dataClass} .... COUNT =" . ($rawCount - $objectCount));
-                                    $ancestors = ClassInfo::ancestry($dataClass, true);
-                                    if ($ancestors && is_array($ancestors) && count($ancestors)) {
-                                        foreach ($ancestors as $ancestor) {
-                                            if ($ancestor !== $dataClass) {
-                                                echo "DELETE `${dataClass}`.* FROM `${dataClass}` LEFT JOIN `${ancestor}` ON `${dataClass}`.`ID` = `${ancestor}`.`ID` WHERE `${ancestor}`.`ID` IS NULL;";
-                                                DB::query("DELETE `${dataClass}`.* FROM `${dataClass}` LEFT JOIN `${ancestor}` ON `${dataClass}`.`ID` = `${ancestor}`.`ID` WHERE `${ancestor}`.`ID` IS NULL;");
+                            if (! in_array($actualField, ['ID', 'Version'], true)) {
+                                if (! in_array($actualField, $requiredFields, true)) {
+                                    $distinctCount = DB::query("SELECT COUNT(DISTINCT \"${actualField}\") FROM \"${dataClass}\" WHERE \"${actualField}\" IS NOT NULL AND \"${actualField}\" <> '' AND \"${actualField}\" <> '0';")->value();
+                                    DB::alteration_message("<br /><br />\n\n${dataClass}.${actualField} ${link} - unique entries: ${distinctCount}", 'deleted');
+                                    if ($distinctCount) {
+                                        $rows = DB::query("
+                                            SELECT \"${actualField}\" as N, COUNT(\"${actualField}\") as C
+                                            FROM \"${dataClass}\"
+                                            GROUP BY \"${actualField}\"
+                                            ORDER BY C DESC
+                                            LIMIT 7");
+                                        if ($rows) {
+                                            foreach ($rows as $row) {
+                                                DB::alteration_message(' &nbsp; &nbsp; &nbsp; ' . $row['C'] . ': ' . $row['N']);
                                             }
                                         }
+                                    } else {
+                                        if (! isset($canBeSafelyDeleted[$dataClass])) {
+                                            $canBeSafelyDeleted[$dataClass] = [];
+                                        }
+                                        $canBeSafelyDeleted[$dataClass][$actualField] = "${dataClass}.${actualField}";
+                                    }
+                                    if ($deleteAll || ($deleteSafeOnes && $distinctCount === 0)) {
+                                        $this->deleteField($dataClass, $actualField);
                                     }
                                 }
                             }
-                            echo '<hr />';
+                            if ($actualField === 'Version' && ! in_array($actualField, $requiredFields, true)) {
+                                $versioningPresent = $dataObject->hasVersioning();
+                                if (! $versioningPresent) {
+                                    DB::alteration_message("${dataClass}.${actualField} ${link}", 'deleted');
+                                    if ($deleteAll) {
+                                        $this->deleteField($dataClass, $actualField);
+                                    }
+                                }
+                            }
                         }
-                        unset($actualTables[$dataClass]);
+                    }
+                    $rawCount = DB::query("SELECT COUNT(\"ID\") FROM \"${dataClass}\"")->value();
+                    Versioned::set_reading_mode('Stage.Stage');
+                    $realCount = 0;
+                    $allSubClasses = array_unique([$dataClass] + ClassInfo::subclassesFor($dataClass));
+                    $objects = $dataClass::get()->filter(['ClassName' => $allSubClasses]);
+                    if ($objects->count()) {
+                        $realCount = $objects->count();
+                    }
+                    if ($rawCount !== $realCount) {
+                        echo '<hr />';
+                        $sign = ' > ';
+                        if ($rawCount < $realCount) {
+                            $sign = ' < ';
+                        }
+                        DB::alteration_message("The DB Table Row Count does not seem to match the DataObject Count for <strong>${dataClass} (${rawCount} ${sign} ${realCount})</strong>.  This could indicate an error as generally these numbers should match.", 'deleted');
+                        if ($fixBrokenDataObject) {
+                            $objects = $dataClass::get()->where('LinkedTable.ID IS NULL')->leftJoin($dataClass, "${dataClass}.ID = LinkedTable.ID", 'LinkedTable');
+                            if ($objects->count() > 500) {
+                                DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in ${dataClass}. There are more than 500 records so it would take too long to do it now.", 'deleted');
+                            } else {
+                                DB::alteration_message('Now trying to recreate missing items... COUNT = ' . $objects->count(), 'created');
+                                foreach ($objects as $object) {
+                                    if (DB::query("SELECT COUNT(\"ID\") FROM \"${dataClass}\" WHERE \"ID\" = " . $object->ID . ';')->value() !== 1) {
+                                        Config::modify()->update(DataObject::class, 'validation_enabled', false);
+                                        $object->write(true, false, true, false);
+                                        Config::modify()->update(DataObject::class, 'validation_enabled', true);
+                                    }
+                                }
+                                $objectCount = $dataClass::get()->count();
+                                DB::alteration_message("Consider deleting superfluous records from table ${dataClass} .... COUNT =" . ($rawCount - $objectCount));
+                                $ancestors = ClassInfo::ancestry($dataClass, true);
+                                if ($ancestors && is_array($ancestors) && count($ancestors)) {
+                                    foreach ($ancestors as $ancestor) {
+                                        if ($ancestor !== $dataClass) {
+                                            echo "DELETE `${dataClass}`.* FROM `${dataClass}` LEFT JOIN `${ancestor}` ON `${dataClass}`.`ID` = `${ancestor}`.`ID` WHERE `${ancestor}`.`ID` IS NULL;";
+                                            DB::query("DELETE `${dataClass}`.* FROM `${dataClass}` LEFT JOIN `${ancestor}` ON `${dataClass}`.`ID` = `${ancestor}`.`ID` WHERE `${ancestor}`.`ID` IS NULL;");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        echo '<hr />';
+                    }
+                    unset($actualTables[$dataClass]);
+                } else {
+                    $db = DB::get_conn();
+                    if ($db->hasTable($dataClass)) {
+                        DB::alteration_message("  **** The ${dataClass} table exists, but according to the data-scheme it should not be there ", 'deleted');
                     } else {
-                        $db = DB::get_conn();
-                        if ($db->hasTable($dataClass)) {
-                            DB::alteration_message("  **** The ${dataClass} table exists, but according to the data-scheme it should not be there ", 'deleted');
-                        } else {
-                            $notCheckedArray[] = $dataClass;
-                        }
+                        $notCheckedArray[] = $dataClass;
                     }
                 }
             }
         }
+        die('Not implemented yet ...');
 
         if (count($canBeSafelyDeleted)) {
             DB::alteration_message('<h2>Can be safely deleted: </h2>');
@@ -453,7 +496,6 @@ class DataIntegrityTest extends BuildTask
             $table = array_pop($table);
             $endOfTable = substr($table, -9);
             if ($endOfTable === '_versions') {
-
                 /**
                  * ### @@@@ START REPLACEMENT @@@@ ###
                  * WHY: upgrade to SS4
@@ -473,7 +515,6 @@ class DataIntegrityTest extends BuildTask
                  * ### @@@@ STOP REPLACEMENT @@@@ ###
                  */
                 if (class_exists($className)) {
-
                     /**
                      * ### @@@@ START REPLACEMENT @@@@ ###
                      * WHY: upgrade to SS4
@@ -490,7 +531,6 @@ class DataIntegrityTest extends BuildTask
                         }
                     }
                 } else {
-
                     /**
                      * ### @@@@ START REPLACEMENT @@@@ ###
                      * WHY: upgrade to SS4

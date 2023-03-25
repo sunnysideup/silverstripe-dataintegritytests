@@ -172,9 +172,9 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                     $interSect = array_intersect($testFields1, $testFields2);
                     if (count($interSect)) {
                         if ((
-                                isset($completed[$testTable1 . '_' . $testTable2]) ||
+                            isset($completed[$testTable1 . '_' . $testTable2]) ||
                                 isset($completed[$testTable2 . '_' . $testTable1])
-                            )
+                        )
                             && (
                                 (isset($completed[$testTable1 . '_' . $testTable2]) ? count($completed[$testTable1 . '_' . $testTable2]) : rand(0, 9999999)) === count($interSect) ||
                                 (isset($completed[$testTable2 . '_' . $testTable1]) ? count($completed[$testTable2 . '_' . $testTable1]) : rand(0, 9999999)) === count($interSect)
