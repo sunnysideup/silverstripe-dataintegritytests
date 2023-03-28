@@ -6,6 +6,7 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Environment;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DatabaseAdmin;
@@ -67,7 +68,7 @@ class DataIntegrityTest extends BuildTask
 
     public function run($request)
     {
-        ini_set('max_execution_time', 3000);
+        Environment::increaseTimeLimitTo(3000);
         if ($action = $request->getVar('do')) {
             $methodArray = explode('/', $action);
             $method = $methodArray[0];
