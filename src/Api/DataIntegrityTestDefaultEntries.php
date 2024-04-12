@@ -8,7 +8,6 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\View\ViewableData;
 
-
 class DataIntegrityTestDefaultEntries
 {
     public static function update($baseTable, $field, $value, $id = 0, $replace = false, $addLive = false)
@@ -37,7 +36,7 @@ class DataIntegrityTestDefaultEntries
                 if ($result && $result->value()) {
                     $sql .= $wherePhrase;
                     DB::query($sql);
-                    DB::alteration_message("Updated $field in $table to ${value} ", 'added');
+                    DB::alteration_message("Updated $field in $table to {$value} ", 'added');
                 }
             }
         }

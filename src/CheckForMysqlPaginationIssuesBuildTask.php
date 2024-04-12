@@ -284,8 +284,8 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected function tableExists($table)
     {
-        $db = DB::get_conn();
-        return $db->hasTable($table);
+        $databaseSchema = DB::get_schema();
+        return $databaseSchema->hasTable($table);
     }
 
     /**
@@ -334,13 +334,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             if ($testLetter === 'C') {
                 $defaultSortField = Config::inst()->get($className, 'default_sort');
 
-                Config::modify()->update($className, 'default_sort', null);
+                Config::modify()->set($className, 'default_sort', null);
 
                 $objects = $className::get();
 
                 $testCResult += $this->runObjects($objects, $className, $isFirstRound);
 
-                Config::modify()->update($className, 'default_sort', $defaultSortField);
+                Config::modify()->set($className, 'default_sort', $defaultSortField);
             }
         }
         $testAResult = round($testAResult * 1000);

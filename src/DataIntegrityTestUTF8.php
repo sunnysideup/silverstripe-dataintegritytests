@@ -62,16 +62,16 @@ class DataIntegrityTestUTF8 extends BuildTask
                     DB::alteration_message('Error in ' . $fieldName . ' collation: ' . $fieldCollation, 'deleted');
                     $this->flushNow();
                 }
-                $usedFieldsChanged = ["CHECKING ${table}.${fieldName} : "];
+                $usedFieldsChanged = ["CHECKING {$table}.{$fieldName} : "];
                 foreach ($arrayOfReplacements as $from => $to) {
-                    @DB::query("UPDATE \"${table}\" SET \"${fieldName}\" = REPLACE(\"${fieldName}\", '${from}', '${to}');");
+                    @DB::query("UPDATE \"{$table}\" SET \"{$fieldName}\" = REPLACE(\"{$fieldName}\", '{$from}', '{$to}');");
                     $count = DB::get_conn()->affectedRows();
                     $toWord = $to;
                     if ($to === '') {
                         $toWord = '[NOTHING]';
                     }
                     if ($count) {
-                        $usedFieldsChanged[] = "${count} Replacements <strong>${from}</strong> with <strong>${toWord}</strong>";
+                        $usedFieldsChanged[] = "{$count} Replacements <strong>{$from}</strong> with <strong>{$toWord}</strong>";
                     }
                 }
                 if (count($usedFieldsChanged) > 1) {

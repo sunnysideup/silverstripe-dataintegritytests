@@ -25,6 +25,8 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
      */
     protected $description = 'Go through all tables in the database and see what records have been edited in the last xxx minutes.  You can set the minutes using a GET variable (http://www.sunnysideup.co.nz/dev/tasks/DataIntegrityTestRecentlyChanged/?x=123 where 123 is the number of minutes).';
 
+    private static $segment = 'DataIntegrityTestRecentlyChanged';
+
     /**
      * runs the task and outputs directly to the screen
      */
@@ -56,7 +58,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
                     } else {
                         $whereStatement = $whereStatementFixed . " AND \"ClassName\" = '" . $dataClass . "' ";
                         $count = $dataClass::get()->where($whereStatement)->count();
-                        $fields = Config::inst()->get($dataClass, 'db', Config::INHERITED);
+                        $fields = Config::inst()->get($dataClass, 'db');
                         if (! is_array($fields)) {
                             $fields = [];
                         }
@@ -85,7 +87,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
         }
         echo "
 
-			<form method=\"get\" action=\"" . Director::absoluteURL('dev/tasks/' . $this->class . '/') . '">
+			<form method=\"get\" action=\"" . Director::absoluteURL('dev/tasks/' . $this->Config()->get('segment') . '/') . '">
 				<label for="m">please enter minutes ago or any date (e.g. last week, yesterday, 2011-11-11, etc...)</label>
 				<input name="m" id="m" value="' . $_GET['m'] . '">
 			</form>';

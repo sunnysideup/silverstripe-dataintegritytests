@@ -2,13 +2,12 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-use db;
-
 use SilverStripe\CMS\Model\SiteTree;
 
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
+use SilverStripe\ORM\DB;
 use Spyc;
 
 class DataIntegrityTestYML extends BuildTask
@@ -53,12 +52,11 @@ class DataIntegrityTestYML extends BuildTask
         $classesToSkip = Config::inst()->get(DataIntegrityTestYML::class, 'classes_to_skip');
         $variablesToSkip = Config::inst()->get(DataIntegrityTestYML::class, 'variables_to_skip');
         foreach ($filesArray as $folderAndFileLocation) {
-            DB::alteration_message("<h2>Checking ${folderAndFileLocation}</h2>");
+            DB::alteration_message("<h2>Checking {$folderAndFileLocation}</h2>");
             $fixtureFolderAndFile = Director::baseFolder() . '/' . $folderAndFileLocation;
             if (!file_exists($fixtureFolderAndFile)) {
                 user_error('No custom configuration has been setup here : "' . $fixtureFolderAndFile . '" set the files here: DataIntegrityTestYML::config_files', E_USER_NOTICE);
             }
-            $parser = new Spyc();
             $arrayOfSettings = $parser->loadFile($fixtureFolderAndFile);
 
             foreach ($arrayOfSettings as $className => $variables) {
@@ -77,36 +75,36 @@ class DataIntegrityTestYML extends BuildTask
 
                                 if ($className::create() instanceof SiteTree) {
                                     if (!file_exists($fileLocationForSiteTree)) {
-                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> icon ${fileLocationForSiteTree} can not be found", 'deleted');
+                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> icon {$fileLocationForSiteTree} can not be found", 'deleted');
                                     } else {
-                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> icon ${fileLocationForSiteTree} exists", 'created');
+                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> icon {$fileLocationForSiteTree} exists", 'created');
                                     }
                                 } else {
                                     if (!file_exists($fileLocationForOthers)) {
-                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> icon ${fileLocationForOthers} can not be found", 'deleted');
+                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> icon {$fileLocationForOthers} can not be found", 'deleted');
                                     } else {
-                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> icon ${fileLocationForOthers} exists", 'created');
+                                        DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> icon {$fileLocationForOthers} exists", 'created');
                                     }
                                 }
                             } elseif ($variable === 'extensions') {
                                 if (!is_array($setting)) {
-                                    DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> extensions should be set as an array.", 'deleted');
+                                    DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> extensions should be set as an array.", 'deleted');
                                 } else {
                                     foreach ($setting as $extensionClassName) {
                                         if (!class_exists($extensionClassName)) {
-                                            DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> extension class <u>${extensionClassName}</u> does not exist", 'deleted');
+                                            DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> extension class <u>{$extensionClassName}</u> does not exist", 'deleted');
                                         } else {
-                                            DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> extension class <u>${extensionClassName}</u> found", 'created');
+                                            DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> extension class <u>{$extensionClassName}</u> found", 'created');
                                         }
                                     }
                                 }
                             } elseif (in_array($variable, $variablesToSkip, true)) {
-                                DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> skipped");
+                                DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> skipped");
                             } else {
                                 if (!property_exists($className, $variable)) {
-                                    DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> does not exist", 'deleted');
+                                    DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> does not exist", 'deleted');
                                 } else {
-                                    DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.${variable}</u> found", 'created');
+                                    DB::alteration_message("&nbsp; &nbsp; &nbsp; <u>$className.{$variable}</u> found", 'created');
                                 }
                             }
                         }

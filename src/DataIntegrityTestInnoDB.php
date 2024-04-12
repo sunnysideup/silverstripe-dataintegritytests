@@ -25,21 +25,21 @@ class DataIntegrityTestInnoDB extends BuildTask
         $tables = DB::query('SHOW TABLE STATUS WHERE ENGINE <>  \'InnoDB\'');
         foreach ($tables as $table) {
             $table = $table['Name'];
-            DB::alteration_message("Updating ${table} to innoDB", 'created');
+            DB::alteration_message("Updating {$table} to innoDB", 'created');
             $this->flushNow();
-            $indexRows = DB::query("SHOW INDEX FROM \"${table}\" WHERE Index_type = 'FULLTEXT'");
+            $indexRows = DB::query("SHOW INDEX FROM \"{$table}\" WHERE Index_type = 'FULLTEXT'");
             unset($done);
             $done = [];
             foreach ($indexRows as $indexRow) {
                 $key = $indexRow['Key_name'];
                 if (! isset($done[$key])) {
-                    DB::alteration_message("Deleting INDEX ${key} in ${table} (FullText Index)", 'deleted');
+                    DB::alteration_message("Deleting INDEX {$key} in {$table} (FullText Index)", 'deleted');
                     $this->flushNow();
-                    DB::query("ALTER TABLE \"${table}\" DROP INDEX ${key};");
+                    DB::query("ALTER TABLE \"{$table}\" DROP INDEX {$key};");
                     $done[$key] = $key;
                 }
             }
-            $sql = "ALTER TABLE \"${table}\" ENGINE=INNODB";
+            $sql = "ALTER TABLE \"{$table}\" ENGINE=INNODB";
             DB::query($sql);
         }
         //$rows = DB::query("SHOW GLOBAL STATUS LIKE  'Innodb_page_size'");
