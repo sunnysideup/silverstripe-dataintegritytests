@@ -29,7 +29,7 @@ class DataIntegrityTest extends BuildTask
      */
     private static $segment = 'DataIntegrityTest';
 
-    protected $debug = true;
+    protected $debug = false;
 
     /**
      * standard SS variable
@@ -60,14 +60,6 @@ class DataIntegrityTest extends BuildTask
         'SiteTree_ViewerMembers',
     ];
 
-    private static $test_array = [
-        'In SiteTree_Live but not in SiteTree' =>
-        'SELECT SiteTree.ID, SiteTree.Title FROM SiteTree_Live RIGHT JOIN SiteTree ON SiteTree_Live.ID = SiteTree.ID WHERE SiteTree.ID IS NULL;',
-        'ParentID does not exist in SiteTree' =>
-            'SELECT SiteTree.ID, SiteTree.Title FROM SiteTree RIGHT JOIN SiteTree Parent ON SiteTree.ParentID = Parent.ID Where SiteTree.ID IS NULL and SiteTree.ParentID <> 0;',
-        'ParentID does not exists in SiteTree_Live' =>
-            'SELECT SiteTree_Live.ID, SiteTree_Live.Title FROM SiteTree_Live RIGHT JOIN SiteTree_Live Parent ON SiteTree_Live.ParentID = Parent.ID Where SiteTree_Live.ID IS NULL and SiteTree_Live.ParentID <> 0;',
-    ];
 
     private static $global_exceptions = [
         'EditableFormField' => 'Version',
@@ -95,7 +87,9 @@ class DataIntegrityTest extends BuildTask
     {
         Environment::increaseTimeLimitTo(3000);
         if($this->debug) {
-            echo '<h1>DEBUG MODE ---- NO DELETIONS ARE MADE</h1>';
+            $this->printHeader('DEBUG MODE ---- NO DELETIONS ARE MADE', 2, 'deleted');
+        } else {
+            $this->printHeader('NOT RUNNING DEBUG MODE ---- ACTUAL DELETIONS ARE MADE', 2, 'deleted');
         }
         if ($action = $request->getVar('do')) {
             $methodArray = explode('/', $action);
@@ -114,37 +108,54 @@ class DataIntegrityTest extends BuildTask
                 } else {
                     $this->{$method}();
                 }
+            } else {
+                user_error("could not find method: {$method}");
             }
-            user_error("could not find method: {$method}");
         }
         $this->makeMenu();
     }
 
     protected function makeMenu()
     {
-        $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
-        echo '<h2>Database Administration Helpers</h2>';
-        echo '<p><a href="' . $this->Link() . '?do=tablereview">Prepare a list of obsolete tables.</a></p>';
-        echo '<p><a href="' . $this->Link() . '?do=tablereview&amp;deleteall=1">Prepare a list of obsolete tables and move them to obsolete!.</a></p>';
-        echo '<p><a href="' . $this->Link() . '?do=tablereview&amp;deleteall=1&deletetablealltogether=1">Delete obsolete tables altogether!.</a></p>';
-        echo '<hr />';
-        echo '<p><a href="' . $this->Link() . '?do=obsoletefields">Prepare a list of obsolete fields.</a></p>';
-        echo '<p><a href="' . $this->Link() . "?do=obsoletefields&amp;deletesafeones=1\" onclick=\"return confirm('" . $warning . "');\">Prepare a list of obsolete fields and DELETE! obsolete fields without any data.</a></p>";
-        echo '<p><a href="' . $this->Link() . "?do=obsoletefields&amp;fixbrokendataobjects=1\" onclick=\"return confirm('" . $warning . "');\">Fix broken dataobjects.</a></p>";
-        echo '<p><a href="' . $this->Link() . "?do=obsoletefields&amp;deleteall=1\" onclick=\"return confirm('" . $warning . "');\">Delete all obsolete fields now!</a></p>";
-        echo '<hr />';
-        echo '<p><a href="' . $this->Link() . "?do=deletemarkedfields\" onclick=\"return confirm('" . $warning . "');\">Delete fields listed in _config.</a></p>";
-        echo '<hr />';
-        echo '<p><a href="' . $this->Link() . "?do=deleteobsoletetables\" onclick=\"return confirm('" . $warning . "');\">Delete all tables that are marked as obsolete</a></p>";
-        echo '<hr />';
-        echo '<p><a href="' . $this->Link() . "?do=deleteallversions\" onclick=\"return confirm('" . $warning . "');\">Delete all versioned data</a></p>";
-        echo '<hr />';
-        echo '<p><a href="' . $this->Link() . "?do=cleanupdb\" onclick=\"return confirm('" . $warning . "');\">Clean up Database (remove obsolete records)</a></p>";
-        echo '<hr />';
-        echo "<p><a href=\"/dev/tasks/DataIntegrityTestInnoDB/\" onclick=\"return confirm('" . $warning . "');\">Set all tables to innoDB</a></p>";
-        echo "<p><a href=\"/dev/tasks/DataIntegrityTestUTF8/\" onclick=\"return confirm('" . $warning . "');\">Set all tables to utf-8</a></p>";
+
+
+        $this->printHeader('Database Administration Helpers');
+        $this->printLink('?do=obsoletefields', 'Prepare a list of obsolete fields');
+        $this->printLink('?do=obsoletefields&deletesafeones=1', 'Prepare a list of obsolete fields and delete obsolete fields without data', true);
+        $this->printLink('?do=obsoletefields&deleteall=1', 'Delete all obsolete fields', true);
+        $this->printHr();
+        $this->printLink('?do=tablereview', 'Prepare a list of obsolete tables.');
+        $this->printLink('?do=tablereview&deleteall=1', 'Prepare a list of obsolete tables and move them to obsolete!');
+        $this->printLink('?do=tablereview&deleteall=1&deletetablealltogether=1', 'Delete obsolete tables altogether!', true);
+        $this->printLink('?do=deleteobsoletetables', 'Delete all tables with _obsolete_ at the start of their name!', true);
+        $this->printHr();
+        $this->printLink('?do=obsoletefields&fixbrokendataobjects=1', 'Fix broken data objects!', true);
+        $this->printHr();
+        $this->printLink('?do=deletemarkedfields', 'Delete fields listed in DataIntegrityTest::fields_to_delete!', true);
+        $this->printHr();
+        $this->printLink('?do=deleteallversions', 'Delete all versioned data!', true);
+        $this->printHr();
+        $this->printLink('?do=cleanupdb', 'Clean up Database (remove obsolete records)!', true);
+        $this->printHr();
+        $this->printLink('/dev/tasks/DataIntegrityTestInnoDB/', 'Set all tables to InnoDB!', true);
+        $this->printLink('/dev/tasks/DataIntegrityTestUTF8/', 'Set all tables to UTF-8!', true);
     }
 
+    protected function printLink(string $action, string $label, bool $confirm = false, $returnString = false): ?string
+    {
+        $link = $this->Link() . $action;
+        $confirmAttribute = '';
+        if ($confirm) {
+            $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
+            $confirmAttribute = ' onclick="return confirm(\'' . $warning . '\');"';
+        }
+        $string = '<a href="' . htmlspecialchars($link) . '"' . $confirmAttribute . '>' . $label . '</a>';
+        if($returnString) {
+            return $string;
+        }
+        $this->printString($string);
+        return null;
+    }
 
 
     public function deletemarkedfields()
@@ -158,12 +169,12 @@ class DataIntegrityTest extends BuildTask
                     $this->deleteField($tableFieldArray[0], $tableFieldArray[1]);
                 }
             } else {
-                DB::alteration_message('there are no fields to delete', 'created');
+                $this->printString('there are no fields to delete', 'created');
             }
         } else {
             user_error('you need to select these fields to be deleted first (DataIntegrityTest.fields_to_delete)');
         }
-        echo '<a href="' . Director::absoluteURL('/dev/tasks/DataIntegrityTest/') . '">back to main menu.</a>';
+        $this->printLink('', 'back to main menu');
     }
 
     public function deleteonefield()
@@ -178,12 +189,12 @@ class DataIntegrityTest extends BuildTask
         $table = $requestExploded[1];
         $field = $requestExploded[2];
         if ($this->deleteField($table, $field)) {
-            DB::alteration_message("successfully deleted {$field} from {$table} now");
+            $this->printString("successfully deleted {$field} from {$table} now");
         } else {
-            DB::alteration_message("COULD NOT delete {$field} from {$table} now", 'deleted');
+            $this->printString("COULD NOT delete {$field} from {$table} now", 'deleted');
         }
-        DB::alteration_message('<a href="' . Director::absoluteURL('dev/tasks/DataIntegrityTest/?do=obsoletefields') . '">return to list of obsolete fields</a>', 'created');
-        echo '<a href="' . Director::absoluteURL('/dev/tasks/DataIntegrityTest/') . '">back to main menu.</a>';
+        $this->printString('<a href="' . Director::absoluteURL('dev/tasks/DataIntegrityTest/?do=obsoletefields') . '">return to list of obsolete fields</a>', 'created');
+        $this->printLink('', 'back to main menu.');
     }
 
     protected function Link()
@@ -206,8 +217,8 @@ class DataIntegrityTest extends BuildTask
                 }
             }
         }
-        echo '<h1>Report of fields that may not be required.</h1>';
-        echo '<p>NOTE: it may contain fields that are actually required (e.g. versioning or many-many relationships) and it may also leave out some obsolete fields.  Use as a guide only.</p>';
+        $this->printHeader('Report of fields that may not be required.');
+        $this->printString('NOTE: it may contain fields that are actually required (e.g. versioning or many-many relationships) and it may also leave out some obsolete fields.  Use as a guide only', 'deleted');
         foreach ($dataClasses as $dataClass) {
             // Check if class exists before trying to instantiate - this sidesteps any manifest weirdness
             if (class_exists($dataClass)) {
@@ -225,31 +236,29 @@ class DataIntegrityTest extends BuildTask
                 }
 
                 $existingFields = array_keys(DB::field_list($tableName));
-                echo 'Checking <b>'.$tableName.'</b> ...';
 
                 $diff = array_diff($existingFields, $requiredFields);
-                foreach ($diff as $field) {
-                    DB::alteration_message(
-                        "<span style='color:red'>**** $tableName.$field EXIST BUT IT SHOULD NOT BE THERE!</span>",
-                        'deleted'
-                    );
-                    if($deleteAll) {
-                        $this->deleteField($tableName, $field);
-                    }
-                }
-
                 $diff2 = array_diff($requiredFields, $existingFields);
-                foreach ($diff2 as $field) {
-                    if (in_array($field, $requiredFields)) {
-                        DB::alteration_message(
-                            "<span style='color:red'>**** $tableName.$field DOES NOT EXIST BUT IT SHOULD BE THERE!</span>",
+
+                if (!count($diff) && !count($diff2)) {
+                    $this->printString('<b style="color: #000">'.$tableName.'</b> ... OK', 'created');
+                } else {
+                    $this->printString('<b style="color: #000">'.$tableName.'</b> ...');
+                    foreach ($diff as $field) {
+                        $this->printString(
+                            "**** $tableName.$field EXIST BUT IT SHOULD NOT BE THERE!",
                             'deleted'
                         );
                     }
-                }
 
-                if (!count($diff) && !count($diff2)) {
-                    echo "<span style='color:green'>OK</span><br/>";
+                    foreach ($diff2 as $field) {
+                        if (in_array($field, $requiredFields)) {
+                            $this->printString(
+                                "**** $tableName.$field DOES NOT EXIST BUT IT SHOULD BE THERE!",
+                                'deleted'
+                            );
+                        }
+                    }
                 }
 
             }
@@ -257,31 +266,32 @@ class DataIntegrityTest extends BuildTask
         }
 
         if (count($this->canBeSafelyDeleted)) {
-            DB::alteration_message('<h2>Can be safely deleted: </h2>');
+            $this->printHeader('Can be safely deleted:', 2);
             foreach ($this->canBeSafelyDeleted as $table => $fields) {
-                DB::alteration_message($table . ': ' . implode(', ', $fields));
+                $this->printString($table . ': ' . implode(', ', $fields));
             }
         }
 
         if (count($this->notCheckedArray)) {
-            echo '<h3>Did not check the following classes as no fields appear to be required and hence there is no database table.</h3>';
+            $this->printHeader('Did not check the following classes as no fields appear to be required and hence there is no database table.', 3);
             foreach ($this->notCheckedArray as $table) {
                 if (DB::query("SHOW TABLES LIKE '" . $table . "'")->value()) {
-                    DB::alteration_message($table . ' - NOTE: a table exists for this Class, this is an unexpected result', 'deleted');
+                    $this->printString($table . ' - NOTE: a table exists for this Class, this is an unexpected result', 'deleted');
                 } else {
-                    DB::alteration_message($table, 'created');
+                    $this->printString($table, 'created');
                 }
             }
         }
 
-        echo '<a href="' . Director::absoluteURL('/dev/tasks/DataIntegrityTest/') . '">back to main menu.</a>';
+        $this->printLink('', 'back to main menu.');
+
     }
 
     public function tablereview($deleteAll = false, $removeTableAltogether = false)
     {
         $this->obsoletefields();
         if (count($this->actualTables)) {
-            echo '<h3>Other Tables in Database not directly linked to a Silverstripe DataObject:</h3>';
+            $this->printHeader('Tables in Database not directly linked to a Silverstripe DataObject');
             foreach ($this->actualTables as $tmpTable => $tmpDataClass) {
                 if(in_array($tmpTable, Config::inst()->get(DataIntegrityTest::class, 'tables_to_skip'))) {
                     continue;
@@ -321,16 +331,16 @@ class DataIntegrityTest extends BuildTask
                     }
                 }
                 if ($remove) {
-                    DB::alteration_message("<h2>".$tmpTable. ' '.$tmpDataClass.'</h2>');
+                    $this->printHeader($tmpTable. ' '.$tmpDataClass, 2);
                     if (substr($tmpTable, 0, strlen('_obsolete_')) !== '_obsolete_') {
                         $rowCount = DB::query("SELECT COUNT(*) FROM \"{$tmpTable}\"")->value();
-                        DB::alteration_message($tmpTable . ', rows ' . $rowCount);
+                        $this->printString($tmpTable . ', rows ' . $rowCount);
                         $obsoleteTableName = '_obsolete_' . $tmpTable;
                         if (! $this->tableExists($obsoleteTableName)) {
-                            DB::alteration_message("... We recommend deleting {$tmpTable} or making it obsolete by renaming it to " . $obsoleteTableName, 'deleted');
+                            $this->printString("... We recommend deleting {$tmpTable} or making it obsolete by renaming it to " . $obsoleteTableName, 'deleted');
                             if ($deleteAll) {
                                 if($removeTableAltogether) {
-                                    DB::alteration_message("... We recommend deleting {$tmpTable} altogether", 'deleted');
+                                    $this->printString("... We recommend deleting {$tmpTable} altogether", 'deleted');
                                     if(! $this->debug) {
                                         DB::query("DROP TABLE \"{$tmpTable}\" ");
                                     }
@@ -340,10 +350,10 @@ class DataIntegrityTest extends BuildTask
                                     }
                                 }
                             } else {
-                                DB::alteration_message($tmpTable . ' - ' . $classExistsMessage . ' It can be moved to _obsolete_' . $tmpTable . '.', 'created');
+                                $this->printString($tmpTable . ' - ' . $classExistsMessage . ' It can be moved to _obsolete_' . $tmpTable . '.', 'created');
                             }
                         } else {
-                            DB::alteration_message("... We recommend to move <strong>{$tmpTable}</strong> to <strong>" . $obsoleteTableName . '</strong>, but that table already exists', 'deleted');
+                            $this->printString("... We recommend to move <strong>{$tmpTable}</strong> to <strong>" . $obsoleteTableName . '</strong>, but that table already exists', 'deleted');
                         }
                     }
                 }
@@ -371,8 +381,8 @@ class DataIntegrityTest extends BuildTask
     {
         $obj = new DatabaseAdmin();
         $obj->cleanup();
-        DB::alteration_message('============= COMPLETED =================', '');
-        echo '<a href="' . Director::absoluteURL('/dev/tasks/DataIntegrityTest/') . '">back to main menu.</a>';
+        $this->printString('============= COMPLETED =================', '');
+        $this->printLink('', 'back to main menu.');
     }
 
     private function deleteField(string $table, string $field)
@@ -383,20 +393,20 @@ class DataIntegrityTest extends BuildTask
         if (count($globalExeceptions)) {
             foreach ($globalExeceptions as $exceptionTable => $exceptionField) {
                 if ($exceptionTable === $table && $exceptionField === $field) {
-                    DB::alteration_message("tried to delete {$table}.{$field} but this is listed as a global exception and can not be deleted", 'created');
+                    $this->printString("Listed {$table}.{$field} to be deleted, but this is listed as a global exception and can not be deleted", 'created');
                     return false;
                 }
             }
         }
         if (! DB::query("SHOW TABLES LIKE '" . $table . "'")->value()) {
-            DB::alteration_message("tried to delete {$table}.{$field} but TABLE does not exist", 'deleted');
+            $this->printString("tried to delete {$table}.{$field} but TABLE does not exist", 'deleted');
             return false;
         }
         if (! in_array($field, $fields, true)) {
-            DB::alteration_message("tried to delete {$table}.{$field} but FIELD does not exist", 'deleted');
+            $this->printString("tried to delete {$table}.{$field} but FIELD does not exist", 'deleted');
             return false;
         }
-        DB::alteration_message("Deleting {$field} in {$table}", 'deleted');
+        $this->printString("Deleting {$field} in {$table}", 'deleted');
         if(! $this->debug) {
             DB::query('ALTER TABLE "' . $table . '" DROP "' . $field . '";');
         }
@@ -406,7 +416,7 @@ class DataIntegrityTest extends BuildTask
             }
         }
         if($this->tableExists($table . '_Versions')) {
-            DB::alteration_message("Deleted {$field} in {$table}_Live", 'deleted');
+            $this->printString("Deleted {$field} in {$table}_Live", 'deleted');
             if(! $this->debug) {
                 DB::query('ALTER TABLE "' . $table . '_Versions" DROP "' . $field . '";');
             }
@@ -431,13 +441,13 @@ class DataIntegrityTest extends BuildTask
         foreach ($tables as $table) {
             $table = array_pop($table);
             if (substr($table, 0, 10) === '_obsolete_') {
-                DB::alteration_message("Removing table {$table}", 'deleted');
+                $this->printString("Removing table {$table}", 'deleted');
                 if(!$this->debug) {
                     DB::query("DROP TABLE \"{$table}\" ");
                 }
             }
         }
-        echo '<a href="' . Director::absoluteURL('/dev/tasks/DataIntegrityTest/') . '">back to main menu.</a>';
+        $this->printLink('', 'back to main menu.');
     }
 
     private function deleteallversions()
@@ -452,16 +462,16 @@ class DataIntegrityTest extends BuildTask
                     $obj = DataObject::get_one($className);
                     if ($obj) {
                         if ($obj->hasExtension(Versioned::class)) {
-                            DB::alteration_message("Removing all records from {$table}", 'created');
+                            $this->printString("Removing all records from {$table}", 'created');
                             DB::query("DELETE FROM \"{$table}\" ");
                         }
                     }
                 } else {
-                    DB::alteration_message("Could not find $className class... the {$table} may be obsolete", 'deleted');
+                    $this->printString("Could not find $className class... the {$table} may be obsolete", 'deleted');
                 }
             }
         }
-        echo '<a href="' . Director::absoluteURL('/dev/tasks/DataIntegrityTest/') . '">back to main menu.</a>';
+        $this->printLink('', 'back to main menu.');
     }
 
     private function tableExists($table)
@@ -479,7 +489,7 @@ class DataIntegrityTest extends BuildTask
         if (count($requiredFields)) {
             foreach ($requiredFields as $field) {
                 if (! $dataObject->hasDatabaseField($field)) {
-                    DB::alteration_message("  **** {$dataClass}.{$field} DOES NOT EXIST BUT IT SHOULD BE THERE!", 'deleted');
+                    $this->printString("  **** {$dataClass}.{$field} DOES NOT EXIST BUT IT SHOULD BE THERE!", 'deleted');
                 }
             }
             $schema = $dataObject->getSchema();
@@ -490,13 +500,17 @@ class DataIntegrityTest extends BuildTask
                     if ($deleteAll) {
                         $link = ' !!!!!!!!!!! DELETED !!!!!!!!!';
                     } else {
-                        $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
-                        $link = '<a href="' . Director::absoluteBaseURL() . 'dev/tasks/DataIntegrityTest/?do=deleteonefield/' . $tableName . '/' . $actualField . "/\" onclick=\"return confirm('" . $warning . "');\">delete field</a>";
+                        $link = $this->printLink(
+                            'deleteonefield/' . $tableName . '/' . $actualField,
+                            'delete field',
+                            true,
+                            true
+                        );
                     }
                     if (! in_array($actualField, ['ID', 'Version'], true)) {
                         if (! in_array($actualField, $requiredFields, true)) {
                             $distinctCount = DB::query("SELECT COUNT(DISTINCT \"{$actualField}\") FROM \"{$tableName}\" WHERE \"{$actualField}\" IS NOT NULL AND \"{$actualField}\" <> '' AND \"{$actualField}\" <> '0';")->value();
-                            DB::alteration_message("<br /><br />\n\n{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
+                            $this->printString("<br /><br />\n\n{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
                             if ($distinctCount) {
                                 $rows = DB::query("
                                             SELECT \"{$actualField}\" as N, COUNT(\"{$actualField}\") as C
@@ -506,7 +520,7 @@ class DataIntegrityTest extends BuildTask
                                             LIMIT 7");
                                 if ($rows) {
                                     foreach ($rows as $row) {
-                                        DB::alteration_message(' &nbsp; &nbsp; &nbsp; ' . $row['C'] . ': ' . $row['N']);
+                                        $this->printString(' &nbsp; &nbsp; &nbsp; ' . $row['C'] . ': ' . $row['N']);
                                     }
                                 }
                             } else {
@@ -523,7 +537,7 @@ class DataIntegrityTest extends BuildTask
                     if ($actualField === 'Version' && ! in_array($actualField, $requiredFields, true)) {
                         $versioningPresent = $dataObject->hasVersioning();
                         if (! $versioningPresent) {
-                            DB::alteration_message("{$dataClass}.{$actualField} {$link}", 'deleted');
+                            $this->printString("{$dataClass}.{$actualField} {$link}", 'deleted');
                             if ($deleteAll) {
                                 $this->deleteField($dataClass, $actualField);
                             }
@@ -539,18 +553,18 @@ class DataIntegrityTest extends BuildTask
             $objects = $dataClass::get()->filter(['ClassName' => $allSubClasses]);
             $realCount = $objects->count();
             if ($rawCount !== $realCount) {
-                echo '<hr />';
+                $this->printHr();
                 $sign = ' > ';
                 if ($rawCount < $realCount) {
                     $sign = ' < ';
                 }
-                DB::alteration_message("The DB Table Row Count != DataObject Count for <strong>{$dataClass} ({$rawCount} {$sign} {$realCount})</strong>.", 'deleted');
+                $this->printString("The DB Table Row Count != DataObject Count for <strong>{$dataClass} ({$rawCount} {$sign} {$realCount})</strong>.", 'deleted');
                 if ($fixBrokenDataObject) {
                     $objects = $dataClass::get()->where('LinkedTable.ID IS NULL')->leftJoin($tableName, "{$tableName}.ID = LinkedTable.ID", 'LinkedTable');
                     if ($objects->count() > 500) {
-                        DB::alteration_message("It is recommended that you manually fix the difference in real vs object count in {$dataClass}. There are more than 500 records so it would take too long to do it now.", 'deleted');
+                        $this->printString("It is recommended that you manually fix the difference in real vs object count in {$dataClass}. There are more than 500 records so it would take too long to do it now.", 'deleted');
                     } else {
-                        DB::alteration_message('Now trying to recreate missing items... COUNT = ' . $objects->count(), 'created');
+                        $this->printString('Now trying to recreate missing items... COUNT = ' . $objects->count(), 'created');
                         foreach ($objects as $object) {
                             if (DB::query("SELECT COUNT(\"ID\") FROM \"{$tableName}\" WHERE \"ID\" = " . $object->ID . ';')->value() !== 1) {
                                 Config::modify()->set(DataObject::class, 'validation_enabled', false);
@@ -559,7 +573,7 @@ class DataIntegrityTest extends BuildTask
                             }
                         }
                         $objectCount = $dataClass::get()->count();
-                        DB::alteration_message("Consider deleting superfluous records from table {$dataClass} .... COUNT =" . ($rawCount - $objectCount));
+                        $this->printString("Consider deleting superfluous records from table {$dataClass} .... COUNT =" . ($rawCount - $objectCount));
                         // $ancestors = ClassInfo::ancestry($dataClass, true);
                         // if ($ancestors && is_array($ancestors) && count($ancestors)) {
                         //     foreach ($ancestors as $ancestor) {
@@ -567,22 +581,50 @@ class DataIntegrityTest extends BuildTask
                         //         $ancestorSchema = $ancestorObject->getSchema();
                         //         $ancestorTable = $ancestorSchema->tableName($ancestor);
                         //         if ($ancestor !== $dataClass) {
-                        //             echo "DELETE `{$dataClass}`.* FROM `{$dataClass}` LEFT JOIN `{$ancestor}` ON `{$dataClass}`.`ID` = `{$ancestor}`.`ID` WHERE `{$ancestor}`.`ID` IS NULL;";
                         //             DB::query("DELETE `{$dataClass}`.* FROM `{$dataClass}` LEFT JOIN `{$ancestor}` ON `{$dataClass}`.`ID` = `{$ancestor}`.`ID` WHERE `{$ancestor}`.`ID` IS NULL;");
                         //         }
                         //     }
                         // }
                     }
                 }
-                echo '<hr />';
+                $this->printHr();
             }
         } else {
             $databaseSchema = DB::get_schema();
             if ($databaseSchema->hasTable($dataClass)) {
-                DB::alteration_message("  **** The {$dataClass} table exists, but according to the data-scheme it should not be there ", 'deleted');
+                $this->printString("  **** The {$dataClass} table exists, but according to the data-scheme it should not be there ", 'deleted');
             } else {
                 $this->notCheckedArray[] = $dataClass;
             }
+        }
+    }
+
+    protected function printHr()
+    {
+        $this->printString('<hr />');
+    }
+
+    protected function printHeader($string, $headerNumber = 1, $style = '')
+    {
+        $this->printString($string, $style, $headerNumber);
+    }
+
+    protected function printString($string, $type = '', ?int $headerNumber = 0, $isInline = false)
+    {
+        match ($type) {
+            'error' => $style = 'red',
+            'deleted' => $style = 'red',
+            'warning' => $style = 'orange',
+            'created' => $style = 'green',
+            'info' => $style = 'blue',
+            default => $style = 'black'
+        };
+        if($isInline) {
+            echo '<span style="color:'.$style.'">' . $string . '</span>';
+        } elseif($headerNumber) {
+            echo '<h'.$headerNumber.' style="color:'.$style.'">' . $string . '</h'.$headerNumber.'>';
+        } else {
+            echo '<p style="color:'.$style.'">' . $string . '</p>';
         }
     }
 

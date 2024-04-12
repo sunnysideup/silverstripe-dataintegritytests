@@ -8,6 +8,7 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\Dev\FunctionalTest;
 use SilverStripe\Dev\TestOnly;
+use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 
@@ -298,14 +299,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      */
     protected function speedComparison($className)
     {
-        /**
-         * ### @@@@ START REPLACEMENT @@@@ ###
-         * WHY: upgrade to SS4
-         * OLD: $className (case sensitive)
-         * NEW: $className (COMPLEX)
-         * EXP: Check if the class name can still be used as such
-         * ### @@@@ STOP REPLACEMENT @@@@ ###
-         */
+
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR ' . $className . ' with ' . $className::get()->count() . ' records</h2><hr /><hr /><hr /><hr />');
         $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
         shuffle($testSeq);
@@ -359,15 +353,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      *
      * @return float
      */
-
-    /**
-     * ### @@@@ START REPLACEMENT @@@@ ###
-     * WHY: upgrade to SS4
-     * OLD: $className (case sensitive)
-     * NEW: $className (COMPLEX)
-     * EXP: Check if the class name can still be used as such
-     * ### @@@@ STOP REPLACEMENT @@@@ ###
-     */
     protected function runObjects($objects, $className, $isFirstRound)
     {
         $time = 0;
@@ -378,14 +363,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             }
             $start = microtime(true);
             foreach ($objects as $object) {
-                /**
-                 * ### @@@@ START REPLACEMENT @@@@ ###
-                 * WHY: upgrade to SS4
-                 * OLD: $className (case sensitive)
-                 * NEW: $className (COMPLEX)
-                 * EXP: Check if the class name can still be used as such
-                 * ### @@@@ STOP REPLACEMENT @@@@ ###
-                 */
+
                 $this->flushNowDebug($className . ' with ID = ' . $object->ID . ' (not sorted)');
             }
             $end = microtime(true);
