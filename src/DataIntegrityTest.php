@@ -94,10 +94,10 @@ class DataIntegrityTest extends BuildTask
     public function run($request)
     {
         Environment::increaseTimeLimitTo(3000);
+        if($this->debug) {
+            echo '<h1>DEBUG MODE ---- NO DELETIONS ARE MADE</h1>';
+        }
         if ($action = $request->getVar('do')) {
-            if($this->debug) {
-                echo '<h1>DEBUG MODE ---- NO DELETIONS ARE MADE</h1>';
-            }
             $methodArray = explode('/', $action);
             $method = $methodArray[0];
             $allowedActions = Config::inst()->get(DataIntegrityTest::class, 'allowed_actions');
@@ -106,16 +106,22 @@ class DataIntegrityTest extends BuildTask
                     $deletesafeones = isset($_GET['deletesafeones']) && $_GET['deletesafeones'];
                     $fixbrokendataobjects = isset($_GET['fixbrokendataobjects']) && $_GET['fixbrokendataobjects'];
                     $deleteall = isset($_GET['deleteall']) && $_GET['deleteall'];
-                    return $this->{$method}($deletesafeones, $fixbrokendataobjects, $deleteall);
+                    $this->{$method}($deletesafeones, $fixbrokendataobjects, $deleteall);
                 } elseif ($method === 'tablereview') {
                     $deleteall = isset($_GET['deleteall']) && $_GET['deleteall'];
                     $deletetablealltogether = isset($_GET['deleteobsoletetables']) && $_GET['deletetablealltogether'];
-                    return $this->{$method}($deleteall, $deletetablealltogether);
+                    $this->{$method}($deleteall, $deletetablealltogether);
+                } else {
+                    $this->{$method}();
                 }
-                return $this->{$method}();
             }
             user_error("could not find method: {$method}");
         }
+        $this->makeMenu();
+    }
+
+    protected function makeMenu()
+    {
         $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
         echo '<h2>Database Administration Helpers</h2>';
         echo '<p><a href="' . $this->Link() . '?do=tablereview">Prepare a list of obsolete tables.</a></p>';
@@ -138,6 +144,8 @@ class DataIntegrityTest extends BuildTask
         echo "<p><a href=\"/dev/tasks/DataIntegrityTestInnoDB/\" onclick=\"return confirm('" . $warning . "');\">Set all tables to innoDB</a></p>";
         echo "<p><a href=\"/dev/tasks/DataIntegrityTestUTF8/\" onclick=\"return confirm('" . $warning . "');\">Set all tables to utf-8</a></p>";
     }
+
+
 
     public function deletemarkedfields()
     {
