@@ -74,7 +74,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             '
                 We run through all the summary fields for all dataobjects and select <i>limits</i> (segments) of the datalist.
                 After that we check if the same ID shows up on different segments.
-                If there are duplicates then Pagination is broken.
+                If there are duplicates then Pagination may break if a list is paginated and sorted by that field.
             ',
             'notice'
         );

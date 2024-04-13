@@ -137,6 +137,7 @@ class DataIntegrityTest extends BuildTask
         $this->printHr();
         $this->printLink('?do=cleanupdb', 'Clean up Database (remove obsolete records)!', true);
         $this->printHr();
+        $this->printLink('/dev/tasks/CheckForMysqlPaginationIssuesBuildTask/', 'Look for pagination issues');
         $this->printLink('/dev/tasks/DataIntegrityTestInnoDB/', 'Set all tables to InnoDB!', true);
         $this->printLink('/dev/tasks/DataIntegrityTestUTF8/', 'Set all tables to UTF-8!', true);
     }
