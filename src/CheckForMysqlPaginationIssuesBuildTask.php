@@ -34,23 +34,25 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected $debug = false;
 
-    protected $testTableCustom = '';
+    protected $testClassCustom = '';
 
     protected $timePerClass = [];
 
     private static $skip_tables = [];
 
+    private static $segment = 'CheckForMysqlPaginationIssuesBuildTask';
+
     public function run($request)
     {
         // give us some time to run this
         ini_set('max_execution_time', 3000);
-        $classes = ClassInfo::subclassesFor(DataObject::class);
+        $classes = ClassInfo::subclassesFor(DataObject::class, false);
         $array = [
             'l' => 'limit',
             's' => 'step',
             'd' => 'debug',
             'q' => 'quickAndDirty',
-            't' => 'testTableCustom',
+            't' => 'testClassCustom',
         ];
         foreach ($array as $getParam => $field) {
             if (isset($_GET[$getParam])) {
@@ -79,7 +81,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SETTINGS </h2><hr /><hr /><hr /><hr />');
         $this->flushNow('
             <form method="get" action="/dev/tasks/CheckForMysqlPaginationIssuesBuildTask">
-                <br /><br />test table:<br /><input name="t" placeholder="e.g. SiteTree" value="' . $this->testTableCustom . '" />
+                <br /><br />test table:<br /><input name="t" placeholder="e.g. SiteTree" value="' . $this->testClassCustom . '" />
                 <br /><br />limit:<br /><input name="l" placeholder="limit" value="' . $this->limit . '" />
                 <br /><br />step:<br /><input name="s" placeholder="step" value="' . $this->step . '" />
                 <br /><br />debug:<br /><select name="d" placeholder="debug" /><option value="0">false</option><option value="1" ' . ($this->debug ? 'selected="selected"' : '') . '>true</option></select>
@@ -90,7 +92,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">CALCULATIONS </h2><hr /><hr /><hr /><hr />');
         // array of errors
         $errors = [];
-        $largestTable = '';
+        $largestClass = '';
         $largestTableCount = 0;
         $skipTables = $this->Config()->get('skip_tables');
         // get all DataObjects and loop through them
@@ -100,139 +102,138 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 continue;
             }
             // skip irrelevant ones
-            if ($class !== DataObject::class) {
-                //skip test ones
-                $obj = Injector::inst()->get($class);
-                if ($obj instanceof FunctionalTest || $obj instanceof TestOnly) {
-                    $this->flushNowDebug('<h2>SKIPPING: ' . $class . '</h2>');
-                    continue;
+            //skip test ones
+            $obj = Injector::inst()->get($class);
+            if ($obj instanceof FunctionalTest || $obj instanceof TestOnly) {
+                $this->flushNowDebug('<h2>SKIPPING: ' . $class . '</h2>');
+                continue;
+            }
+            //start the process ...
+            $this->flushNowDebug('<h2>Testing ' . $class . '</h2>');
+            $schema = $obj->getSchema();
+            $tableName = $schema->tableName($class);
+            // must exist is its own table to avoid doubling-up on tests
+            // e.g. test SiteTree and Page where Page is not its own table ...
+            if ($this->tableExists($tableName)) {
+                $this->timePerClass[$tableName] = [];
+                $this->timePerClass[$tableName]['start'] = microtime(true);
+                // check table size
+                $count = $class::get()->count();
+                $checkCount = DB::query('SELECT COUNT("ID") FROM "' . $tableName . '"')->value();
+                if (intval($checkCount) !== intval($count)) {
+                    $this->flushNow('
+                        COUNT error!
+                        ' . $class . ' ::get: ' . $count . ' rows BUT
+                        DB::query(...): ' . $checkCount . ' rows |
+                        DIFFERENCE:  ' . abs($count - $checkCount) . '', 'deleted');
                 }
-                //start the process ...
-                $this->flushNowDebug('<h2>Testing ' . $class . '</h2>');
-
-                // must exist is its own table to avoid doubling-up on tests
-                // e.g. test SiteTree and Page where Page is not its own table ...
-                if ($this->tableExists($class)) {
-                    $this->timePerClass[$class] = [];
-                    $this->timePerClass[$class]['start'] = microtime(true);
-                    // check table size
-                    $count = $class::get()->count();
-                    $checkCount = DB::query('SELECT COUNT("ID") FROM "' . $class . '"')->value();
-                    if (intval($checkCount) !== intval($count)) {
-                        $this->flushNow('
-                            COUNT error!
-                            ' . $class . ' ::get: ' . $count . ' rows BUT
-                            DB::query(...): ' . $checkCount . ' rows |
-                            DIFFERENCE:  ' . abs($count - $checkCount) . '', 'deleted');
+                if ($count > $this->step) {
+                    if ($count > $largestTableCount) {
+                        $largestTableCount = $count;
+                        $largestClass = $class;
                     }
-                    if ($count > $this->step) {
-                        if ($count > $largestTableCount) {
-                            $largestTableCount = $count;
-                            $largestTable = $class;
-                        }
-                        $this->flushNowQuick('<br />' . $class . ': ');
-                        if (!isset($errors[$class])) {
-                            $errors[$class] = [];
-                        }
-                        // get fields ...
+                    $this->flushNowQuick('<br />' . $tableName . ': ');
+                    if (!isset($errors[$tableName])) {
+                        $errors[$tableName] = [];
+                    }
+                    // get fields ...
 
-                        $dbFields = $obj->Config()->get('db');
-                        if (!is_array($dbFields)) {
-                            $dbFields = [];
-                        }
-                        // adding base fields.
-                        // we do not add ID as this should work!
-                        $dbFields['ClassName'] = 'ClassName';
-                        $dbFields['Created'] = 'Created';
-                        $dbFields['LastEdited'] = 'LastEdited';
+                    $dbFields = $obj->Config()->get('db');
+                    if (!is_array($dbFields)) {
+                        $dbFields = [];
+                    }
+                    // adding base fields.
+                    // we do not add ID as this should work!
+                    $dbFields['ClassName'] = 'ClassName';
+                    $dbFields['Created'] = 'Created';
+                    $dbFields['LastEdited'] = 'LastEdited';
 
-                        $hasOneFields = $obj->hasOne();
-                        if (!is_array($hasOneFields)) {
-                            $hasOneFields = [];
-                        }
+                    $hasOneFields = $obj->hasOne();
+                    if (!is_array($hasOneFields)) {
+                        $hasOneFields = [];
+                    }
 
-                        //start looping through summary fields ...
-                        $summaryFields = $obj->summaryFields();
-                        foreach (array_keys($summaryFields) as $field) {
-                            if (isset($dbFields[$field]) || isset($hasOneFields[$field])) {
-                                $this->flushNowQuick(' / ' . $field . ': ');
-                                // reset comparisonArray - this is important ...
-                                $comparisonArray = [];
-                                //fix has one field
-                                if (isset($hasOneFields[$field])) {
-                                    $field .= 'ID';
-                                }
-                                if (!isset($errors[$class][$field])) {
-                                    $errors[$class][$field] = [];
-                                }
-                                // start loop of limits ...
-                                $this->flushNowDebug('- Sorting by ' . $field);
-                                for ($i = 0; $i < $this->limit && $i < ($count - $this->step); $i += $this->step) {
-                                    // OPTION 1
-                                    if ($this->quickAndDirty) {
-                                        if (DataObject::getSchema()->fieldSpec($class, $field)) {
-                                            $tempRows = DB::query('SELECT "ID" FROM "' . $class . '" ORDER BY "' . $field . '" ASC LIMIT ' . $i . ', ' . $this->step . ';');
-                                            foreach ($tempRows as $row) {
-                                                $id = $row['ID'];
-                                                if (isset($comparisonArray[$id])) {
-                                                    if (!isset($errors[$class][$field][$id])) {
-                                                        $errors[$class][$field][$id] = 1;
-                                                    }
-                                                    $errors[$class][$field][$id]++;
-                                                } else {
-                                                    $this->flushNowQuick('.');
-                                                }
-                                                $comparisonArray[$id] = $id;
-                                            }
-                                        } else {
-                                            $this->flushNowDebug('<strong>SKIP: ' . $class . '.' . $field . '</strong> does not exist');
-                                            break;
-                                        }
-
-                                        // OPTION 2
-                                    } else {
-                                        $tempObjects = $class::get()->sort($field)->limit($this->step, $i);
-                                        foreach ($tempObjects as $tempObject) {
-                                            $id = $tempObject->ID;
+                    //start looping through summary fields ...
+                    $summaryFields = $obj->summaryFields();
+                    foreach (array_keys($summaryFields) as $field) {
+                        if (isset($dbFields[$field]) || isset($hasOneFields[$field])) {
+                            $this->flushNowQuick(' / ' . $field . ': ');
+                            // reset comparisonArray - this is important ...
+                            $comparisonArray = [];
+                            //fix has one field
+                            if (isset($hasOneFields[$field])) {
+                                $field .= 'ID';
+                            }
+                            if (!isset($errors[$tableName][$field])) {
+                                $errors[$tableName][$field] = [];
+                            }
+                            // start loop of limits ...
+                            $this->flushNowDebug('- Sorting by ' . $field);
+                            for ($i = 0; $i < $this->limit && $i < ($count - $this->step); $i += $this->step) {
+                                // OPTION 1
+                                if ($this->quickAndDirty) {
+                                    if (DataObject::getSchema()->fieldSpec($class, $field)) {
+                                        $tempRows = DB::query('SELECT "ID" FROM "' . $tableName . '" ORDER BY "' . $field . '" ASC LIMIT ' . $i . ', ' . $this->step . ';');
+                                        foreach ($tempRows as $row) {
+                                            $id = $row['ID'];
                                             if (isset($comparisonArray[$id])) {
-                                                if (!isset($errors[$class][$field][$id])) {
-                                                    $errors[$class][$field][$id] = 1;
+                                                if (!isset($errors[$tableName][$field][$id])) {
+                                                    $errors[$tableName][$field][$id] = 1;
                                                 }
-                                                $errors[$class][$field][$id]++;
+                                                $errors[$tableName][$field][$id]++;
                                             } else {
                                                 $this->flushNowQuick('.');
                                             }
-                                            $comparisonArray[$tempObject->ID] = $tempObject->ID;
+                                            $comparisonArray[$id] = $id;
                                         }
+                                    } else {
+                                        $this->flushNowDebug('<strong>SKIP: ' . $tableName . '.' . $field . '</strong> does not exist');
+                                        break;
+                                    }
+
+                                    // OPTION 2
+                                } else {
+                                    $tempObjects = $class::get()->sort($field)->limit($this->step, $i);
+                                    foreach ($tempObjects as $tempObject) {
+                                        $id = $tempObject->ID;
+                                        if (isset($comparisonArray[$id])) {
+                                            if (!isset($errors[$tableName][$field][$id])) {
+                                                $errors[$tableName][$field][$id] = 1;
+                                            }
+                                            $errors[$tableName][$field][$id]++;
+                                        } else {
+                                            $this->flushNowQuick('.');
+                                        }
+                                        $comparisonArray[$tempObject->ID] = $tempObject->ID;
                                     }
                                 }
-                                if (count($errors[$class][$field])) {
-                                    $error = '<br /><strong>Found double entries in <u>' . $class . '</u> table,' .
-                                        ' sorting by <u>' . $field . '</u></strong> ...';
-                                    foreach ($errors[$class][$field] as $tempID => $tempCount) {
-                                        $error .= ' ID: ' . $tempID . ' occurred ' . $tempCount . ' times /';
-                                    }
-                                    $this->flushNowDebug($error, 'deleted');
-                                    $errors[$class][$field] = $error;
-                                }
-                            } else {
-                                $this->flushNowDebug('<strong>SKIP: ' . $class . '.' . $field . ' field</strong> because it is not a DB field.');
                             }
+                            if (count($errors[$tableName][$field])) {
+                                $error = '<br /><strong>Found double entries in <u>' . $tableName . '</u> table,' .
+                                    ' sorting by <u>' . $field . '</u></strong> ...';
+                                foreach ($errors[$tableName][$field] as $tempID => $tempCount) {
+                                    $error .= ' ID: ' . $tempID . ' occurred ' . $tempCount . ' times /';
+                                }
+                                $this->flushNowDebug($error, 'deleted');
+                                $errors[$tableName][$field] = $error;
+                            }
+                        } else {
+                            $this->flushNowDebug('<strong>SKIP: ' . $tableName . '.' . $field . ' field</strong> because it is not a DB field.');
                         }
-                    } else {
-                        $this->flushNowDebug('<strong>SKIP: table ' . $class . '</strong> because it does not have enough records. ');
                     }
-                    $this->timePerClass[$class]['end'] = microtime(true);
                 } else {
-                    $this->flushNowDebug('SKIP: ' . $class . ' because table does not exist. ');
+                    $this->flushNowDebug('<strong>SKIP: table ' . $tableName . '</strong> because it does not have enough records. ');
                 }
+                $this->timePerClass[$tableName]['end'] = microtime(true);
+            } else {
+                $this->flushNowDebug('SKIP: ' . $tableName . ' because table does not exist. ');
             }
         }
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">RESULTS </h2><hr /><hr /><hr /><hr />');
         //print out errors again ...
-        foreach ($errors as $class => $fieldValues) {
-            $this->flushNow('<h4>' . $class . '</h4>');
-            $time = round(($this->timePerClass[$class]['end'] - $this->timePerClass[$class]['start']) * 1000);
+        foreach ($errors as $tableName => $fieldValues) {
+            $this->flushNow('<h4>' . $tableName . '</h4>');
+            $time = round(($this->timePerClass[$tableName]['end'] - $this->timePerClass[$tableName]['start']) * 1000);
             $this->flushNow('Time taken: ' . $time . 'μs');
             $errorCount = 0;
             // key is field
@@ -246,10 +247,12 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNow('No errors', 'created');
             }
         }
-        if ($this->testTableCustom) {
-            $largestTable = $this->testTableCustom;
+        if ($this->testClassCustom) {
+            $largestClass = $this->testClassCustom;
+        } elseif(!$largestClass) {
+            $largestClass = $class;
         }
-        $this->speedComparison($largestTable);
+        $this->speedComparison($largestClass);
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
     }
 
@@ -289,14 +292,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         return $databaseSchema->hasTable($table);
     }
 
-    /**
-     * ### @@@@ START REPLACEMENT @@@@ ###
-     * WHY: upgrade to SS4
-     * OLD: $className (case sensitive)
-     * NEW: $className (COMPLEX)
-     * EXP: Check if the class name can still be used as such
-     * ### @@@@ STOP REPLACEMENT @@@@ ###
-     */
     protected function speedComparison($className)
     {
 
