@@ -27,7 +27,7 @@ class DataIntegrityTest extends BuildTask
      * standard SS variable
      * @var string
      */
-    private static $segment = 'DataIntegrityTest';
+    private static $segment = 'dataintegritytest';
 
     protected $debug = false;
 
