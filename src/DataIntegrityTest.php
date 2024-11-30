@@ -65,6 +65,7 @@ class DataIntegrityTest extends BuildTask
         'EditableFormField' => 'Version',
         'EditableOption' => 'Version',
         'OrderItem' => 'Version',
+        'Member' => 'LastVisited',
     ];
 
     /**
@@ -86,7 +87,7 @@ class DataIntegrityTest extends BuildTask
     public function run($request)
     {
         Environment::increaseTimeLimitTo(3000);
-        if($this->debug) {
+        if ($this->debug) {
             $this->printHeader('DEBUG MODE ---- NO DELETIONS ARE MADE', 2, 'deleted');
         } else {
             $this->printHeader('NOT RUNNING DEBUG MODE ---- ACTUAL DELETIONS ARE MADE', 2, 'deleted');
@@ -151,7 +152,7 @@ class DataIntegrityTest extends BuildTask
             $confirmAttribute = ' onclick="return confirm(\'' . $warning . '\');"';
         }
         $string = '<a href="' . htmlspecialchars($link) . '"' . $confirmAttribute . '>' . $label . '</a>';
-        if($returnString) {
+        if ($returnString) {
             return $string;
         }
         $this->printString($string);
@@ -294,7 +295,7 @@ class DataIntegrityTest extends BuildTask
         if (count($this->actualTables)) {
             $this->printHeader('Tables in Database not directly linked to a Silverstripe DataObject');
             foreach ($this->actualTables as $tmpTable => $tmpDataClass) {
-                if(in_array($tmpTable, Config::inst()->get(DataIntegrityTest::class, 'tables_to_skip'))) {
+                if (in_array($tmpTable, Config::inst()->get(DataIntegrityTest::class, 'tables_to_skip'))) {
                     continue;
                 }
                 $remove = true;
@@ -340,13 +341,13 @@ class DataIntegrityTest extends BuildTask
                         if (! $this->tableExists($obsoleteTableName)) {
                             $this->printString("... We recommend deleting {$tmpTable} or making it obsolete by renaming it to " . $obsoleteTableName, 'deleted');
                             if ($deleteAll) {
-                                if($removeTableAltogether) {
+                                if ($removeTableAltogether) {
                                     $this->printString("... We recommend deleting {$tmpTable} altogether", 'deleted');
-                                    if(! $this->debug) {
+                                    if (! $this->debug) {
                                         DB::query("DROP TABLE \"{$tmpTable}\" ");
                                     }
                                 } else {
-                                    if(! $this->debug) {
+                                    if (! $this->debug) {
                                         DB::get_schema()->renameTable($tmpTable, $obsoleteTableName);
                                     }
                                 }
@@ -408,17 +409,17 @@ class DataIntegrityTest extends BuildTask
             return false;
         }
         $this->printString("Deleting {$field} in {$table}", 'deleted');
-        if(! $this->debug) {
+        if (! $this->debug) {
             DB::query('ALTER TABLE "' . $table . '" DROP "' . $field . '";');
         }
-        if($this->tableExists($table . '_Live')) {
-            if(! $this->debug) {
+        if ($this->tableExists($table . '_Live')) {
+            if (! $this->debug) {
                 DB::query('ALTER TABLE "' . $table . '_Live" DROP "' . $field . '";');
             }
         }
-        if($this->tableExists($table . '_Versions')) {
+        if ($this->tableExists($table . '_Versions')) {
             $this->printString("Deleted {$field} in {$table}_Live", 'deleted');
-            if(! $this->debug) {
+            if (! $this->debug) {
                 DB::query('ALTER TABLE "' . $table . '_Versions" DROP "' . $field . '";');
             }
         }
@@ -443,7 +444,7 @@ class DataIntegrityTest extends BuildTask
             $table = array_pop($table);
             if (substr($table, 0, 10) === '_obsolete_') {
                 $this->printString("Removing table {$table}", 'deleted');
-                if(!$this->debug) {
+                if (!$this->debug) {
                     DB::query("DROP TABLE \"{$table}\" ");
                 }
             }
@@ -510,7 +511,7 @@ class DataIntegrityTest extends BuildTask
                     }
                     if (! in_array($actualField, ['ID', 'Version'], true)) {
                         if (! in_array($actualField, $requiredFields, true)) {
-                            $distinctCount = DB::query("SELECT COUNT(DISTINCT \"{$actualField}\") FROM \"{$tableName}\" WHERE \"{$actualField}\" IS NOT NULL AND \"{$actualField}\" <> '' AND \"{$actualField}\" <> '0';")->value();
+                            $distinctCount = DB::query("SELECT COUNT(DISTINCT \"{$actualField}\") FROM \"{$tableName}\" WHERE \"{$actualField}\" IS NOT NULL ;")->value();
                             $this->printString("<br /><br />\n\n{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
                             if ($distinctCount) {
                                 $rows = DB::query("
@@ -620,9 +621,9 @@ class DataIntegrityTest extends BuildTask
             'info' => $style = 'blue',
             default => $style = 'black'
         };
-        if($isInline) {
+        if ($isInline) {
             echo '<span style="color:'.$style.'">' . $string . '</span>';
-        } elseif($headerNumber) {
+        } elseif ($headerNumber) {
             echo '<h'.$headerNumber.' style="color:'.$style.'">' . $string . '</h'.$headerNumber.'>';
         } else {
             echo '<p style="color:'.$style.'">' . $string . '</p>';
