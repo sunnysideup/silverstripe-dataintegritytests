@@ -86,7 +86,7 @@ class DataIntegrityTest extends BuildTask
                     $makeobsolete = (int) ($_GET['makeobsolete'] ?? 0) === 1;
                     $fixbrokendataobjects = (int) ($_GET['fixbrokendataobjects'] ?? 0) === 1;
                     $deletetablealltogether = (int) ($_GET['deletetablealltogether'] ?? 0) === 1;
-                    $this->tablereview($makeobsolete, $deletetablealltogether);
+                    $this->tablereview($makeobsolete, $deletetablealltogether, $fixbrokendataobjects);
                 } else {
                     $this->{$method}();
                 }
@@ -107,9 +107,8 @@ class DataIntegrityTest extends BuildTask
         $this->printLink('?do=tablereview', 'Prepare a list of obsolete tables.');
         $this->printLink('?do=tablereview&makeobsolete=1', 'Prepare a list of obsolete tables and move them to obsolete!');
         $this->printLink('?do=tablereview&makeobsolete=1&deletetablealltogether=1', 'Delete obsolete tables altogether!', true);
+        $this->printLink('?do=tablereview&fixbrokendataobjects=1', 'Fix broken data objects!', true);
         $this->printLink('?do=deleteobsoletetables', 'Delete all tables with _obsolete_ at the start of their name!', true);
-        $this->printHr();
-        $this->printLink('?do=obsoletefields&fixbrokendataobjects=1', 'Fix broken data objects!', true);
         $this->printHr();
         $this->printLink('?do=deletemarkedfields', 'Delete fields listed in DataIntegrityTest::fields_to_delete!', true);
         $this->printHr();
@@ -129,7 +128,7 @@ class DataIntegrityTest extends BuildTask
             if (strpos($action, '/dev/tasks/') === 0) {
                 $link = $action;
             } else {
-                $link .= '?do=' . $action;
+                $link .= $action;
             }
         }
         $confirmAttribute = '';
@@ -279,7 +278,7 @@ class DataIntegrityTest extends BuildTask
         $this->printLink('', 'back to main menu.');
     }
 
-    public function tablereview($makeObsolete = false, $removeTableAltogether = false)
+    public function tablereview(?bool $makeObsolete = false, ?bool $removeTableAltogether = false, ?bool $fixBrokenDataObjects = false)
     {
         $this->obsoletefields();
         if (count($this->actualTables)) {
@@ -298,6 +297,7 @@ class DataIntegrityTest extends BuildTask
                     } elseif (class_exists(Versioned::class) && $obj->hasExtension(Versioned::class)) {
                         $remove = false;
                     }
+                    $this->fixBrokenDataObject($tmpDataClass, $tmpTable, $fixBrokenDataObjects);
                 } elseif ($this->isMarkedAsObsolete($tmpTable)) {
                     $remove = true;
                     $classExistsMessage = '... Table already marked as obsolete.';
@@ -587,14 +587,20 @@ class DataIntegrityTest extends BuildTask
         return substr($table, 0, 10) === '_obsolete_';
     }
 
-    protected function fixBrokenDataObject($dataClass, $tableName, $tryToFix = false, $delete = false)
+    protected function fixBrokenDataObject(string $dataClass, string $tableName, ?bool $tryToFix = false)
     {
-        $rawCount = DB::query("SELECT COUNT(\"ID\") FROM \"{$tableName}\"")->value();
+        if (! $this->tableExists($tableName)) {
+            return;
+        }
+        $rawIds = DB::query("SELECT \"ID\" FROM \"{$tableName}\"")->column();
         Versioned::set_reading_mode('Stage.Stage');
         $realCount = 0;
         $objects = $dataClass::get();
-        $realCount = $objects->count();
-        if ($rawCount !== $realCount) {
+        $realIds = $objects->columnUnique();
+        $rawCount = count($rawIds);
+        $realCount = count($realIds);
+        $diff = array_diff($rawIds, $realIds);
+        if (count($diff)) {
             $this->printHr();
             $sign = ' > ';
             if ($rawCount < $realCount) {
@@ -602,29 +608,35 @@ class DataIntegrityTest extends BuildTask
             }
             $this->printString("The DB Table Row Count != DataObject Count for <strong>{$dataClass} ({$rawCount} {$sign} {$realCount})</strong>.", 'deleted');
             $this->printHr();
-        }
-        $objects = $dataClass::get()->where('LinkedTable.ID IS NULL')->leftJoin($tableName, "{$tableName}.ID = LinkedTable.ID", 'LinkedTable');
-        if ($objects->count() > 500) {
-            $this->printString("It is recommended that you manually fix the difference in real vs object count in {$dataClass}. There are more than 500 records so it would take too long to do it now.", 'deleted');
-        } else {
-            $this->printString('Now trying to recreate missing items... COUNT = ' . $objects->count(), 'created');
-            foreach ($objects as $object) {
-                if (DB::query("SELECT COUNT(\"ID\") FROM \"{$tableName}\" WHERE \"ID\" = " . $object->ID . ';')->value() !== 1) {
-                    Config::modify()->set(DataObject::class, 'validation_enabled', false);
-                    $object->write(true, false, true, false);
-                    Config::modify()->set(DataObject::class, 'validation_enabled', true);
+            if ($tryToFix) {
+                foreach ($diff as $id) {
+                    /**
+                     * @var  DataObject $object
+                     */
+                    $object = $dataClass::get()->byID($id);
+                    if ($object) {
+                        $this->printString("Now trying to recreate missing item {$id} ...", 'created');
+                        Config::modify()->set(DataObject::class, 'validation_enabled', false);
+                        $object->write(true, true, true, false);
+                        Config::modify()->set(DataObject::class, 'validation_enabled', true);
+                    }
                 }
-            }
-            $objectCount = $dataClass::get()->count();
-            $this->printString("Consider deleting superfluous records from table {$dataClass} .... COUNT =" . ($rawCount - $objectCount));
-            $ancestors = ClassInfo::ancestry($dataClass, true);
-            if ($ancestors && is_array($ancestors) && count($ancestors)) {
-                foreach ($ancestors as $ancestor) {
-                    $ancestorObject = Injector::inst()->get($ancestor);
-                    $ancestorSchema = $ancestorObject->getSchema();
-                    $ancestorTable = $ancestorSchema->tableName($ancestor);
-                    if ($ancestor !== $dataClass) {
-                        DB::query("DELETE `{$dataClass}`.* FROM `{$dataClass}` LEFT JOIN `{$ancestorTable}` ON `{$dataClass}`.`ID` = `{$ancestorTable}`.`ID` WHERE `{$ancestorTable}`.`ID` IS NULL;");
+                $ancestors = ClassInfo::ancestry($dataClass, true);
+                if ($ancestors && is_array($ancestors) && count($ancestors)) {
+                    foreach ($ancestors as $ancestor) {
+                        $ancestorObject = Injector::inst()->get($ancestor);
+                        $ancestorSchema = $ancestorObject->getSchema();
+                        $ancestorTable = $ancestorSchema->tableName($ancestor);
+                        if ($ancestor !== $dataClass) {
+                            $this->printString("Deleting record without data in {$ancestorTable} ...", 'deleted');
+                            DB::query(
+                                "
+                                DELETE \"{$tableName}\".* FROM \"{$tableName}\"
+                                LEFT JOIN \"{$ancestorTable}\"
+                                    ON \"{$tableName}\".\"ID\" = \"{$ancestorTable}\".\"ID\"
+                                WHERE \"{$ancestorTable}\".\"ID\" IS NULL;"
+                            );
+                        }
                     }
                 }
             }
