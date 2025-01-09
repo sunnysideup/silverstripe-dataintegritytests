@@ -19,6 +19,8 @@ class DataIntegrityTestInnoDB extends BuildTask
      */
     protected $description = 'Converts table to innoDB. CAREFUL: replaces all tables in Database to innoDB - not just the Silverstripe ones.';
 
+    private static $segment = 'dataintegritytestinnodb';
+
     public function run($request)
     {
         ini_set('max_execution_time', 3000);

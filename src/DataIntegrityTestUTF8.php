@@ -36,6 +36,8 @@ class DataIntegrityTestUTF8 extends BuildTask
         'Ý' => '- ',
     ];
 
+    private static $segment = 'dataintegritytestutf8';
+
     public function run($request)
     {
         ini_set('max_execution_time', 3000);

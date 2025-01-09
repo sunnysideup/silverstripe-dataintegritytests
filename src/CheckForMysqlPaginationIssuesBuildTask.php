@@ -40,7 +40,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     private static $skip_tables = [];
 
-    private static $segment = 'CheckForMysqlPaginationIssuesBuildTask';
+    private static $segment = 'checkformysqlpaginationissuesbuildtask';
 
     public function run($request)
     {
@@ -249,7 +249,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         }
         if ($this->testClassCustom) {
             $largestClass = $this->testClassCustom;
-        } elseif(!$largestClass) {
+        } elseif (!$largestClass) {
             $largestClass = $class;
         }
         $this->speedComparison($largestClass);
