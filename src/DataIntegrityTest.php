@@ -35,7 +35,7 @@ class DataIntegrityTest extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = 'Go through all fields in the database and work out what fields are superfluous.';
+    protected $description = 'Go through all fields in the database and work out what fields are superfluous / obsolete.';
 
     private static $warning = 'are you sure - this step is irreversible! - MAKE SURE TO MAKE A BACKUP OF YOUR DATABASE BEFORE YOU CONFIRM THIS!';
 
@@ -242,6 +242,9 @@ class DataIntegrityTest extends BuildTask
                             true,
                             false
                         );
+                        if ($deleteAll) {
+                            $this->deleteField($tableName, $field);
+                        }
                     }
 
                     foreach ($diff2 as $field) {
@@ -411,18 +414,14 @@ class DataIntegrityTest extends BuildTask
             return false;
         }
         $this->printString("Deleting {$field} in {$table}", 'deleted');
-        if (! $this->debug) {
-            DB::query('ALTER TABLE "' . $table . '" DROP "' . $field . '";');
-        }
-        if ($this->tableExists($table . '_Live')) {
-            if (! $this->debug) {
-                DB::query('ALTER TABLE "' . $table . '_Live" DROP "' . $field . '";');
-            }
-        }
-        if ($this->tableExists($table . '_Versions')) {
-            $this->printString("Deleted {$field} in {$table}_Live", 'deleted');
-            if (! $this->debug) {
-                DB::query('ALTER TABLE "' . $table . '_Versions" DROP "' . $field . '";');
+        foreach (['', '_Live', '_Versions'] as $suffix) {
+            $tableNameFinal = $table . $suffix;
+            if ($this->tableExists($tableNameFinal)) {
+                if ($this->fieldExists($tableNameFinal, $field)) {
+                    if (! $this->debug) {
+                        DB::query('ALTER TABLE "' . $tableNameFinal . '" DROP "' . $field . '";');
+                    }
+                }
             }
         }
         return true;
@@ -641,5 +640,11 @@ class DataIntegrityTest extends BuildTask
                 }
             }
         }
+    }
+
+    protected function fieldExists(string $table, string $field): bool
+    {
+        $fields = DB::field_list($table);
+        return isset($fields[$field]);
     }
 }
