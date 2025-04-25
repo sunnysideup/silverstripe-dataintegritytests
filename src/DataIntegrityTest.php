@@ -136,7 +136,15 @@ class DataIntegrityTest extends BuildTask
             $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
             $confirmAttribute = ' onclick="return confirm(\'' . $warning . '\');"';
         }
-        $string = '<a href="' . htmlspecialchars($link) . '"' . $confirmAttribute . '>' . $label . '</a>';
+        if (Director::is_cli()) {
+            $link = str_replace('?', ' ', $link);
+            $link = str_replace('&', ' ', $link);
+            $link = ltrim($link, '/');
+            $link = 'vendor/bin/sake ' . $link;
+            $string = PHP_EOL . $label . ':' . PHP_EOL . ' ... ' . $link . PHP_EOL;
+        } else {
+            $string = '<a href="' . htmlspecialchars($link) . '"' . $confirmAttribute . '>' . $label . '</a>';
+        }
         if ($returnString) {
             return $string;
         }
@@ -573,11 +581,16 @@ class DataIntegrityTest extends BuildTask
             default => $style = 'black'
         };
         if ($isInline) {
-            echo '<span style="color:' . $style . '">' . $string . '</span>';
+            $v = '<span style="color:' . $style . '">' . $string . '</span>';
         } elseif ($headerNumber) {
-            echo '<h' . $headerNumber . ' style="color:' . $style . '">' . $string . '</h' . $headerNumber . '>';
+            $v = '<h' . $headerNumber . ' style="color:' . $style . '">' . $string . '</h' . $headerNumber . '>';
         } else {
-            echo '<p style="color:' . $style . '">' . $string . '</p>';
+            $v = '<p style="color:' . $style . '">' . $string . '</p>';
+        }
+        if (Director::is_cli()) {
+            echo strip_tags($string) . "\n";
+        } else {
+            echo $v;
         }
     }
 
