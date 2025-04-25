@@ -326,14 +326,19 @@ class DataIntegrityTest extends BuildTask
                         $manyManyClassShort = substr($tmpTable, 0, strrpos($tmpTable, '_'));
                         $manyManyRelName = substr($tmpTable, strrpos($tmpTable, '_') + 1 - strlen($tmpTable));
                         $manyManyClass = '';
-                        if (!class_exists($manyManyClassShort)) {
+                        if (class_exists($manyManyClassShort)) {
+                            $manyManyClass = $manyManyClassShort;
+                        } else {
                             $manyManyClass = $this->actualTables[$manyManyClassShort] ?? $manyManyClassShort;
                         }
                         if (class_exists($manyManyClass)) {
-                            $manyManys = Config::inst()->get($manyManyClass, 'many_many');
+                            $singleton = Injector::inst()->get($manyManyClass);
+                            $manyManys = $singleton->config()->get('many_many');
                             if (isset($manyManys[$manyManyRelName])) {
                                 $remove = false;
                             }
+                        } else {
+                            echo 'ERROR: could not find class "' . $manyManyClass . '"';
                         }
                     }
                 }
