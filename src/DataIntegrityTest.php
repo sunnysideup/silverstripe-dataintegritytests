@@ -60,6 +60,7 @@ class DataIntegrityTest extends BuildTask
         'deleteobsoletetables' => 'ADMIN',
         'deleteallversions' => 'ADMIN',
         'cleanupdb' => 'ADMIN',
+        'removeorphanedmanymany' => 'ADMIN',
     ];
 
 
@@ -114,7 +115,8 @@ class DataIntegrityTest extends BuildTask
         $this->printHr();
         $this->printLink('?do=deleteallversions', 'Delete all versioned data!', true);
         $this->printHr();
-        $this->printLink('?do=cleanupdb', 'Clean up Database (remove obsolete records)!', true);
+        $this->printLink('?do=cleanupdb', 'Clean up Database (remove orphaned records)!', true);
+        $this->printLink('?do=removeorphanedmanymany', 'Remove orphaned many-many!', true);
         $this->printHr();
         $this->printLink('/dev/tasks/checkformysqlpaginationissuesbuildtask/', 'Look for pagination issues');
         $this->printLink('/dev/tasks/dataintegritytestinnodb/', 'Set all tables to InnoDB!', true);
@@ -403,6 +405,91 @@ class DataIntegrityTest extends BuildTask
         $obj->cleanup();
         $this->printString('============= COMPLETED =================', '');
         $this->printLink('', 'back to main menu.');
+    }
+
+    private function removeorphanedmanymany()
+    {
+        $schema = DataObject::getSchema();
+        $allClasses = ClassInfo::subclassesFor(DataObject::class);
+
+        foreach ($allClasses as $class) {
+            if (!$schema->classHasTable($class)) {
+                continue;
+            }
+
+            /** @var DataObject $singleton */
+            $singleton = singleton($class);
+            $manyMany = $singleton->config()->get('many_many') ?? [];
+            $belongsManyMany = $singleton->config()->get('belongs_many_many') ?? [];
+
+            $relations = array_merge($manyMany, $belongsManyMany);
+            if (empty($relations)) {
+                continue;
+            }
+
+            foreach ($relations as $relName => $relDef) {
+                $isThrough = is_array($relDef);
+
+                if ($isThrough) {
+                    $throughClass = $relDef['through'] ?? null;
+                    $fromField = $relDef['from'] ?? null;
+                    $toField = $relDef['to'] ?? null;
+
+                    if (!$throughClass || !$fromField || !$toField) {
+                        DB::alteration_message("⚠️ Skipping $class.$relName — incomplete many_many_through definition", 'deleted');
+                        continue;
+                    }
+
+                    $joinTable   = $schema->tableName($throughClass);
+                    $parentField = "{$fromField}ID";
+                    $childField  = "{$toField}ID";
+
+                    // try to infer related class
+                    $relClass = singleton($throughClass)->getRelationClass($toField)
+                        ?? $relDef['to'] ?? null;
+                } else {
+                    $relClass = explode('.', $relDef)[0];
+                    $component = $schema->manyManyComponent($class, $relName);
+                    if (empty($component['join'])) {
+                        continue;
+                    }
+                    $joinTable   = $component['join'];
+                    $parentField = $component['parentField'];
+                    $childField  = $component['childField'];
+                }
+
+                if (!DB::get_schema()->hasTable($joinTable)) {
+                    continue;
+                }
+
+                $parentTable = $schema->baseDataTable($class);
+                $childTable  = $schema->baseDataTable($relClass);
+
+                DB::alteration_message("Checking $joinTable ($class ⇄ $relClass)");
+
+                // --- Delete orphaned parent links ---
+                $sql1 = <<<SQL
+DELETE FROM "{$joinTable}"
+WHERE "{$parentField}" NOT IN (SELECT "ID" FROM "{$parentTable}")
+SQL;
+                $this->debug ? print("$sql1\n") : DB::query($sql1);
+                $removed1 = DB::affected_rows();
+                if ($removed1 > 0) {
+                    DB::alteration_message("- Removed $removed1 orphaned parent links");
+                }
+
+                // --- Delete orphaned child links ---
+                $sql2 = <<<SQL
+DELETE FROM "{$joinTable}"
+WHERE "{$childField}" NOT IN (SELECT "ID" FROM "{$childTable}")
+SQL;
+                $this->debug ? print("$sql2\n") : DB::query($sql2);
+                $removed2 = DB::affected_rows();
+                if ($removed2 > 0) {
+                    DB::alteration_message("- Removed $removed2 orphaned child links");
+                }
+            }
+        }
     }
 
     private function deleteField(string $table, string $field)
