@@ -18,7 +18,7 @@ final class CleanOldChangeSetsTask extends BuildTask
 {
     protected $title = 'Clean Old ChangeSets and ChangeSetItems';
     protected $description = 'Deletes ChangeSets and ChangeSetItems older than X days, or shows monthly stats if not run with ?forreal=1';
-    private static int $monthsToShow = 24;
+    private static int $monthsToShow = 240;
 
     private static $segment = 'cleanoldchangesetstask';
 
