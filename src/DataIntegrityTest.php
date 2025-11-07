@@ -118,16 +118,19 @@ class DataIntegrityTest extends BuildTask
         $this->printLink('?do=cleanupdb', 'Clean up Database (remove orphaned records)!', true);
         $this->printLink('?do=removeorphanedmanymany', 'Remove orphaned many-many!', true);
         $this->printHr();
-        $this->printLink('/dev/tasks/checkformysqlpaginationissuesbuildtask/', 'Look for pagination issues');
-        $this->printLink('/dev/tasks/dataintegritytestinnodb/', 'Set all tables to InnoDB!', true);
-        $this->printLink('/dev/tasks/dataintegritytestutf8/', 'Set all tables to UTF-8!', true);
+        $this->printLink('/dev/tasks/checkformysqlpaginationissuesbuildtask', 'Look for pagination issues');
+        $this->printLink('/dev/tasks/dataintegritytestinnodb', 'Set all tables to InnoDB!', true);
+        $this->printLink('/dev/tasks/dataintegritytestutf8', 'Set all tables to UTF-8!', true);
+        $this->printHr();
+        $this->printLink('/dev/tasks/cleanoldchangesetstask', 'Review old change sets', false);
+        $this->printLink('/dev/tasks/cleanoldchangesetstask?forreal=1&days=90', 'Delete change sets older than 3 months', false);
     }
 
     protected function printLink(string $action, string $label, bool $confirm = false, $returnString = false): ?string
     {
         $link = $this->Link();
         if ($action) {
-            if (strpos($action, '/dev/tasks/') === 0) {
+            if (strpos($action, '/dev/tasks') === 0) {
                 $link = $action;
             } else {
                 $link .= $action;
@@ -141,7 +144,7 @@ class DataIntegrityTest extends BuildTask
         if (Director::is_cli()) {
             $link = str_replace('?', ' ', $link);
             $link = str_replace('&', ' ', $link);
-            $link = ltrim($link, '/');
+            $link = ltrim($link, '');
             $link = 'vendor/bin/sake ' . $link;
             $string = PHP_EOL . $label . ':' . PHP_EOL . ' ... ' . $link . PHP_EOL;
         } else {
