@@ -557,20 +557,15 @@ SQL;
             $table = array_pop($table);
             $endOfTable = substr($table, -9);
             if ($endOfTable === '_Versions') {
-                $className = substr($table, 0, strlen($table) - 9);
-                if (class_exists($className)) {
-                    $obj = DataObject::get_one($className);
-                    if ($obj) {
-                        if ($obj->hasExtension(Versioned::class)) {
-                            $this->printString("Removing all records from {$table}", 'created');
-                            DB::query("TRUNCATE \"{$table}\" ");
-                        }
-                    }
-                } else {
-                    $this->printString("Could not find $className class... the {$table} may be obsolete", 'deleted');
-                }
+                $this->printString("Removing all records from {$table}", 'created');
+                DB::query("TRUNCATE \"{$table}\" ");
             }
         }
+
+        DB::query('TRUNCATE TABLE "ChangeSet";');
+        DB::query('TRUNCATE TABLE "ChangeSetItem";');
+
+
         $this->printLink('', 'back to main menu.');
     }
 
