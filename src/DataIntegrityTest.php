@@ -60,6 +60,7 @@ class DataIntegrityTest extends BuildTask
         'deleteobsoletetables' => 'ADMIN',
         'deleteallversions' => 'ADMIN',
         'cleanupdb' => 'ADMIN',
+        'deleteliveonlyrecords' => 'ADMIN',
         'removeorphanedmanymany' => 'ADMIN',
     ];
 
@@ -116,6 +117,7 @@ class DataIntegrityTest extends BuildTask
         $this->printLink('?do=deleteallversions', 'Delete all versioned data!', true);
         $this->printHr();
         $this->printLink('?do=cleanupdb', 'Clean up Database (remove orphaned records)!', true);
+        $this->printLink('?do=deleteliveonlyrecords', 'Delete live-only records!', true);
         $this->printLink('?do=removeorphanedmanymany', 'Remove orphaned many-many!', true);
         $this->printHr();
         $this->printLink('/dev/tasks/checkformysqlpaginationissuesbuildtask', 'Look for pagination issues');
@@ -406,6 +408,72 @@ class DataIntegrityTest extends BuildTask
     {
         $obj = new DatabaseAdmin();
         $obj->cleanup();
+        $this->printString('============= COMPLETED =================', '');
+        $this->printLink('', 'back to main menu.');
+    }
+
+    private function deleteliveonlyrecords()
+    {
+
+        $verbose = true;
+        $dryRun = $this->debug;
+        $schema = DB::get_schema();
+        $tables = $schema->tableList();
+
+        $liveTables = array_values(array_filter($tables, static function (string $tableName): bool {
+            return str_ends_with($tableName, '_Live');
+        }));
+
+        $this->printString('Found ' . count($liveTables) . " *_Live table(s)");
+        $this->printString($dryRun ? "Mode: dry-run" : "Mode: DELETE");
+
+        $totalDeleted = 0;
+
+        foreach ($liveTables as $liveTable) {
+            $baseTable = substr($liveTable, 0, -5); // remove "_Live"
+
+            if (!in_array($baseTable, $tables, true)) {
+                if ($verbose) {
+                    $this->printString("Skip: {$liveTable} (no base table {$baseTable})");
+                }
+                continue;
+            }
+
+            if (!$this->tableHasIdColumn($baseTable) || !$this->tableHasIdColumn($liveTable)) {
+                if ($verbose) {
+                    $this->printString("Skip: {$liveTable} (missing ID column)");
+                }
+                continue;
+            }
+
+            $countSql = $this->countOrphansSql($baseTable, $liveTable);
+            $orphans = $this->fetchInt($countSql);
+
+            if ($orphans === 0) {
+                if ($verbose) {
+                    $this->printString("OK: {$liveTable} (0 orphans)");
+                }
+                continue;
+            }
+
+            $this->printString("Orphans: {$liveTable} -> {$orphans}", 'deleted');
+
+            if ($dryRun) {
+                continue;
+            }
+
+            $deleteSql = $this->deleteOrphansSql($baseTable, $liveTable);
+            DB::query($deleteSql);
+
+            $after = $this->fetchInt($countSql);
+            $deleted = $orphans - $after;
+
+            $totalDeleted += $deleted;
+
+            $this->printString("... Deleted: {$liveTable} -> {$deleted}", 'deleted');
+        }
+        $this->printString("Done. Total deleted: {$totalDeleted}", 'deleted');
+
         $this->printString('============= COMPLETED =================', '');
         $this->printLink('', 'back to main menu.');
     }
@@ -749,5 +817,52 @@ SQL;
     {
         $fields = DB::field_list($table);
         return isset($fields[$field]);
+    }
+
+
+    private function tableHasIdColumn(string $tableName): bool
+    {
+        $columns = DB::get_schema()->fieldList($tableName);
+        return isset($columns['ID']);
+    }
+
+    private function countOrphansSql(string $baseTable, string $liveTable): string
+    {
+        // Standard correlated NOT EXISTS: safe across MySQL/Postgres
+        return '
+            SELECT COUNT(*) AS "Count"
+            FROM "' . $liveTable . '" AS "L"
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM "' . $baseTable . '" AS "S"
+                WHERE "S"."ID" = "L"."ID"
+            )
+        ';
+    }
+
+    private function deleteOrphansSql(string $baseTable, string $liveTable): string
+    {
+        // Standard correlated NOT EXISTS: safe across MySQL/Postgres
+        return '
+            DELETE FROM "' . $liveTable . '"
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM "' . $baseTable . '" AS "S"
+                WHERE "S"."ID" = "' . $liveTable . '"."ID"
+            )
+        ';
+    }
+
+    private function fetchInt(string $sql): int
+    {
+        $rows = DB::query($sql);
+        $found = false;
+        foreach ($rows as $row) {
+            $found = true;
+        }
+        if (! $found) {
+            return 0;
+        }
+        return (int) (($row['Count'] ?? 0));
     }
 }
