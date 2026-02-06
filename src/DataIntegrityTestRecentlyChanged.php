@@ -33,7 +33,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
     public function run($request)
     {
         echo '<style>table {width: 100%;} th, td {padding: 5px; font-size: 12px; border: 1px solid #ccc; vertical-align: top;}</style>';
-        $minutes = intval($request->getVar('m')) - 0;
+        $minutes = intval($request->getVar('m'));
         if ($request->getVar('m') === $minutes) {
             //do nothing
         } else {

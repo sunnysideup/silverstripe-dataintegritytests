@@ -159,16 +159,8 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
         $link = [];
         foreach ($testArray1 as $testTable1 => $testFields1) {
             foreach ($testArray2 as $testTable2 => $testFields2) {
-                if (class_exists($testTable1)) {
-                    $parentArray1 = class_parents($testTable1);
-                } else {
-                    $parentArray1 = ['MATCH'];
-                }
-                if (class_exists($testTable2)) {
-                    $parentArray2 = class_parents($testTable2);
-                } else {
-                    $parentArray2 = ['MATCH'];
-                }
+                $parentArray1 = class_exists($testTable1) ? class_parents($testTable1) : ['MATCH'];
+                $parentArray2 = class_exists($testTable2) ? class_parents($testTable2) : ['MATCH'];
                 if (in_array($testTable2, $parentArray1, true) || in_array($testTable1, $parentArray2, true)) {
                     $interSect = array_intersect($testFields1, $testFields2);
                     if (count($interSect)) {
@@ -195,7 +187,6 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                                     },
                                     $hasOneArray
                                 );
-                                $modelFields1 + $hasOneArray;
                                 //$modelFields1 = array_keys((array)Injector::inst()->get($testTable1)->db()) + array_keys((array)Injector::inst()->get($testTable1)->has_one());
                                 foreach ($interSect as $moveableField) {
                                     if (in_array($moveableField, $modelFields1, true)) {
@@ -213,7 +204,6 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                                     },
                                     $hasOneArray
                                 );
-                                $modelFields2 + $hasOneArray;
                                 //$modelFields2 = array_keys((array)Injector::inst()->get($testTable2)->db()) + array_keys((array)Injector::inst()->get($testTable2)->has_one());
                                 foreach ($interSect as $moveableField) {
                                     if (in_array($moveableField, $modelFields2, true)) {

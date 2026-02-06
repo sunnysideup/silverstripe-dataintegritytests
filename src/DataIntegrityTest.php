@@ -131,7 +131,7 @@ class DataIntegrityTest extends BuildTask
     protected function printLink(string $action, string $label, bool $confirm = false, $returnString = false): ?string
     {
         $link = $this->Link();
-        if ($action) {
+        if ($action !== '' && $action !== '0') {
             if (strpos($action, '/dev/tasks') === 0) {
                 $link = $action;
             } else {
@@ -184,10 +184,10 @@ class DataIntegrityTest extends BuildTask
         $requestExploded = explode('/', $_GET['tablefield']);
         $table = $requestExploded[0] ?? '';
         $field = $requestExploded[1] ?? '';
-        if (empty($table)) {
+        if ($table === '' || $table === '0') {
             user_error('no table has been specified', E_USER_WARNING);
         }
-        if (empty($field)) {
+        if ($field === '' || $field === '0') {
             user_error('no field has been specified', E_USER_WARNING);
         }
 
@@ -363,10 +363,8 @@ class DataIntegrityTest extends BuildTask
                                     if (! $this->debug) {
                                         DB::query("DROP TABLE \"{$tmpTable}\" ");
                                     }
-                                } else {
-                                    if (! $this->debug) {
-                                        DB::get_schema()->renameTable($tmpTable, $obsoleteTableName);
-                                    }
+                                } elseif (! $this->debug) {
+                                    DB::get_schema()->renameTable($tmpTable, $obsoleteTableName);
                                 }
                             } else {
                                 $this->printString($tmpTable . ' - ' . $classExistsMessage . ' It can be moved to _obsolete_' . $tmpTable . '.', 'created');
@@ -393,10 +391,8 @@ class DataIntegrityTest extends BuildTask
     {
         $versioningPresent = false;
         $array = $dataObject->stat('extensions');
-        if (is_array($array) && count($array)) {
-            if (in_array("Versioned('Stage', 'Live')", $array, true)) {
-                $versioningPresent = true;
-            }
+        if (is_array($array) && count($array) && in_array("Versioned('Stage', 'Live')", $array, true)) {
+            $versioningPresent = true;
         }
         if ($dataObject->stat('versioning')) {
             $versioningPresent = true;
@@ -415,7 +411,6 @@ class DataIntegrityTest extends BuildTask
     private function deleteliveonlyrecords()
     {
 
-        $verbose = true;
         $dryRun = $this->debug;
         $schema = DB::get_schema();
         $tables = $schema->tableList();
@@ -433,16 +428,12 @@ class DataIntegrityTest extends BuildTask
             $baseTable = substr($liveTable, 0, -5); // remove "_Live"
 
             if (!in_array($baseTable, $tables, true)) {
-                if ($verbose) {
-                    $this->printString("Skip: {$liveTable} (no base table {$baseTable})");
-                }
+                $this->printString("Skip: {$liveTable} (no base table {$baseTable})");
                 continue;
             }
 
             if (!$this->tableHasIdColumn($baseTable) || !$this->tableHasIdColumn($liveTable)) {
-                if ($verbose) {
-                    $this->printString("Skip: {$liveTable} (missing ID column)");
-                }
+                $this->printString("Skip: {$liveTable} (missing ID column)");
                 continue;
             }
 
@@ -450,9 +441,7 @@ class DataIntegrityTest extends BuildTask
             $orphans = $this->fetchInt($countSql);
 
             if ($orphans === 0) {
-                if ($verbose) {
-                    $this->printString("OK: {$liveTable} (0 orphans)");
-                }
+                $this->printString("OK: {$liveTable} (0 orphans)");
                 continue;
             }
 
@@ -494,7 +483,7 @@ class DataIntegrityTest extends BuildTask
             $belongsManyMany = $singleton->config()->get('belongs_many_many') ?? [];
 
             $relations = array_merge($manyMany, $belongsManyMany);
-            if (empty($relations)) {
+            if ($relations === []) {
                 continue;
             }
 
@@ -568,7 +557,7 @@ SQL;
         $databaseSchema = DB::get_schema();
         $fields = $this->swapArray($databaseSchema->fieldList($table));
         $globalExeceptions = Config::inst()->get(DataIntegrityTest::class, 'global_exceptions');
-        if (count($globalExeceptions)) {
+        if (count($globalExeceptions) > 0) {
             foreach ($globalExeceptions as $exceptionTable => $exceptionField) {
                 if ($exceptionTable === $table && $exceptionField === $field) {
                     $this->printString("Listed {$table}.{$field} to be deleted, but this is listed as a global exception and can not be deleted", 'created');
@@ -587,11 +576,9 @@ SQL;
         $this->printString("Deleting {$field} in {$table}", 'deleted');
         foreach (['', '_Live', '_Versions'] as $suffix) {
             $tableNameFinal = $table . $suffix;
-            if ($this->tableExists($tableNameFinal)) {
-                if ($this->fieldExists($tableNameFinal, $field)) {
-                    if (! $this->debug) {
-                        DB::query('ALTER TABLE "' . $tableNameFinal . '" DROP "' . $field . '";');
-                    }
+            if ($this->tableExists($tableNameFinal) && $this->fieldExists($tableNameFinal, $field)) {
+                if (! $this->debug) {
+                    DB::query('ALTER TABLE "' . $tableNameFinal . '" DROP "' . $field . '";');
                 }
             }
         }
@@ -658,52 +645,48 @@ SQL;
             $schema = $dataObject->getSchema();
             $tableName = $schema->tableName($dataClass);
             $actualFields = $this->swapArray($databaseSchema->fieldList($tableName));
-            if ($actualFields) {
-                foreach ($actualFields as $actualField) {
-                    if ($deleteAll) {
-                        $link = ' !!!!!!!!!!! DELETED !!!!!!!!!';
-                    } else {
-                        $link = $this->printLink(
-                            '?do=deleteonefield&tablefield=' . $tableName . '/' . $actualField,
-                            'delete field',
-                            true,
-                            true
-                        );
-                    }
-                    if (! in_array($actualField, ['ID', 'Version'], true)) {
-                        if (! in_array($actualField, $requiredFields, true)) {
-                            $distinctCount = DB::query("SELECT COUNT(DISTINCT \"{$actualField}\") FROM \"{$tableName}\" WHERE \"{$actualField}\" IS NOT NULL ;")->value();
-                            $this->printString("<br /><br />\n\n{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
-                            if ($distinctCount) {
-                                $rows = DB::query("
+            foreach ($actualFields as $actualField) {
+                if ($deleteAll) {
+                    $link = ' !!!!!!!!!!! DELETED !!!!!!!!!';
+                } else {
+                    $link = $this->printLink(
+                        '?do=deleteonefield&tablefield=' . $tableName . '/' . $actualField,
+                        'delete field',
+                        true,
+                        true
+                    );
+                }
+                if (!in_array($actualField, ['ID', 'Version'], true) && ! in_array($actualField, $requiredFields, true)) {
+                    $distinctCount = DB::query("SELECT COUNT(DISTINCT \"{$actualField}\") FROM \"{$tableName}\" WHERE \"{$actualField}\" IS NOT NULL ;")->value();
+                    $this->printString("<br /><br />\n\n{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
+                    if ($distinctCount) {
+                        $rows = DB::query("
                                             SELECT \"{$actualField}\" as N, COUNT(\"{$actualField}\") as C
                                             FROM \"{$tableName}\"
                                             GROUP BY \"{$actualField}\"
                                             ORDER BY C DESC
                                             LIMIT 7");
-                                if ($rows) {
-                                    foreach ($rows as $row) {
-                                        $this->printString(' &nbsp; &nbsp; &nbsp; ' . $row['C'] . ': ' . $row['N']);
-                                    }
-                                }
-                            } else {
-                                if (! isset($this->canBeSafelyDeleted[$dataClass])) {
-                                    $this->canBeSafelyDeleted[$dataClass] = [];
-                                }
-                                $this->canBeSafelyDeleted[$dataClass][$actualField] = "{$dataClass}.{$actualField}";
-                            }
-                            if ($deleteAll || ($deleteSafeOnes && $distinctCount === 0)) {
-                                $this->deleteField($tableName, $actualField);
+                        if ($rows) {
+                            foreach ($rows as $row) {
+                                $this->printString(' &nbsp; &nbsp; &nbsp; ' . $row['C'] . ': ' . $row['N']);
                             }
                         }
+                    } else {
+                        if (! isset($this->canBeSafelyDeleted[$dataClass])) {
+                            $this->canBeSafelyDeleted[$dataClass] = [];
+                        }
+                        $this->canBeSafelyDeleted[$dataClass][$actualField] = "{$dataClass}.{$actualField}";
                     }
-                    if ($actualField === 'Version' && ! in_array($actualField, $requiredFields, true)) {
-                        $versioningPresent = $dataObject->hasVersioning();
-                        if (! $versioningPresent) {
-                            $this->printString("{$dataClass}.{$actualField} {$link}", 'deleted');
-                            if ($deleteAll) {
-                                $this->deleteField($dataClass, $actualField);
-                            }
+                    if ($deleteAll || ($deleteSafeOnes && $distinctCount === 0)) {
+                        $this->deleteField($tableName, $actualField);
+                    }
+                }
+                if ($actualField === 'Version' && ! in_array($actualField, $requiredFields, true)) {
+                    $versioningPresent = $dataObject->hasVersioning();
+                    if (! $versioningPresent) {
+                        $this->printString("{$dataClass}.{$actualField} {$link}", 'deleted');
+                        if ($deleteAll) {
+                            $this->deleteField($dataClass, $actualField);
                         }
                     }
                 }

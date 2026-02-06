@@ -70,7 +70,7 @@ final class CleanOldChangeSetsTask extends BuildTask
 
     private function showStats(): void
     {
-        $this->printHelper("Showing ChangeSet and ChangeSetItem creation stats (last " . static::$monthsToShow . " months)");
+        $this->printHelper("Showing ChangeSet and ChangeSetItem creation stats (last " . self::$monthsToShow . " months)");
 
         foreach (['ChangeSet', 'ChangeSetItem'] as $table) {
             $this->printHelper(strtoupper($table) . ":");
@@ -80,7 +80,7 @@ final class CleanOldChangeSetsTask extends BuildTask
                     DATE_FORMAT("Created", \'%Y-%m\') AS Month,
                     COUNT(*) AS Count
                 FROM "' . $table . '"
-                WHERE "Created" > DATE_SUB(NOW(), INTERVAL ' . static::$monthsToShow . ' MONTH)
+                WHERE "Created" > DATE_SUB(NOW(), INTERVAL ' . self::$monthsToShow . ' MONTH)
                 GROUP BY Month
                 ORDER BY Month ASC
             ';
@@ -101,11 +101,7 @@ final class CleanOldChangeSetsTask extends BuildTask
 
             $this->printHelper("");
         }
-        if (Director::is_cli()) {
-            $add = "forreal=1 days=90";
-        } else {
-            $add = '?forreal=1&days=90';
-        }
+        $add = Director::is_cli() ? "forreal=1 days=90" : '?forreal=1&days=90';
         $this->printHelper("ADD: {$add} to actually delete records older than 90 days.");
     }
 
