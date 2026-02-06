@@ -576,10 +576,8 @@ SQL;
         $this->printString("Deleting {$field} in {$table}", 'deleted');
         foreach (['', '_Live', '_Versions'] as $suffix) {
             $tableNameFinal = $table . $suffix;
-            if ($this->tableExists($tableNameFinal) && $this->fieldExists($tableNameFinal, $field)) {
-                if (! $this->debug) {
-                    DB::query('ALTER TABLE "' . $tableNameFinal . '" DROP "' . $field . '";');
-                }
+            if ($this->tableExists($tableNameFinal) && $this->fieldExists($tableNameFinal, $field) && ! $this->debug) {
+                DB::query('ALTER TABLE "' . $tableNameFinal . '" DROP "' . $field . '";');
             }
         }
         return true;
