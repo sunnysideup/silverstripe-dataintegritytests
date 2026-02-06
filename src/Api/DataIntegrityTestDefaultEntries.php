@@ -6,7 +6,6 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Convert;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
-use SilverStripe\View\ViewableData;
 
 class DataIntegrityTestDefaultEntries
 {
@@ -25,7 +24,7 @@ class DataIntegrityTestDefaultEntries
                 if ($id) {
                     $where[] = "  \"$table\".\"ID\" = " . $id;
                 }
-                if (!$replace) {
+                if (! $replace) {
                     $where[] = " \"$table\".\"$field\" IS NULL OR \"$table\".\"$field\" = '' OR \"$table\".\"$field\" = 0 ";
                 }
                 $wherePhrase = '';

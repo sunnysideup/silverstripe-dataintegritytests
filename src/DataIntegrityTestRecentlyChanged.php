@@ -85,9 +85,9 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
         if (empty($_GET['m'])) {
             $_GET['m'] = 0;
         }
-        echo "
+        echo '
 
-			<form method=\"get\" action=\"" . Director::absoluteURL('dev/tasks/' . $this->Config()->get('segment') . '/') . '">
+			<form method="get" action="' . Director::absoluteURL('dev/tasks/' . $this->Config()->get('segment') . '/') . '">
 				<label for="m">please enter minutes ago or any date (e.g. last week, yesterday, 2011-11-11, etc...)</label>
 				<input name="m" id="m" value="' . $_GET['m'] . '">
 			</form>';

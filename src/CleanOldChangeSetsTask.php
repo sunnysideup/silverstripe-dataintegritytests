@@ -4,30 +4,31 @@ declare(strict_types=1);
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use DateInterval;
+use DateTimeImmutable;
+use SilverStripe\Control\Director;
+use SilverStripe\Core\Convert;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\ChangeSet;
 use SilverStripe\Versioned\ChangeSetItem;
-use SilverStripe\Core\Convert;
-use SilverStripe\Control\HTTPRequest;
-use DateTimeImmutable;
-use DateInterval;
-use SilverStripe\Control\Director;
 
 final class CleanOldChangeSetsTask extends BuildTask
 {
     protected $title = 'Clean Old ChangeSets and ChangeSetItems';
+
     protected $description = 'Deletes ChangeSets and ChangeSetItems older than X days, or shows monthly stats if not run with ?forreal=1';
+
     private static int $monthsToShow = 240;
 
     private static $segment = 'cleanoldchangesetstask';
 
     public function run($request): void
     {
-        $days = (int)($request->getVar('days') ?? 90);
-        $forReal = (bool)$request->getVar('forreal');
+        $days = (int) ($request->getVar('days') ?? 90);
+        $forReal = (bool) $request->getVar('forreal');
 
-        if (!$forReal) {
+        if (! $forReal) {
             $this->showStats();
             return;
         }
@@ -65,15 +66,15 @@ final class CleanOldChangeSetsTask extends BuildTask
             );
         }
 
-        $this->printHelper("Done.");
+        $this->printHelper('Done.');
     }
 
     private function showStats(): void
     {
-        $this->printHelper("Showing ChangeSet and ChangeSetItem creation stats (last " . self::$monthsToShow . " months)");
+        $this->printHelper('Showing ChangeSet and ChangeSetItem creation stats (last ' . self::$monthsToShow . ' months)');
 
         foreach (['ChangeSet', 'ChangeSetItem'] as $table) {
-            $this->printHelper(strtoupper($table) . ":");
+            $this->printHelper(strtoupper($table) . ':');
 
             $sql = '
                 SELECT
@@ -90,18 +91,18 @@ final class CleanOldChangeSetsTask extends BuildTask
             $data = [];
 
             foreach ($rows as $row) {
-                $data[$row['Month']] = (int)$row['Count'];
-                $max = max($max, (int)$row['Count']);
+                $data[$row['Month']] = (int) $row['Count'];
+                $max = max($max, (int) $row['Count']);
             }
 
             foreach ($data as $month => $count) {
-                $bar = str_repeat('█', (int)(50 * $count / max(1, $max)));
-                $this->printHelper("{$month}: {$bar} " . number_format($count) . "");
+                $bar = str_repeat('█', (int) (50 * $count / max(1, $max)));
+                $this->printHelper("{$month}: {$bar} " . number_format($count) . '');
             }
 
-            $this->printHelper("");
+            $this->printHelper('');
         }
-        $add = Director::is_cli() ? "forreal=1 days=90" : '?forreal=1&days=90';
+        $add = Director::is_cli() ? 'forreal=1 days=90' : '?forreal=1&days=90';
         $this->printHelper("ADD: {$add} to actually delete records older than 90 days.");
     }
 

@@ -11,7 +11,6 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DatabaseAdmin;
-use SilverStripe\ORM\DataExtension;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\Versioned;
@@ -23,6 +22,7 @@ class DataIntegrityTest extends BuildTask
      * @var string
      */
     protected $title = 'Check Database Integrity';
+
     /**
      * standard SS variable
      * @var string
@@ -40,12 +40,14 @@ class DataIntegrityTest extends BuildTask
     private static $warning = 'are you sure - this step is irreversible! - MAKE SURE TO MAKE A BACKUP OF YOUR DATABASE BEFORE YOU CONFIRM THIS!';
 
     protected array $canBeSafelyDeleted = [];
+
     protected array $notCheckedArray = [];
+
     protected array $actualTables = [];
+
     private static array $tables_to_skip = [];
 
     private static array $global_exceptions = [];
-
 
     /**
      *@param array = should be provided as follows: array("Member.UselessField1", "Member.UselessField2", "SiteTree.UselessField3")
@@ -63,7 +65,6 @@ class DataIntegrityTest extends BuildTask
         'deleteliveonlyrecords' => 'ADMIN',
         'removeorphanedmanymany' => 'ADMIN',
     ];
-
 
     public function run($request)
     {
@@ -159,7 +160,6 @@ class DataIntegrityTest extends BuildTask
         return null;
     }
 
-
     public function deletemarkedfields()
     {
         $fieldsToDelete = Config::inst()->get(DataIntegrityTest::class, 'fields_to_delete');
@@ -233,7 +233,7 @@ class DataIntegrityTest extends BuildTask
                 $tableName = $schema->tableName($dataClass);
                 $this->actualTables[$tableName] = $dataClass;
                 $requiredFields = array_keys($schema->databaseFields($dataObject->ClassName, false));
-                if (!count($requiredFields)) {
+                if (! count($requiredFields)) {
                     continue;
                 }
 
@@ -242,7 +242,7 @@ class DataIntegrityTest extends BuildTask
                 $diff = array_diff($existingFields, $requiredFields);
                 $diff2 = array_diff($requiredFields, $existingFields);
 
-                if (!count($diff) && !count($diff2)) {
+                if (! count($diff) && ! count($diff2)) {
                     $this->printString('<b style="color: #000">' . $tableName . '</b> ... OK', 'created');
                 } else {
                     $this->printString('<b style="color: #000">' . $tableName . '</b> ...');
@@ -321,10 +321,10 @@ class DataIntegrityTest extends BuildTask
                     $classExistsMessage = '... Table already marked as obsolete.';
                 } else {
                     $classExistsMessage = '... NO PHP class with this name exists.';
-                    if (substr($tmpTable, -5) === '_Live' && !$this->isMarkedAsObsolete($tmpTable)) {
+                    if (substr($tmpTable, -5) === '_Live' && ! $this->isMarkedAsObsolete($tmpTable)) {
                         $remove = false;
                     }
-                    if (substr($tmpTable, -9) === '_Versions' && !$this->isMarkedAsObsolete($tmpTable)) {
+                    if (substr($tmpTable, -9) === '_Versions' && ! $this->isMarkedAsObsolete($tmpTable)) {
                         $remove = false;
                     }
                     //many 2 many tables...
@@ -351,7 +351,7 @@ class DataIntegrityTest extends BuildTask
                 }
                 if ($remove) {
                     $this->printHeader($tmpTable . ' ' . $tmpDataClass, 2);
-                    if (!$this->isMarkedAsObsolete($tmpTable)) {
+                    if (! $this->isMarkedAsObsolete($tmpTable)) {
                         $rowCount = DB::query("SELECT COUNT(*) FROM \"{$tmpTable}\"")->value();
                         $this->printString($tmpTable . ', rows ' . $rowCount);
                         $obsoleteTableName = '_obsolete_' . $tmpTable;
@@ -419,20 +419,20 @@ class DataIntegrityTest extends BuildTask
             return str_ends_with($tableName, '_Live');
         }));
 
-        $this->printString('Found ' . count($liveTables) . " *_Live table(s)");
-        $this->printString($dryRun ? "Mode: dry-run" : "Mode: DELETE");
+        $this->printString('Found ' . count($liveTables) . ' *_Live table(s)');
+        $this->printString($dryRun ? 'Mode: dry-run' : 'Mode: DELETE');
 
         $totalDeleted = 0;
 
         foreach ($liveTables as $liveTable) {
             $baseTable = substr($liveTable, 0, -5); // remove "_Live"
 
-            if (!in_array($baseTable, $tables, true)) {
+            if (! in_array($baseTable, $tables, true)) {
                 $this->printString("Skip: {$liveTable} (no base table {$baseTable})");
                 continue;
             }
 
-            if (!$this->tableHasIdColumn($baseTable) || !$this->tableHasIdColumn($liveTable)) {
+            if (! $this->tableHasIdColumn($baseTable) || ! $this->tableHasIdColumn($liveTable)) {
                 $this->printString("Skip: {$liveTable} (missing ID column)");
                 continue;
             }
@@ -473,7 +473,7 @@ class DataIntegrityTest extends BuildTask
         $allClasses = ClassInfo::subclassesFor(DataObject::class);
 
         foreach ($allClasses as $class) {
-            if (!$schema->classHasTable($class)) {
+            if (! $schema->classHasTable($class)) {
                 continue;
             }
 
@@ -495,14 +495,14 @@ class DataIntegrityTest extends BuildTask
                     $fromField = $relDef['from'] ?? null;
                     $toField = $relDef['to'] ?? null;
 
-                    if (!$throughClass || !$fromField || !$toField) {
+                    if (! $throughClass || ! $fromField || ! $toField) {
                         DB::alteration_message("⚠️ Skipping $class.$relName — incomplete many_many_through definition", 'deleted');
                         continue;
                     }
 
-                    $joinTable   = $schema->tableName($throughClass);
+                    $joinTable = $schema->tableName($throughClass);
                     $parentField = "{$fromField}ID";
-                    $childField  = "{$toField}ID";
+                    $childField = "{$toField}ID";
 
                     // try to infer related class
                     $relClass = singleton($throughClass)->getRelationClass($toField)
@@ -513,17 +513,17 @@ class DataIntegrityTest extends BuildTask
                     if (empty($component['join'])) {
                         continue;
                     }
-                    $joinTable   = $component['join'];
+                    $joinTable = $component['join'];
                     $parentField = $component['parentField'];
-                    $childField  = $component['childField'];
+                    $childField = $component['childField'];
                 }
 
-                if (!DB::get_schema()->hasTable($joinTable)) {
+                if (! DB::get_schema()->hasTable($joinTable)) {
                     continue;
                 }
 
                 $parentTable = $schema->baseDataTable($class);
-                $childTable  = $schema->baseDataTable($relClass);
+                $childTable = $schema->baseDataTable($relClass);
 
                 DB::alteration_message("Checking $joinTable ($class ⇄ $relClass)");
 
@@ -532,7 +532,7 @@ class DataIntegrityTest extends BuildTask
 DELETE FROM "{$joinTable}"
 WHERE "{$parentField}" NOT IN (SELECT "ID" FROM "{$parentTable}")
 SQL;
-                $this->debug ? print("$sql1\n") : DB::query($sql1);
+                $this->debug ? print ("$sql1\n") : DB::query($sql1);
                 $removed1 = DB::affected_rows();
                 if ($removed1 > 0) {
                     DB::alteration_message("- Removed $removed1 orphaned parent links");
@@ -543,7 +543,7 @@ SQL;
 DELETE FROM "{$joinTable}"
 WHERE "{$childField}" NOT IN (SELECT "ID" FROM "{$childTable}")
 SQL;
-                $this->debug ? print("$sql2\n") : DB::query($sql2);
+                $this->debug ? print ("$sql2\n") : DB::query($sql2);
                 $removed2 = DB::affected_rows();
                 if ($removed2 > 0) {
                     DB::alteration_message("- Removed $removed2 orphaned child links");
@@ -597,7 +597,7 @@ SQL;
             $table = array_pop($table);
             if (substr($table, 0, 10) === '_obsolete_') {
                 $this->printString("Removing table {$table}", 'deleted');
-                if (!$this->debug) {
+                if (! $this->debug) {
                     DB::query("DROP TABLE \"{$table}\" ");
                 }
             }
@@ -619,7 +619,6 @@ SQL;
 
         DB::query('TRUNCATE TABLE "ChangeSet";');
         DB::query('TRUNCATE TABLE "ChangeSetItem";');
-
 
         $this->printLink('', 'back to main menu.');
     }
@@ -656,7 +655,7 @@ SQL;
                         true
                     );
                 }
-                if (!in_array($actualField, ['ID', 'Version'], true) && ! in_array($actualField, $requiredFields, true)) {
+                if (! in_array($actualField, ['ID', 'Version'], true) && ! in_array($actualField, $requiredFields, true)) {
                     $distinctCount = DB::query("SELECT COUNT(DISTINCT \"{$actualField}\") FROM \"{$tableName}\" WHERE \"{$actualField}\" IS NOT NULL ;")->value();
                     $this->printString("<br /><br />\n\n{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
                     if ($distinctCount) {
@@ -801,7 +800,6 @@ SQL;
         $fields = DB::field_list($table);
         return isset($fields[$field]);
     }
-
 
     private function tableHasIdColumn(string $tableName): bool
     {

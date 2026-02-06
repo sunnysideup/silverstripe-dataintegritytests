@@ -133,13 +133,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         $largestClass = $class;
                     }
                     $this->flushNowQuick('<br />' . $tableName . ': ');
-                    if (!isset($errors[$tableName])) {
+                    if (! isset($errors[$tableName])) {
                         $errors[$tableName] = [];
                     }
                     // get fields ...
 
                     $dbFields = $obj->Config()->get('db');
-                    if (!is_array($dbFields)) {
+                    if (! is_array($dbFields)) {
                         $dbFields = [];
                     }
                     // adding base fields.
@@ -149,7 +149,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     $dbFields['LastEdited'] = 'LastEdited';
 
                     $hasOneFields = $obj->hasOne();
-                    if (!is_array($hasOneFields)) {
+                    if (! is_array($hasOneFields)) {
                         $hasOneFields = [];
                     }
 
@@ -164,7 +164,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                             if (isset($hasOneFields[$field])) {
                                 $field .= 'ID';
                             }
-                            if (!isset($errors[$tableName][$field])) {
+                            if (! isset($errors[$tableName][$field])) {
                                 $errors[$tableName][$field] = [];
                             }
                             // start loop of limits ...
@@ -177,7 +177,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                         foreach ($tempRows as $row) {
                                             $id = $row['ID'];
                                             if (isset($comparisonArray[$id])) {
-                                                if (!isset($errors[$tableName][$field][$id])) {
+                                                if (! isset($errors[$tableName][$field][$id])) {
                                                     $errors[$tableName][$field][$id] = 1;
                                                 }
                                                 $errors[$tableName][$field][$id]++;
@@ -197,7 +197,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                     foreach ($tempObjects as $tempObject) {
                                         $id = $tempObject->ID;
                                         if (isset($comparisonArray[$id])) {
-                                            if (!isset($errors[$tableName][$field][$id])) {
+                                            if (! isset($errors[$tableName][$field][$id])) {
                                                 $errors[$tableName][$field][$id] = 1;
                                             }
                                             $errors[$tableName][$field][$id]++;
@@ -249,7 +249,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         }
         if ($this->testClassCustom) {
             $largestClass = $this->testClassCustom;
-        } elseif (!$largestClass) {
+        } elseif (! $largestClass) {
             $largestClass = $class;
         }
         $this->speedComparison($largestClass);
