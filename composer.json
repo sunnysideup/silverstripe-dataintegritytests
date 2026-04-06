@@ -1,37 +1,37 @@
 {
-    "name": "sunnysideup/dataintegritytests",
-    "type": "silverstripe-vendormodule",
-    "description": "check your database for obsolete fields and related data-structure errors",
-    "keywords": [
-        "Silverstripe-CMS",
-        "CMS",
-        "Silverstripe",
-        "dataintegritytests",
-        "mysql",
-        "check database",
-        "database",
-        "test data structure",
-        "clean database",
-        "obsolete fields",
-        "integrity",
-        "utf-8",
-        "utf8"
-    ],
-    "license": "BSD-3-Clause",
-    "authors": [
-        {
-            "name": "Nicolaas Francken",
-            "email": "modules@sunnysideup.co.nz",
-            "role": "lead developer"
-        }
-    ],
-    "require": {
-        "silverstripe/recipe-cms": "^4.0 || ^5.0"
-    },
-    "extra": [],
-    "autoload": {
-        "psr-4": {
-            "Sunnysideup\\DataIntegrityTest\\": "src/"
-        }
+  "name": "sunnysideup/dataintegritytests",
+  "type": "silverstripe-vendormodule",
+  "description": "check your database for obsolete fields and related data-structure errors",
+  "keywords": [
+    "Silverstripe-CMS",
+    "CMS",
+    "Silverstripe",
+    "dataintegritytests",
+    "mysql",
+    "check database",
+    "database",
+    "test data structure",
+    "clean database",
+    "obsolete fields",
+    "integrity",
+    "utf-8",
+    "utf8"
+  ],
+  "license": "BSD-3-Clause",
+  "authors": [
+    {
+      "name": "Nicolaas Francken",
+      "email": "modules@sunnysideup.co.nz",
+      "role": "lead developer"
     }
+  ],
+  "require": {
+    "silverstripe/recipe-cms": "^4.0 || ^5.0"
+  },
+  "extra": [],
+  "autoload": {
+    "psr-4": {
+      "Sunnysideup\\DataIntegrityTest\\": "src/"
+    }
+  }
 }
