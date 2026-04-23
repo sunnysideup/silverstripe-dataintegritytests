@@ -76,6 +76,7 @@ class DataIntegrityTest extends BuildTask
         } else {
             $this->printHeader('NOT RUNNING DEBUG MODE ---- ACTUAL DELETIONS ARE MADE', 2, 'deleted');
         }
+
         if ($action = $request->getVar('do')) {
             $methodArray = explode('/', (string) $action);
             $method = $methodArray[0];
@@ -97,6 +98,7 @@ class DataIntegrityTest extends BuildTask
                 user_error('could not find method: ' . $method);
             }
         }
+
         $this->makeMenu();
         return 0;
     }

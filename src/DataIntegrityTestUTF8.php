@@ -87,6 +87,7 @@ class DataIntegrityTestUTF8 extends BuildTask
                 }
             }
         }
+
         DB::alteration_message('<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
         return 0;
     }

@@ -71,6 +71,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 }
             }
         }
+
         $this->flushNowQuick('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
         $this->flushNow('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>', 'notice');
         $this->flushNow(
@@ -246,6 +247,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNowDebug('SKIP: ' . $tableName . ' because table does not exist. ');
             }
         }
+
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">RESULTS </h2><hr /><hr /><hr /><hr />');
         //print out errors again ...
         foreach ($errors as $tableName => $fieldValues) {
@@ -265,11 +267,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNow('No errors', 'created');
             }
         }
+
         if ($this->testClassCustom) {
             $largestClass = $this->testClassCustom;
         } elseif (! $largestClass) {
             $largestClass = $class;
         }
+
         $this->speedComparison($largestClass);
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
         return 0;

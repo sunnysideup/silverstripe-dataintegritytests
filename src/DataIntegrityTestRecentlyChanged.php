@@ -45,6 +45,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
                 $minutes = round(($tsUntil - $tsFrom) / 60);
             }
         }
+
         if ($minutes) {
             $ts = strtotime($minutes . ' minutes ago');
             $date = date(DATE_RFC2822, $ts);
@@ -88,9 +89,11 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
 
             echo '<hr /><h1>-------- THE END --------</h1>';
         }
+
         if (empty($_GET['m'])) {
             $_GET['m'] = 0;
         }
+
         echo '
 
 			<form method="get" action="' . Director::absoluteURL('dev/tasks/' . $this->Config()->get('segment') . '/') . '">

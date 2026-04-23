@@ -33,6 +33,7 @@ final class CleanOldChangeSetsTask extends BuildTask
             $this->showStats();
             return;
         }
+
         $this->deleteOldRecords($days);
         return 0;
     }

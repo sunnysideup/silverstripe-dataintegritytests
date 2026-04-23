@@ -47,6 +47,7 @@ class DataIntegrityTestInnoDB extends BuildTask
             $sql = sprintf('ALTER TABLE "%s" ENGINE=INNODB', $table);
             DB::query($sql);
         }
+
         //$rows = DB::query("SHOW GLOBAL STATUS LIKE  'Innodb_page_size'");
         $currentInnoDBSetting = DB::query('SELECT @@innodb_buffer_pool_size as V;')->Value();
         $innoDBBufferUsed = DB::query("

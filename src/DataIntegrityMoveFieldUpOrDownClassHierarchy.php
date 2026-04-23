@@ -149,6 +149,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                 user_error('Specificy valid oldtable using get var');
             }
         }
+
         echo '<hr />';
         $tablesToCheck = DB::query('SHOW tables');
         $array = [];
@@ -159,6 +160,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
             $fieldsToCheck = array_diff($fieldsToCheck, ['ID']);
             $array[$tableToCheck] = $fieldsToCheck;
         }
+
         $testArray1 = $array;
         $testArray2 = $array;
         $link = [];
@@ -240,6 +242,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                 }
             }
         }
+
         echo '<h1>======================== THE END ====================== </h1>';
         return 0;
     }
