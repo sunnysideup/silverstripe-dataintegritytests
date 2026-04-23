@@ -11,7 +11,15 @@ use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\Dev\TestOnly;
-use SilverStripe\ORM\DatabaseAdmin;
+
+/**
+  * ### @@@@ START REPLACEMENT @@@@ ###
+  * WHY: automated upgrade
+  * OLD: SilverStripe\ORM\DatabaseAdmin
+  * EXP: Removed deprecated class SilverStripe\\ORM\\DatabaseAdmin - replaced with DbBuild. See: https://docs.silverstripe.org/en/6/changelogs/6.0.0/
+  * ### @@@@ STOP REPLACEMENT @@@@ ###
+  */
+use DbBuild;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\Versioned;
