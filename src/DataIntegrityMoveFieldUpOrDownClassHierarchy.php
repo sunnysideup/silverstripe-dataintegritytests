@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
@@ -14,7 +16,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Move data field up or down class (table) hierarchy.';
+    protected string $title = 'Move data field up or down class (table) hierarchy.';
 
     /**
      * standard SS variable
@@ -28,7 +30,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
 		and the task gives you the ability to move each field individually as required.
 	';
 
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         ini_set('max_execution_time', 3000);
         $oldTable = $request->getVar('oldtable');
@@ -147,7 +149,6 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                 user_error('Specificy valid oldtable using get var');
             }
         }
-
         echo '<hr />';
         $tablesToCheck = DB::query('SHOW tables');
         $array = [];
@@ -158,7 +159,6 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
             $fieldsToCheck = array_diff($fieldsToCheck, ['ID']);
             $array[$tableToCheck] = $fieldsToCheck;
         }
-
         $testArray1 = $array;
         $testArray2 = $array;
         $link = [];
@@ -240,8 +240,8 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                 }
             }
         }
-
         echo '<h1>======================== THE END ====================== </h1>';
+        return 0;
     }
 
     /**

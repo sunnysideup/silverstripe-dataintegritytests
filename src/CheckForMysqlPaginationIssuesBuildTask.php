@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
@@ -18,7 +20,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Goes through all tables and checks for bad pagination';
+    protected string $title = 'Goes through all tables and checks for bad pagination';
 
     /**
      * standard SS variable
@@ -40,9 +42,9 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     private static $skip_tables = [];
 
-    private static $segment = 'checkformysqlpaginationissuesbuildtask';
+    protected static string $commandName = 'checkformysqlpaginationissuesbuildtask';
 
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         // give us some time to run this
         ini_set('max_execution_time', 3000);
@@ -69,7 +71,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 }
             }
         }
-
         $this->flushNowQuick('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
         $this->flushNow('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>', 'notice');
         $this->flushNow(
@@ -98,7 +99,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $largestTableCount = 0;
         $skipTables = $this->Config()->get('skip_tables');
         // get all DataObjects and loop through them
-
         foreach ($classes as $class) {
             if (in_array($class, $skipTables, true)) {
                 continue;
@@ -246,7 +246,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNowDebug('SKIP: ' . $tableName . ' because table does not exist. ');
             }
         }
-
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">RESULTS </h2><hr /><hr /><hr /><hr />');
         //print out errors again ...
         foreach ($errors as $tableName => $fieldValues) {
@@ -266,15 +265,14 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNow('No errors', 'created');
             }
         }
-
         if ($this->testClassCustom) {
             $largestClass = $this->testClassCustom;
         } elseif (! $largestClass) {
             $largestClass = $class;
         }
-
         $this->speedComparison($largestClass);
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
+        return 0;
     }
 
     protected function flushNowDebug($error, $style = '')

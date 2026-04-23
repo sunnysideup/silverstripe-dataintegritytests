@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use DateInterval;
 use DateTimeImmutable;
 use SilverStripe\Control\Director;
@@ -15,25 +17,24 @@ use SilverStripe\Versioned\ChangeSetItem;
 
 final class CleanOldChangeSetsTask extends BuildTask
 {
-    protected $title = 'Clean Old ChangeSets and ChangeSetItems';
+    protected string $title = 'Clean Old ChangeSets and ChangeSetItems';
 
     protected $description = 'Deletes ChangeSets and ChangeSetItems older than X days, or shows monthly stats if not run with ?forreal=1';
 
     private static int $monthsToShow = 240;
 
-    private static $segment = 'cleanoldchangesetstask';
+    protected static string $commandName = 'cleanoldchangesetstask';
 
-    public function run($request): void
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         $days = (int) ($request->getVar('days') ?? 90);
         $forReal = (bool) $request->getVar('forreal');
-
         if (! $forReal) {
             $this->showStats();
             return;
         }
-
         $this->deleteOldRecords($days);
+        return 0;
     }
 
     private function deleteOldRecords(int $days): void

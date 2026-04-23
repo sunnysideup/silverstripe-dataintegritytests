@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use DateTime;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
@@ -17,7 +19,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Check what records have been changed in the last xxx minutes';
+    protected string $title = 'Check what records have been changed in the last xxx minutes';
 
     /**
      * standard SS variable
@@ -25,12 +27,12 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
      */
     protected $description = 'Go through all tables in the database and see what records have been edited in the last xxx minutes.  You can set the minutes using a GET variable (http://www.sunnysideup.co.nz/dev/tasks/DataIntegrityTestRecentlyChanged/?x=123 where 123 is the number of minutes).';
 
-    private static $segment = 'DataIntegrityTestRecentlyChanged';
+    protected static string $commandName = 'DataIntegrityTestRecentlyChanged';
 
     /**
      * runs the task and outputs directly to the screen
      */
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         echo '<style>table {width: 100%;} th, td {padding: 5px; font-size: 12px; border: 1px solid #ccc; vertical-align: top;}</style>';
         $minutes = intval($request->getVar('m'));
@@ -43,7 +45,6 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
                 $minutes = round(($tsUntil - $tsFrom) / 60);
             }
         }
-
         if ($minutes) {
             $ts = strtotime($minutes . ' minutes ago');
             $date = date(DATE_RFC2822, $ts);
@@ -87,17 +88,16 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
 
             echo '<hr /><h1>-------- THE END --------</h1>';
         }
-
         if (empty($_GET['m'])) {
             $_GET['m'] = 0;
         }
-
         echo '
 
 			<form method="get" action="' . Director::absoluteURL('dev/tasks/' . $this->Config()->get('segment') . '/') . '">
 				<label for="m">please enter minutes ago or any date (e.g. last week, yesterday, 2011-11-11, etc...)</label>
 				<input name="m" id="m" value="' . $_GET['m'] . '">
 			</form>';
+        return 0;
     }
 
     protected function minutesToTime($minutes)

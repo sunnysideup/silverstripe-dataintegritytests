@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\Connect\MySQLDatabase;
@@ -13,7 +15,7 @@ class DataIntegrityTestUTF8 extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Convert tables to utf-8 and replace funny characters.';
+    protected string $title = 'Convert tables to utf-8 and replace funny characters.';
 
     /**
      * standard SS variable
@@ -36,9 +38,9 @@ class DataIntegrityTestUTF8 extends BuildTask
         'Ý' => '- ',
     ];
 
-    private static $segment = 'dataintegritytestutf8';
+    protected static string $commandName = 'dataintegritytestutf8';
 
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         ini_set('max_execution_time', 3000);
         $tables = DB::query('SHOW tables');
@@ -85,8 +87,8 @@ class DataIntegrityTestUTF8 extends BuildTask
                 }
             }
         }
-
         DB::alteration_message('<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
+        return 0;
     }
 
     private function flushNow()

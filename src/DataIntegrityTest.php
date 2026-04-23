@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
@@ -20,13 +22,13 @@ class DataIntegrityTest extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Check Database Integrity';
+    protected string $title = 'Check Database Integrity';
 
     /**
      * standard SS variable
      * @var string
      */
-    private static $segment = 'dataintegritytest';
+    protected static string $commandName = 'dataintegritytest';
 
     protected $debug = false;
 
@@ -65,17 +67,15 @@ class DataIntegrityTest extends BuildTask
         'removeorphanedmanymany' => 'ADMIN',
     ];
 
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         Environment::increaseTimeLimitTo(3000);
         Environment::increaseMemoryLimitTo('1024M');
-
         if ($this->debug) {
             $this->printHeader('DEBUG MODE ---- NO DELETIONS ARE MADE', 2, 'deleted');
         } else {
             $this->printHeader('NOT RUNNING DEBUG MODE ---- ACTUAL DELETIONS ARE MADE', 2, 'deleted');
         }
-
         if ($action = $request->getVar('do')) {
             $methodArray = explode('/', (string) $action);
             $method = $methodArray[0];
@@ -97,8 +97,8 @@ class DataIntegrityTest extends BuildTask
                 user_error('could not find method: ' . $method);
             }
         }
-
         $this->makeMenu();
+        return 0;
     }
 
     protected function makeMenu()
