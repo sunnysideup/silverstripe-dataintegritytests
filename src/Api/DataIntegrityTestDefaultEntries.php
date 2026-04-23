@@ -4,14 +4,13 @@ namespace Sunnysideup\DataIntegrityTest\Api;
 
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Convert;
-use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 
 class DataIntegrityTestDefaultEntries
 {
     public static function update($baseTable, $field, $value, $id = 0, $replace = false, $addLive = false)
     {
-        $object = DataObject::get_one($baseTable);
+        $object = $baseTable::get()->setUseCache(true)->first();
         if ($object) {
             $tableArray = [$baseTable];
             if ($object instanceof SiteTree) {
