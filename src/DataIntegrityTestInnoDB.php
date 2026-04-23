@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 
@@ -11,7 +13,7 @@ class DataIntegrityTestInnoDB extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Convert all tables to InnoDB.';
+    protected string $title = 'Convert all tables to InnoDB.';
 
     /**
      * standard SS variable
@@ -19,31 +21,33 @@ class DataIntegrityTestInnoDB extends BuildTask
      */
     protected $description = 'Converts table to innoDB. CAREFUL: replaces all tables in Database to innoDB - not just the Silverstripe ones.';
 
-    private static $segment = 'dataintegritytestinnodb';
+    protected static string $commandName = 'dataintegritytestinnodb';
 
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         ini_set('max_execution_time', 3000);
-        $tables = DB::query('SHOW TABLE STATUS WHERE ENGINE <>  \'InnoDB\'');
+        $tables = DB::query("SHOW TABLE STATUS WHERE ENGINE <>  'InnoDB'");
         foreach ($tables as $table) {
             $table = $table['Name'];
-            DB::alteration_message("Updating {$table} to innoDB", 'created');
+            DB::alteration_message(sprintf('Updating %s to innoDB', $table), 'created');
             $this->flushNow();
-            $indexRows = DB::query("SHOW INDEX FROM \"{$table}\" WHERE Index_type = 'FULLTEXT'");
+            $indexRows = DB::query(sprintf("SHOW INDEX FROM \"%s\" WHERE Index_type = 'FULLTEXT'", $table));
             unset($done);
             $done = [];
             foreach ($indexRows as $indexRow) {
                 $key = $indexRow['Key_name'];
                 if (! isset($done[$key])) {
-                    DB::alteration_message("Deleting INDEX {$key} in {$table} (FullText Index)", 'deleted');
+                    DB::alteration_message(sprintf('Deleting INDEX %s in %s (FullText Index)', $key, $table), 'deleted');
                     $this->flushNow();
-                    DB::query("ALTER TABLE \"{$table}\" DROP INDEX {$key};");
+                    DB::query(sprintf('ALTER TABLE "%s" DROP INDEX %s;', $table, $key));
                     $done[$key] = $key;
                 }
             }
-            $sql = "ALTER TABLE \"{$table}\" ENGINE=INNODB";
+
+            $sql = sprintf('ALTER TABLE "%s" ENGINE=INNODB', $table);
             DB::query($sql);
         }
+
         //$rows = DB::query("SHOW GLOBAL STATUS LIKE  'Innodb_page_size'");
         $currentInnoDBSetting = DB::query('SELECT @@innodb_buffer_pool_size as V;')->Value();
         $innoDBBufferUsed = DB::query("
@@ -71,6 +75,7 @@ SELECT CEILING(Total_InnoDB_Bytes*1.6/POWER(1024,3)) RIBPS FROM
 		but it should be set to ' . round($innoBDBufferRecommended, 3) . 'G.
 		The current setting is: ' . round($currentInnoDBSetting / (1042 * 1024 * 1024)) . 'G
 		<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
+        return 0;
     }
 
     private function flushNow()
@@ -81,6 +86,7 @@ SELECT CEILING(Total_InnoDB_Bytes*1.6/POWER(1024,3)) RIBPS FROM
             @flush();
             @ob_end_flush();
         }
+
         @ob_start();
     }
 }

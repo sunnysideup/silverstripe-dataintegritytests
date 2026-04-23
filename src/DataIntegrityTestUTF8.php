@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\Connect\MySQLDatabase;
@@ -13,7 +15,7 @@ class DataIntegrityTestUTF8 extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Convert tables to utf-8 and replace funny characters.';
+    protected string $title = 'Convert tables to utf-8 and replace funny characters.';
 
     /**
      * standard SS variable
@@ -36,9 +38,9 @@ class DataIntegrityTestUTF8 extends BuildTask
         'Ý' => '- ',
     ];
 
-    private static $segment = 'dataintegritytestutf8';
+    protected static string $commandName = 'dataintegritytestutf8';
 
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         ini_set('max_execution_time', 3000);
         $tables = DB::query('SHOW tables');
@@ -53,7 +55,7 @@ class DataIntegrityTestUTF8 extends BuildTask
             $currentCollation = DB::query('
                 SELECT TABLE_COLLATION
                 FROM INFORMATION_SCHEMA.TABLES
-                WHERE TABLE_NAME = \'' . $table . '\' AND table_schema = \'' . $databaseName . '\';')->value();
+                WHERE TABLE_NAME = \'' . $table . "' AND table_schema = '" . $databaseName . "';")->value();
             DB::alteration_message('<strong>Resetting "' . $table . '" table to "' . $connCharset . '", collation "' . $connCollation . '", with current collation: "' . $currentCollation . '"</strong>');
             DB::query('ALTER TABLE "' . $table . '" CONVERT TO CHARACTER SET ' . $connCharset . ' COLLATE ' . $connCollation);
             $rows = DB::query('SHOW FULL COLUMNS FROM "' . $table . '"');
@@ -64,25 +66,30 @@ class DataIntegrityTestUTF8 extends BuildTask
                     DB::alteration_message('Error in ' . $fieldName . ' collation: ' . $fieldCollation, 'deleted');
                     $this->flushNow();
                 }
-                $usedFieldsChanged = ["CHECKING {$table}.{$fieldName} : "];
+
+                $usedFieldsChanged = [sprintf('CHECKING %s.%s : ', $table, $fieldName)];
                 foreach ($arrayOfReplacements as $from => $to) {
-                    @DB::query("UPDATE \"{$table}\" SET \"{$fieldName}\" = REPLACE(\"{$fieldName}\", '{$from}', '{$to}');");
+                    @DB::query(sprintf("UPDATE \"%s\" SET \"%s\" = REPLACE(\"%s\", '%s', '%s');", $table, $fieldName, $fieldName, $from, $to));
                     $count = DB::get_conn()->affectedRows();
                     $toWord = $to;
                     if ($to === '') {
                         $toWord = '[NOTHING]';
                     }
+
                     if ($count) {
-                        $usedFieldsChanged[] = "{$count} Replacements <strong>{$from}</strong> with <strong>{$toWord}</strong>";
+                        $usedFieldsChanged[] = sprintf('%s Replacements <strong>%s</strong> with <strong>%s</strong>', $count, $from, $toWord);
                     }
                 }
+
                 if (count($usedFieldsChanged) > 1) {
                     DB::alteration_message(implode('<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ', $usedFieldsChanged));
                     $this->flushNow();
                 }
             }
         }
+
         DB::alteration_message('<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
+        return 0;
     }
 
     private function flushNow()
@@ -93,6 +100,7 @@ class DataIntegrityTestUTF8 extends BuildTask
             @flush();
             @ob_end_flush();
         }
+
         @ob_start();
     }
 }

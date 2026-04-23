@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Input\InputInterface;
+use SilverStripe\Console\PolyOutput;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
@@ -18,7 +20,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $title = 'Goes through all tables and checks for bad pagination';
+    protected string $title = 'Goes through all tables and checks for bad pagination';
 
     /**
      * standard SS variable
@@ -40,9 +42,9 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     private static $skip_tables = [];
 
-    private static $segment = 'checkformysqlpaginationissuesbuildtask';
+    protected static string $commandName = 'checkformysqlpaginationissuesbuildtask';
 
-    public function run($request)
+    protected function execute(InputInterface $input, PolyOutput $output): int
     {
         // give us some time to run this
         ini_set('max_execution_time', 3000);
@@ -62,12 +64,14 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         if (in_array($v, $classes, true)) {
                             $this->{$field} = $v;
                         }
+
                         break;
                     default:
                         $this->{$field} = intval($v);
                 }
             }
         }
+
         $this->flushNowQuick('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
         $this->flushNow('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>', 'notice');
         $this->flushNow(
@@ -96,11 +100,11 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $largestTableCount = 0;
         $skipTables = $this->Config()->get('skip_tables');
         // get all DataObjects and loop through them
-
         foreach ($classes as $class) {
             if (in_array($class, $skipTables, true)) {
                 continue;
             }
+
             // skip irrelevant ones
             //skip test ones
             $obj = Injector::inst()->get($class);
@@ -108,6 +112,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 $this->flushNowDebug('<h2>SKIPPING: ' . $class . '</h2>');
                 continue;
             }
+
             //start the process ...
             $this->flushNowDebug('<h2>Testing ' . $class . '</h2>');
             $schema = $obj->getSchema();
@@ -127,21 +132,25 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         DB::query(...): ' . $checkCount . ' rows |
                         DIFFERENCE:  ' . abs($count - $checkCount) . '', 'deleted');
                 }
+
                 if ($count > $this->step) {
                     if ($count > $largestTableCount) {
                         $largestTableCount = $count;
                         $largestClass = $class;
                     }
+
                     $this->flushNowQuick('<br />' . $tableName . ': ');
                     if (! isset($errors[$tableName])) {
                         $errors[$tableName] = [];
                     }
+
                     // get fields ...
 
                     $dbFields = $obj->Config()->get('db');
                     if (! is_array($dbFields)) {
                         $dbFields = [];
                     }
+
                     // adding base fields.
                     // we do not add ID as this should work!
                     $dbFields['ClassName'] = 'ClassName';
@@ -164,9 +173,11 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                             if (isset($hasOneFields[$field])) {
                                 $field .= 'ID';
                             }
+
                             if (! isset($errors[$tableName][$field])) {
                                 $errors[$tableName][$field] = [];
                             }
+
                             // start loop of limits ...
                             $this->flushNowDebug('- Sorting by ' . $field);
                             for ($i = 0; $i < $this->limit && $i < ($count - $this->step); $i += $this->step) {
@@ -180,10 +191,12 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                                 if (! isset($errors[$tableName][$field][$id])) {
                                                     $errors[$tableName][$field][$id] = 1;
                                                 }
+
                                                 $errors[$tableName][$field][$id]++;
                                             } else {
                                                 $this->flushNowQuick('.');
                                             }
+
                                             $comparisonArray[$id] = $id;
                                         }
                                     } else {
@@ -200,20 +213,24 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                                             if (! isset($errors[$tableName][$field][$id])) {
                                                 $errors[$tableName][$field][$id] = 1;
                                             }
+
                                             $errors[$tableName][$field][$id]++;
                                         } else {
                                             $this->flushNowQuick('.');
                                         }
+
                                         $comparisonArray[$tempObject->ID] = $tempObject->ID;
                                     }
                                 }
                             }
-                            if (count($errors[$tableName][$field])) {
+
+                            if ($errors[$tableName][$field] !== []) {
                                 $error = '<br /><strong>Found double entries in <u>' . $tableName . '</u> table,' .
                                     ' sorting by <u>' . $field . '</u></strong> ...';
                                 foreach ($errors[$tableName][$field] as $tempID => $tempCount) {
                                     $error .= ' ID: ' . $tempID . ' occurred ' . $tempCount . ' times /';
                                 }
+
                                 $this->flushNowDebug($error, 'deleted');
                                 $errors[$tableName][$field] = $error;
                             }
@@ -224,11 +241,13 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 } else {
                     $this->flushNowDebug('<strong>SKIP: table ' . $tableName . '</strong> because it does not have enough records. ');
                 }
+
                 $this->timePerClass[$tableName]['end'] = microtime(true);
             } else {
                 $this->flushNowDebug('SKIP: ' . $tableName . ' because table does not exist. ');
             }
         }
+
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">RESULTS </h2><hr /><hr /><hr /><hr />');
         //print out errors again ...
         foreach ($errors as $tableName => $fieldValues) {
@@ -243,17 +262,21 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     $this->flushNow($errorMessage, 'deleted');
                 }
             }
+
             if ($errorCount === 0) {
                 $this->flushNow('No errors', 'created');
             }
         }
+
         if ($this->testClassCustom) {
             $largestClass = $this->testClassCustom;
         } elseif (! $largestClass) {
             $largestClass = $class;
         }
+
         $this->speedComparison($largestClass);
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
+        return 0;
     }
 
     protected function flushNowDebug($error, $style = '')
@@ -283,6 +306,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             @flush();
             @ob_end_flush();
         }
+
         @ob_start();
     }
 
@@ -307,6 +331,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             if ($testIndex > 2) {
                 $isFirstRound = true;
             }
+
             $defaultSortField = '';
             if ($testLetter === 'A') {
                 $objects = $className::get();
@@ -332,6 +357,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                 Config::modify()->set($className, 'default_sort', $defaultSortField);
             }
         }
+
         $testAResult = round($testAResult * 1000);
         $testBResult = round($testBResult * 1000);
         $testCResult = round($testCResult * 1000);
@@ -356,14 +382,17 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             if ($i === 0 && $isFirstRound) {
                 $this->flushNowDebug($objects->sql());
             }
+
             $start = microtime(true);
             foreach ($objects as $object) {
 
                 $this->flushNowDebug($className . ' with ID = ' . $object->ID . ' (not sorted)');
             }
+
             $end = microtime(true);
             $time += $end - $start;
         }
+
         return $time;
     }
 }
