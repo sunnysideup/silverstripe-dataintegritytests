@@ -37,12 +37,13 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
         if ($request->getVar('m') === $minutes) {
             //do nothing
         } else {
-            $tsFrom = strtotime($request->getVar('m'));
+            $tsFrom = strtotime((string) $request->getVar('m'));
             if ($tsFrom) {
                 $tsUntil = strtotime('NOW');
                 $minutes = round(($tsUntil - $tsFrom) / 60);
             }
         }
+
         if ($minutes) {
             $ts = strtotime($minutes . ' minutes ago');
             $date = date(DATE_RFC2822, $ts);
@@ -62,29 +63,35 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
                         if (! is_array($fields)) {
                             $fields = [];
                         }
+
                         $fields = ['ID' => 'Int', 'Created' => 'SS_DateAndTime', 'LastEdited' => 'SS_DateAndTime'] + $fields;
                         if ($count) {
                             echo '<h2>' . $singleton->singular_name() . '(' . $count . ')</h2>';
                             $objects = $dataClass::get()->where($whereStatement)->limit(1000);
                             foreach ($objects as $object) {
                                 echo '<h4>' . $object->getTitle() . '</h4><ul>';
-                                if (count($fields)) {
+                                if ($fields !== []) {
                                     foreach (array_keys($fields) as $field) {
-                                        echo '<li><strong>' . $field . "</strong><pre>\t\t" . htmlentities($object->{$field}) . '</pre></li>';
+                                        echo '<li><strong>' . $field . "</strong><pre>\t\t" . htmlentities((string) $object->{$field}) . '</pre></li>';
                                     }
                                 }
+
                                 echo '</ul>';
                             }
+
                             echo '</blockquote>';
                         }
                     }
                 }
             }
+
             echo '<hr /><h1>-------- THE END --------</h1>';
         }
+
         if (empty($_GET['m'])) {
             $_GET['m'] = 0;
         }
+
         echo '
 
 			<form method="get" action="' . Director::absoluteURL('dev/tasks/' . $this->Config()->get('segment') . '/') . '">
@@ -97,7 +104,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
     {
         $seconds = $minutes * 60;
         $dtF = new DateTime('@0');
-        $dtT = new DateTime("@$seconds");
+        $dtT = new DateTime('@' . $seconds);
         return $dtF->diff($dtT)->format('%a days, %h hours,  and %i minutes');
     }
 }

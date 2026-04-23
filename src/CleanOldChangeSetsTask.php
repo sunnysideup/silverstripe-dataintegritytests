@@ -44,25 +44,23 @@ final class CleanOldChangeSetsTask extends BuildTask
 
         $safeCutoff = Convert::raw2sql($cutoffDate);
 
-        $itemCount = ChangeSetItem::get()
-            ->filter('LastEdited:LessThan', $cutoffDate)
+        $itemCount = ChangeSetItem::get()->filter(['LastEdited:LessThan' => $cutoffDate])
             ->count();
 
-        $setCount = ChangeSet::get()
-            ->filter('LastEdited:LessThan', $cutoffDate)
+        $setCount = ChangeSet::get()->filter(['LastEdited:LessThan' => $cutoffDate])
             ->count();
 
-        $this->printHelper("Deleting {$itemCount} ChangeSetItems and {$setCount} ChangeSets older than {$days} days...");
+        $this->printHelper(sprintf('Deleting %d ChangeSetItems and %d ChangeSets older than %d days...', $itemCount, $setCount, $days));
 
         if ($itemCount > 0) {
             DB::query(
-                'DELETE FROM "ChangeSetItem" WHERE "Created" < \'' . $safeCutoff . '\''
+                'DELETE FROM "ChangeSetItem" WHERE "Created" < \'' . $safeCutoff . "'"
             );
         }
 
         if ($setCount > 0) {
             DB::query(
-                'DELETE FROM "ChangeSet" WHERE "Created" < \'' . $safeCutoff . '\''
+                'DELETE FROM "ChangeSet" WHERE "Created" < \'' . $safeCutoff . "'"
             );
         }
 
@@ -97,13 +95,14 @@ final class CleanOldChangeSetsTask extends BuildTask
 
             foreach ($data as $month => $count) {
                 $bar = str_repeat('█', (int) (50 * $count / max(1, $max)));
-                $this->printHelper("{$month}: {$bar} " . number_format($count) . '');
+                $this->printHelper(sprintf('%s: %s ', $month, $bar) . number_format($count) . '');
             }
 
             $this->printHelper('');
         }
+
         $add = Director::is_cli() ? 'forreal=1 days=90' : '?forreal=1&days=90';
-        $this->printHelper("ADD: {$add} to actually delete records older than 90 days.");
+        $this->printHelper(sprintf('ADD: %s to actually delete records older than 90 days.', $add));
     }
 
     private function printHelper(string $message): void

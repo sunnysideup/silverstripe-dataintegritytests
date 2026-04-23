@@ -24,26 +24,28 @@ class DataIntegrityTestInnoDB extends BuildTask
     public function run($request)
     {
         ini_set('max_execution_time', 3000);
-        $tables = DB::query('SHOW TABLE STATUS WHERE ENGINE <>  \'InnoDB\'');
+        $tables = DB::query("SHOW TABLE STATUS WHERE ENGINE <>  'InnoDB'");
         foreach ($tables as $table) {
             $table = $table['Name'];
-            DB::alteration_message("Updating {$table} to innoDB", 'created');
+            DB::alteration_message(sprintf('Updating %s to innoDB', $table), 'created');
             $this->flushNow();
-            $indexRows = DB::query("SHOW INDEX FROM \"{$table}\" WHERE Index_type = 'FULLTEXT'");
+            $indexRows = DB::query(sprintf("SHOW INDEX FROM \"%s\" WHERE Index_type = 'FULLTEXT'", $table));
             unset($done);
             $done = [];
             foreach ($indexRows as $indexRow) {
                 $key = $indexRow['Key_name'];
                 if (! isset($done[$key])) {
-                    DB::alteration_message("Deleting INDEX {$key} in {$table} (FullText Index)", 'deleted');
+                    DB::alteration_message(sprintf('Deleting INDEX %s in %s (FullText Index)', $key, $table), 'deleted');
                     $this->flushNow();
-                    DB::query("ALTER TABLE \"{$table}\" DROP INDEX {$key};");
+                    DB::query(sprintf('ALTER TABLE "%s" DROP INDEX %s;', $table, $key));
                     $done[$key] = $key;
                 }
             }
-            $sql = "ALTER TABLE \"{$table}\" ENGINE=INNODB";
+
+            $sql = sprintf('ALTER TABLE "%s" ENGINE=INNODB', $table);
             DB::query($sql);
         }
+
         //$rows = DB::query("SHOW GLOBAL STATUS LIKE  'Innodb_page_size'");
         $currentInnoDBSetting = DB::query('SELECT @@innodb_buffer_pool_size as V;')->Value();
         $innoDBBufferUsed = DB::query("
@@ -81,6 +83,7 @@ SELECT CEILING(Total_InnoDB_Bytes*1.6/POWER(1024,3)) RIBPS FROM
             @flush();
             @ob_end_flush();
         }
+
         @ob_start();
     }
 }
