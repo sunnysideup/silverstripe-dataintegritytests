@@ -30,16 +30,14 @@ class DataIntegrityTestInnoDB extends BuildTask
         $tables = DB::query("SHOW TABLE STATUS WHERE ENGINE <>  'InnoDB'");
         foreach ($tables as $table) {
             $table = $table['Name'];
-            DB::alteration_message(sprintf('Updating %s to innoDB', $table), 'created');
-            $this->flushNow();
+            $output->writeForHtml(sprintf('Updating %s to innoDB', $table));
             $indexRows = DB::query(sprintf("SHOW INDEX FROM \"%s\" WHERE Index_type = 'FULLTEXT'", $table));
             unset($done);
             $done = [];
             foreach ($indexRows as $indexRow) {
                 $key = $indexRow['Key_name'];
                 if (! isset($done[$key])) {
-                    DB::alteration_message(sprintf('Deleting INDEX %s in %s (FullText Index)', $key, $table), 'deleted');
-                    $this->flushNow();
+                    $output->writeForHtml(sprintf('Deleting INDEX %s in %s (FullText Index)', $key, $table));
                     DB::query(sprintf('ALTER TABLE "%s" DROP INDEX %s;', $table, $key));
                     $done[$key] = $key;
                 }
@@ -61,7 +59,7 @@ WHERE variable_name='Innodb_buffer_pool_pages_data') A,
 FROM information_schema.global_status
 WHERE variable_name='Innodb_page_size') B;
 
-		")->value();
+        ")->value();
         $innoBDBufferRecommended = DB::query(
             "
 SELECT CEILING(Total_InnoDB_Bytes*1.6/POWER(1024,3)) RIBPS FROM
@@ -69,25 +67,12 @@ SELECT CEILING(Total_InnoDB_Bytes*1.6/POWER(1024,3)) RIBPS FROM
  FROM information_schema.tables WHERE engine='InnoDB') A;
 "
         )->value();
-        DB::alteration_message('<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED
-		<br />
-		Please check your MYSQL innodb_buffer_pool_size setting.
-		It is currently using ' . round($innoDBBufferUsed, 3) . 'G,
-		but it should be set to ' . round($innoBDBufferRecommended, 3) . 'G.
-		The current setting is: ' . round($currentInnoDBSetting / (1042 * 1024 * 1024)) . 'G
-		<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
+        $output->writeForHtml('<hr />COMPLETED
+        <br />
+        Please check your MYSQL innodb_buffer_pool_size setting.
+        It is currently using ' . round($innoDBBufferUsed, 3) . 'G,
+        but it should be set to ' . round($innoBDBufferRecommended, 3) . 'G.
+        The current setting is: ' . round($currentInnoDBSetting / (1042 * 1024 * 1024)) . 'G');
         return Command::SUCCESS;
-    }
-
-    private function flushNow()
-    {
-        // check that buffer is actually set before flushing
-        if (ob_get_length()) {
-            @ob_flush();
-            @flush();
-            @ob_end_flush();
-        }
-
-        @ob_start();
     }
 }

@@ -31,7 +31,7 @@ class DataIntegrityTestUTF8 extends BuildTask
         // 'Â' => '',
         // 'Â' => '',
         'â€™' => '&#39;',
-        'Ââ€“' => '&mdash;',
+        'Ââ€"' => '&mdash;',
         'â€¨' => '',
         'â€œ' => '&quot;',
         'â€^Ý' => '&quot;',
@@ -57,15 +57,14 @@ class DataIntegrityTestUTF8 extends BuildTask
                 SELECT TABLE_COLLATION
                 FROM INFORMATION_SCHEMA.TABLES
                 WHERE TABLE_NAME = \'' . $table . "' AND table_schema = '" . $databaseName . "';")->value();
-            DB::alteration_message('<strong>Resetting "' . $table . '" table to "' . $connCharset . '", collation "' . $connCollation . '", with current collation: "' . $currentCollation . '"</strong>');
+            $output->writeForHtml('<strong>Resetting "' . $table . '" table to "' . $connCharset . '", collation "' . $connCollation . '", with current collation: "' . $currentCollation . '"</strong>');
             DB::query('ALTER TABLE "' . $table . '" CONVERT TO CHARACTER SET ' . $connCharset . ' COLLATE ' . $connCollation);
             $rows = DB::query('SHOW FULL COLUMNS FROM "' . $table . '"');
             foreach ($rows as $row) {
                 $fieldName = $row['Field'];
                 $fieldCollation = $row['Collation'] ?? '';
                 if ($fieldCollation && $fieldCollation !== $connCollation) {
-                    DB::alteration_message('Error in ' . $fieldName . ' collation: ' . $fieldCollation, 'deleted');
-                    $this->flushNow();
+                    $output->writeForHtml('Error in ' . $fieldName . ' collation: ' . $fieldCollation);
                 }
 
                 $usedFieldsChanged = [sprintf('CHECKING %s.%s : ', $table, $fieldName)];
@@ -83,25 +82,12 @@ class DataIntegrityTestUTF8 extends BuildTask
                 }
 
                 if (count($usedFieldsChanged) > 1) {
-                    DB::alteration_message(implode('<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ', $usedFieldsChanged));
-                    $this->flushNow();
+                    $output->writeForHtml(implode('<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ', $usedFieldsChanged));
                 }
             }
         }
 
-        DB::alteration_message('<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
+        $output->writeForHtml('<hr />COMPLETED<hr />');
         return Command::SUCCESS;
-    }
-
-    private function flushNow()
-    {
-        // check that buffer is actually set before flushing
-        if (ob_get_length()) {
-            @ob_flush();
-            @flush();
-            @ob_end_flush();
-        }
-
-        @ob_start();
     }
 }

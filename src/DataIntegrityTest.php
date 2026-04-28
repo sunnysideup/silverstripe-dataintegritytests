@@ -4,8 +4,8 @@ namespace Sunnysideup\DataIntegrityTest;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use SilverStripe\PolyExecution\PolyOutput;
-use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Environment;
@@ -67,8 +67,28 @@ class DataIntegrityTest extends BuildTask
         'removeorphanedmanymany' => 'ADMIN',
     ];
 
+    /**
+     * Stored PolyOutput instance for use in helper methods.
+     */
+    protected PolyOutput $polyOutput;
+
+    public function getOptions(): array
+    {
+        return [
+            new InputOption('do', null, InputOption::VALUE_REQUIRED, 'Action to perform: obsoletefields, tablereview, deletemarkedfields, deleteonefield, deleteobsoletetables, deleteallversions, cleanupdb, deleteliveonlyrecords, removeorphanedmanymany', ''),
+            new InputOption('deletesafeones', null, InputOption::VALUE_NONE, 'Delete obsolete fields that have no data (used with --do=obsoletefields)'),
+            new InputOption('deleteall', null, InputOption::VALUE_NONE, 'Delete all obsolete fields (used with --do=obsoletefields)'),
+            new InputOption('makeobsolete', null, InputOption::VALUE_NONE, 'Rename obsolete tables with _obsolete_ prefix (used with --do=tablereview)'),
+            new InputOption('fixbrokendataobjects', null, InputOption::VALUE_NONE, 'Attempt to fix broken data objects (used with --do=tablereview)'),
+            new InputOption('deletetablealltogether', null, InputOption::VALUE_NONE, 'Delete obsolete tables entirely (used with --do=tablereview)'),
+            new InputOption('tablefield', null, InputOption::VALUE_REQUIRED, 'Table/field to delete in format TableName/FieldName (used with --do=deleteonefield)', ''),
+        ];
+    }
+
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
+        $this->polyOutput = $output;
+
         Environment::increaseTimeLimitTo(3000);
         Environment::increaseMemoryLimitTo('1024M');
         if ($this->debug) {
@@ -77,25 +97,44 @@ class DataIntegrityTest extends BuildTask
             $this->printHeader('NOT RUNNING DEBUG MODE ---- ACTUAL DELETIONS ARE MADE', 2, 'deleted');
         }
 
-        if ($action = $request->getVar('do')) {
-            $methodArray = explode('/', (string) $action);
+        $action = (string) ($input->getOption('do') ?? '');
+        if ($action) {
+            $methodArray = explode('/', $action);
             $method = $methodArray[0];
             $allowedActions = Config::inst()->get(DataIntegrityTest::class, 'allowed_actions');
             if (isset($allowedActions[$method])) {
                 if ($method === 'obsoletefields') {
-                    $deletesafeones = (int) ($_GET['deletesafeones'] ?? 0) === 1;
-                    $deleteall = (int) ($_GET['deleteall'] ?? 0) === 1;
+                    $deletesafeones = (bool) $input->getOption('deletesafeones');
+                    $deleteall = (bool) $input->getOption('deleteall');
                     $this->obsoleteFields($deletesafeones, $deleteall);
                 } elseif ($method === 'tablereview') {
-                    $makeobsolete = (int) ($_GET['makeobsolete'] ?? 0) === 1;
-                    $fixbrokendataobjects = (int) ($_GET['fixbrokendataobjects'] ?? 0) === 1;
-                    $deletetablealltogether = (int) ($_GET['deletetablealltogether'] ?? 0) === 1;
+                    $makeobsolete = (bool) $input->getOption('makeobsolete');
+                    $fixbrokendataobjects = (bool) $input->getOption('fixbrokendataobjects');
+                    $deletetablealltogether = (bool) $input->getOption('deletetablealltogether');
                     $this->tablereview($makeobsolete, $deletetablealltogether, $fixbrokendataobjects);
+                } elseif ($method === 'deleteonefield') {
+                    $tablefield = (string) ($input->getOption('tablefield') ?? '');
+                    if ($tablefield) {
+                        $requestExploded = explode('/', $tablefield);
+                        $table = $requestExploded[0] ?? '';
+                        $field = $requestExploded[1] ?? '';
+                        if ($table && $field) {
+                            if ($this->deleteField($table, $field)) {
+                                $this->printString(sprintf('successfully deleted %s from %s now', $field, $table));
+                            } else {
+                                $this->printString(sprintf('COULD NOT delete %s from %s now', $field, $table), 'deleted');
+                            }
+                        } else {
+                            $this->printString('Please supply --tablefield=TableName/FieldName');
+                        }
+                    } else {
+                        $this->printString('Please supply --tablefield=TableName/FieldName');
+                    }
                 } else {
                     $this->{$method}();
                 }
             } else {
-                user_error('could not find method: ' . $method);
+                $this->printString('could not find method: ' . $method);
             }
         }
 
@@ -106,58 +145,45 @@ class DataIntegrityTest extends BuildTask
     protected function makeMenu()
     {
         $this->printHeader('Database Administration Helpers');
-        $this->printLink('?do=obsoletefields', 'Prepare a list of obsolete fields');
-        $this->printLink('?do=obsoletefields&deletesafeones=1', 'Prepare a list of obsolete fields and delete obsolete fields without data', true);
-        $this->printLink('?do=obsoletefields&deleteall=1', 'Delete all obsolete fields', true);
-        $this->printHr();
-        $this->printLink('?do=tablereview', 'Prepare a list of obsolete tables.');
-        $this->printLink('?do=tablereview&makeobsolete=1', 'Prepare a list of obsolete tables and move them to obsolete!');
-        $this->printLink('?do=tablereview&makeobsolete=1&deletetablealltogether=1', 'Delete obsolete tables altogether!', true);
-        $this->printLink('?do=tablereview&fixbrokendataobjects=1', 'Fix broken data objects!', true);
-        $this->printLink('?do=deleteobsoletetables', 'Delete all tables with _obsolete_ at the start of their name!', true);
-        $this->printHr();
-        $this->printLink('?do=deletemarkedfields', 'Delete fields listed in DataIntegrityTest::fields_to_delete!', true);
-        $this->printHr();
-        $this->printLink('?do=deleteallversions', 'Delete all versioned data!', true);
-        $this->printHr();
-        $this->printLink('?do=cleanupdb', 'Clean up Database (remove orphaned records)!', true);
-        $this->printLink('?do=deleteliveonlyrecords', 'Delete live-only records!', true);
-        $this->printLink('?do=removeorphanedmanymany', 'Remove orphaned many-many!', true);
-        $this->printHr();
-        $this->printLink('/dev/tasks/checkformysqlpaginationissuesbuildtask', 'Look for pagination issues');
-        $this->printLink('/dev/tasks/dataintegritytestinnodb', 'Set all tables to InnoDB!', true);
-        $this->printLink('/dev/tasks/dataintegritytestutf8', 'Set all tables to UTF-8!', true);
-        $this->printHr();
-        $this->printLink('/dev/tasks/cleanoldchangesetstask', 'Review old change sets', false);
-        $this->printLink('/dev/tasks/cleanoldchangesetstask?forreal=1&days=90', 'Delete change sets older than 3 months', false);
+        $this->printString('Run with --do=<action> to perform an action. Available actions:');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields --deletesafeones');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields --deleteall');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --makeobsolete');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --makeobsolete --deletetablealltogether');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --fixbrokendataobjects');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=deleteobsoletetables');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=deletemarkedfields');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=deleteallversions');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=cleanupdb');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=deleteliveonlyrecords');
+        $this->printString('sake tasks:' . static::$commandName . ' --do=removeorphanedmanymany');
+        $this->printString('sake tasks:checkformysqlpaginationissuesbuildtask');
+        $this->printString('sake tasks:dataintegritytestinnodb');
+        $this->printString('sake tasks:dataintegritytestutf8');
+        $this->printString('sake tasks:cleanoldchangesetstask');
+        $this->printString('sake tasks:cleanoldchangesetstask --forreal --days=90');
     }
 
     protected function printLink(string $action, string $label, bool $confirm = false, $returnString = false): ?string
     {
-        $link = $this->Link();
+        // @TODO (SS6 upgrade): printLink now outputs CLI sake commands rather than HTML links.
+        $link = 'sake tasks:' . static::$commandName;
         if ($action !== '' && $action !== '0') {
             if (str_starts_with($action, '/dev/tasks')) {
-                $link = $action;
+                // extract task segment from /dev/tasks/xxx
+                $link = str_replace('/dev/tasks/', 'sake tasks:', $action);
             } else {
-                $link .= $action;
+                // Convert query string style (?do=xxx&foo=bar) to sake args (--do=xxx --foo=bar)
+                $action = ltrim($action, '?');
+                $action = str_replace('&', ' --', $action);
+                $action = str_replace('=', '=', $action);
+                $link .= ' --' . $action;
             }
         }
 
-        $confirmAttribute = '';
-        if ($confirm) {
-            $warning = Config::inst()->get(DataIntegrityTest::class, 'warning');
-            $confirmAttribute = ' onclick="return confirm(\'' . $warning . '\');"';
-        }
-
-        if (Director::is_cli()) {
-            $link = str_replace('?', ' ', $link);
-            $link = str_replace('&', ' ', $link);
-            $link = ltrim($link, '');
-            $link = 'vendor/bin/sake ' . $link;
-            $string = PHP_EOL . $label . ':' . PHP_EOL . ' ... ' . $link . PHP_EOL;
-        } else {
-            $string = '<a href="' . htmlspecialchars((string) $link) . '"' . $confirmAttribute . '>' . $label . '</a>';
-        }
+        $string = PHP_EOL . $label . ':' . PHP_EOL . ' ... ' . $link . PHP_EOL;
 
         if ($returnString) {
             return $string;
@@ -181,7 +207,7 @@ class DataIntegrityTest extends BuildTask
                 $this->printString('there are no fields to delete', 'created');
             }
         } else {
-            user_error('you need to select these fields to be deleted first (DataIntegrityTest.fields_to_delete)');
+            $this->printString('you need to select these fields to be deleted first (DataIntegrityTest.fields_to_delete)');
         }
 
         $this->printLink('', 'back to main menu');
@@ -189,15 +215,19 @@ class DataIntegrityTest extends BuildTask
 
     public function deleteonefield()
     {
-        $requestExploded = explode('/', (string) $_GET['tablefield']);
+        // @TODO (SS6 upgrade): In SS6 use --tablefield option instead; this method kept for back-compat.
+        $tablefield = '';
+        $requestExploded = explode('/', (string) $tablefield);
         $table = $requestExploded[0] ?? '';
         $field = $requestExploded[1] ?? '';
         if ($table === '' || $table === '0') {
-            user_error('no table has been specified', E_USER_WARNING);
+            $this->printString('no table has been specified');
+            return;
         }
 
         if ($field === '' || $field === '0') {
-            user_error('no field has been specified', E_USER_WARNING);
+            $this->printString('no field has been specified');
+            return;
         }
 
         if ($this->deleteField($table, $field)) {
@@ -206,13 +236,12 @@ class DataIntegrityTest extends BuildTask
             $this->printString(sprintf('COULD NOT delete %s from %s now', $field, $table), 'deleted');
         }
 
-        $this->printString('<a href="' . Director::absoluteURL('dev/tasks/dataintegritytest/?do=obsoletefields') . '">return to list of obsolete fields</a>', 'created');
         $this->printLink('', 'back to main menu.');
     }
 
     protected function Link()
     {
-        return '/dev/tasks/' . $this->Config()->get('segment');
+        return '/dev/tasks/' . static::$commandName;
     }
 
     protected function obsoletefields($deleteSafeOnes = false, $deleteAll = false)
@@ -254,9 +283,9 @@ class DataIntegrityTest extends BuildTask
                 $diff2 = array_diff($requiredFields, $existingFields);
 
                 if ($diff === [] && $diff2 === []) {
-                    $this->printString('<b style="color: #000">' . $tableName . '</b> ... OK', 'created');
+                    $this->printString($tableName . ' ... OK', 'created');
                 } else {
-                    $this->printString('<b style="color: #000">' . $tableName . '</b> ...');
+                    $this->printString($tableName . ' ...');
                     foreach ($diff as $field) {
                         $this->printString(
                             sprintf('**** %s.%s EXIST BUT IT SHOULD NOT BE THERE!', $tableName, $field),
@@ -345,7 +374,6 @@ class DataIntegrityTest extends BuildTask
 
                     //many 2 many tables...
                     if (strpos((string) $tmpTable, '_')) {
-                        // $class = explode('_', $tmpTable);
                         $manyManyClassShort = substr((string) $tmpTable, 0, strrpos((string) $tmpTable, '_'));
                         $manyManyRelName = substr((string) $tmpTable, strrpos((string) $tmpTable, '_') + 1 - strlen((string) $tmpTable));
                         $manyManyClass = '';
@@ -362,7 +390,7 @@ class DataIntegrityTest extends BuildTask
                                 $remove = false;
                             }
                         } else {
-                            echo 'ERROR: could not find class "' . $manyManyClass . '"';
+                            $this->printString('ERROR: could not find class "' . $manyManyClass . '"');
                         }
                     }
                 }
@@ -388,7 +416,7 @@ class DataIntegrityTest extends BuildTask
                                 $this->printString($tmpTable . ' - ' . $classExistsMessage . ' It can be moved to _obsolete_' . $tmpTable . '.', 'created');
                             }
                         } else {
-                            $this->printString(sprintf('... We recommend to move <strong>%s</strong> to <strong>', $tmpTable) . $obsoleteTableName . '</strong>, but that table already exists', 'deleted');
+                            $this->printString(sprintf('... We recommend to move %s to %s, but that table already exists', $tmpTable, $obsoleteTableName), 'deleted');
                         }
                     } elseif ($removeTableAltogether) {
                         $this->printString(sprintf('... Deleting %s altogether', $tmpTable), 'deleted');
@@ -399,7 +427,7 @@ class DataIntegrityTest extends BuildTask
                         $this->printString($tmpTable . ' - ' . $classExistsMessage . ' It can be moved to _obsolete_' . $tmpTable . '.', 'created');
                     }
                 } else {
-                    $this->printString('<strong>' . $tmpTable . '</strong> based on ' . $tmpDataClass . ' ... OK', 'created');
+                    $this->printString($tmpTable . ' based on ' . $tmpDataClass . ' ... OK', 'created');
                 }
             }
         }
@@ -422,7 +450,8 @@ class DataIntegrityTest extends BuildTask
 
     private function cleanupdb()
     {
-        $obj = DatabaseAdmin::create();
+        // @TODO (SS6 upgrade): DatabaseAdmin::create()->cleanup() — check if DatabaseAdmin still exists.
+        $obj = \SilverStripe\Dev\DatabaseAdmin::create();
         $obj->cleanup();
         $this->printString('============= COMPLETED =================', '');
         $this->printLink('', 'back to main menu.');
@@ -515,7 +544,7 @@ class DataIntegrityTest extends BuildTask
                     $toField = $relDef['to'] ?? null;
 
                     if (! $throughClass || ! $fromField || ! $toField) {
-                        DB::alteration_message(sprintf('⚠️ Skipping %s.%s — incomplete many_many_through definition', $class, $relName), 'deleted');
+                        $this->printString(sprintf('Skipping %s.%s — incomplete many_many_through definition', $class, $relName), 'deleted');
                         continue;
                     }
 
@@ -545,17 +574,17 @@ class DataIntegrityTest extends BuildTask
                 $parentTable = $schema->baseDataTable($class);
                 $childTable = $schema->baseDataTable($relClass);
 
-                DB::alteration_message(sprintf('Checking %s (%s ⇄ %s)', $joinTable, $class, $relClass));
+                $this->printString(sprintf('Checking %s (%s <> %s)', $joinTable, $class, $relClass));
 
                 // --- Delete orphaned parent links ---
                 $sql1 = <<<SQL
 DELETE FROM "{$joinTable}"
 WHERE "{$parentField}" NOT IN (SELECT "ID" FROM "{$parentTable}")
 SQL;
-                $this->debug ? print ($sql1 . PHP_EOL) : DB::query($sql1);
+                $this->debug ? $this->printString($sql1) : DB::query($sql1);
                 $removed1 = DB::affected_rows();
                 if ($removed1 > 0) {
-                    DB::alteration_message(sprintf('- Removed %d orphaned parent links', $removed1));
+                    $this->printString(sprintf('- Removed %d orphaned parent links', $removed1));
                 }
 
                 // --- Delete orphaned child links ---
@@ -563,10 +592,10 @@ SQL;
 DELETE FROM "{$joinTable}"
 WHERE "{$childField}" NOT IN (SELECT "ID" FROM "{$childTable}")
 SQL;
-                $this->debug ? print ($sql2 . PHP_EOL) : DB::query($sql2);
+                $this->debug ? $this->printString($sql2) : DB::query($sql2);
                 $removed2 = DB::affected_rows();
                 if ($removed2 > 0) {
-                    DB::alteration_message(sprintf('- Removed %d orphaned child links', $removed2));
+                    $this->printString(sprintf('- Removed %d orphaned child links', $removed2));
                 }
             }
         }
@@ -682,7 +711,7 @@ SQL;
 
                 if (! in_array($actualField, ['ID', 'Version'], true) && ! in_array($actualField, $requiredFields, true)) {
                     $distinctCount = DB::query(sprintf('SELECT COUNT(DISTINCT "%s") FROM "%s" WHERE "%s" IS NOT NULL ;', $actualField, $tableName, $actualField))->value();
-                    $this->printString("<br /><br />\n\n{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
+                    $this->printString("{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
                     if ($distinctCount) {
                         $rows = DB::query("
                                             SELECT \"{$actualField}\" as N, COUNT(\"{$actualField}\") as C
@@ -692,7 +721,7 @@ SQL;
                                             LIMIT 7");
                         if ($rows) {
                             foreach ($rows as $row) {
-                                $this->printString(' &nbsp; &nbsp; &nbsp; ' . $row['C'] . ': ' . $row['N']);
+                                $this->printString('    ' . $row['C'] . ': ' . $row['N']);
                             }
                         }
                     } else {
@@ -730,7 +759,7 @@ SQL;
 
     protected function printHr()
     {
-        $this->printString('<hr />');
+        $this->printString('---');
     }
 
     protected function printHeader($string, $headerNumber = 1, $style = '')
@@ -740,26 +769,20 @@ SQL;
 
     protected function printString($string, $type = '', ?int $headerNumber = 0, $isInline = false)
     {
-        match ($type) {
-            'error' => $style = 'red',
-            'deleted' => $style = 'red',
-            'warning' => $style = 'orange',
-            'created' => $style = 'green',
-            'info' => $style = 'blue',
-            default => $style = 'black'
+        $prefix = match ($type) {
+            'error', 'deleted' => '[ERROR] ',
+            'warning' => '[WARN]  ',
+            'created' => '[OK]    ',
+            'info' => '[INFO]  ',
+            default => '        '
         };
-        if ($isInline) {
-            $v = '<span style="color:' . $style . '">' . $string . '</span>';
-        } elseif ($headerNumber) {
-            $v = '<h' . $headerNumber . ' style="color:' . $style . '">' . $string . '</h' . $headerNumber . '>';
-        } else {
-            $v = '<p style="color:' . $style . '">' . $string . '</p>';
-        }
 
-        if (Director::is_cli()) {
-            echo strip_tags((string) $string) . "\n";
+        $plain = strip_tags((string) $string);
+
+        if ($headerNumber) {
+            $this->polyOutput->writeln(str_repeat('=', min($headerNumber * 4, 20)) . ' ' . $plain);
         } else {
-            echo $v;
+            $this->polyOutput->writeln($prefix . $plain);
         }
     }
 
@@ -789,7 +812,7 @@ SQL;
                 $sign = ' < ';
             }
 
-            $this->printString(sprintf('The DB Table Row Count != DataObject Count for <strong>%s (%d %s %d)</strong>.', $dataClass, $rawCount, $sign, $realCount), 'deleted');
+            $this->printString(sprintf('The DB Table Row Count != DataObject Count for %s (%d %s %d).', $dataClass, $rawCount, $sign, $realCount), 'deleted');
             $this->printHr();
             if ($tryToFix) {
                 foreach ($diff as $id) {
@@ -841,7 +864,6 @@ SQL;
 
     private function countOrphansSql(string $baseTable, string $liveTable): string
     {
-        // Standard correlated NOT EXISTS: safe across MySQL/Postgres
         return '
             SELECT COUNT(*) AS "Count"
             FROM "' . $liveTable . '" AS "L"
@@ -855,7 +877,6 @@ SQL;
 
     private function deleteOrphansSql(string $baseTable, string $liveTable): string
     {
-        // Standard correlated NOT EXISTS: safe across MySQL/Postgres
         return '
             DELETE FROM "' . $liveTable . '"
             WHERE NOT EXISTS (

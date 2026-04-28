@@ -4,6 +4,7 @@ namespace Sunnysideup\DataIntegrityTest;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Config;
@@ -31,13 +32,34 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
 		and the task gives you the ability to move each field individually as required.
 	';
 
+    protected static string $commandName = 'DataIntegrityMoveFieldUpOrDownClassHierarchy';
+
+    /**
+     * Stored PolyOutput instance for use in helper methods.
+     */
+    protected PolyOutput $polyOutput;
+
+    public function getOptions(): array
+    {
+        return [
+            new InputOption('oldtable', 'o', InputOption::VALUE_REQUIRED, 'Source table/class name to move the field FROM', ''),
+            new InputOption('newtable', 'n', InputOption::VALUE_REQUIRED, 'Destination table/class name to move the field TO', ''),
+            new InputOption('field', 'x', InputOption::VALUE_REQUIRED, 'Field name to move', ''),
+            new InputOption('forreal', 'f', InputOption::VALUE_NONE, 'Execute the move for real (default: dry run / show results)'),
+        ];
+    }
+
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
         ini_set('max_execution_time', 3000);
-        $oldTable = $request->getVar('oldtable');
-        $newTable = $request->getVar('newtable');
-        $field = $request->getVar('field');
-        $forreal = $request->getVar('forreal');
+
+        $this->polyOutput = $output;
+
+        $oldTable = (string) ($input->getOption('oldtable') ?? '');
+        $newTable = (string) ($input->getOption('newtable') ?? '');
+        $field    = (string) ($input->getOption('field') ?? '');
+        $forreal  = (bool) $input->getOption('forreal');
+
         $databaseSchema = DB::get_schema();
         if ($oldTable && $newTable && $field) {
             if (class_exists($oldTable)) {
@@ -47,47 +69,47 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                     $jointFields = array_intersect($oldFields, $newFields);
                     if (in_array($field, $jointFields, true)) {
                         if ($forreal) {
-                            DB::alteration_message(sprintf('Moving %s from %s to %s', $field, $oldTable, $newTable), 'deleted');
+                            $output->writeForHtml(sprintf('Moving %s from %s to %s', $field, $oldTable, $newTable));
                             $sql = '
-								UPDATE "' . $newTable . '"
-									INNER JOIN "' . $oldTable . '"
-									 ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
-								SET "' . $newTable . '"."' . $field . '" = "' . $oldTable . '"."' . $field . '"
-								WHERE
-									"' . $newTable . '"."' . $field . '" = 0 OR
-									"' . $newTable . '"."' . $field . '" IS NULL OR
-									"' . $newTable . '"."' . $field . "\" = '0.00' OR
-									\"" . $newTable . '"."' . $field . "\" = ''
-									;";
+							UPDATE "' . $newTable . '"
+								INNER JOIN "' . $oldTable . '"
+								 ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
+							SET "' . $newTable . '"."' . $field . '" = "' . $oldTable . '"."' . $field . '"
+							WHERE
+								"' . $newTable . '"."' . $field . '" = 0 OR
+								"' . $newTable . '"."' . $field . '" IS NULL OR
+								"' . $newTable . '"."' . $field . "\" = '0.00' OR
+								\"" . $newTable . '"."' . $field . "\" = ''
+								;";
                             DB::query($sql);
                             $sql = '
-								INSERT IGNORE INTO "' . $newTable . "\" (ID, \"{$field}\")
-								SELECT \"" . $oldTable . '".ID, "' . $oldTable . "\".\"{$field}\"
-								FROM \"" . $oldTable . '"
-									LEFT JOIN "' . $newTable . '"
-									 ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
-								WHERE
-									"' . $newTable . '"."ID" IS NULL
-									;';
+							INSERT IGNORE INTO "' . $newTable . "\" (ID, \"{$field}\")
+							SELECT \"" . $oldTable . '".ID, "' . $oldTable . "\".\"{$field}\"
+							FROM \"" . $oldTable . '"
+								LEFT JOIN "' . $newTable . '"
+								 ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
+							WHERE
+								"' . $newTable . '"."ID" IS NULL
+								;';
                             DB::query($sql);
                             $this->deleteField($oldTable, $field);
                         } else {
-                            DB::alteration_message(sprintf('TESTING a move of %s from %s to %s', $field, $oldTable, $newTable));
+                            $output->writeForHtml(sprintf('TESTING a move of %s from %s to %s', $field, $oldTable, $newTable));
                             $sql = '
-								SELECT
-									COUNT("' . $newTable . '"."ID") AS C
-									FROM "' . $oldTable . '"
-										INNER JOIN "' . $newTable . '"
-										ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
-									;';
+							SELECT
+								COUNT("' . $newTable . '"."ID") AS C
+								FROM "' . $oldTable . '"
+									INNER JOIN "' . $newTable . '"
+									ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
+								;';
                             $matchingRowCount = DB::query($sql)->value();
                             $sql = '
-								SELECT
-									"' . $newTable . '"."ID"
-									FROM "' . $oldTable . '"
-										INNER JOIN "' . $newTable . '"
-										ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
-									;';
+							SELECT
+								"' . $newTable . '"."ID"
+								FROM "' . $oldTable . '"
+									INNER JOIN "' . $newTable . '"
+									ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
+								;';
                             $rows = DB::query($sql);
                             $matchingRows = [];
                             foreach ($rows as $row) {
@@ -95,63 +117,63 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                             }
 
                             $sql = '
-								SELECT
-									"' . $newTable . '"."ID",
-									"' . $newTable . '"."' . $field . '" AS NEW' . $field . ',
-									"' . $oldTable . '"."' . $field . '" AS OLD' . $field . '
-									FROM "' . $oldTable . '"
-										INNER JOIN "' . $newTable . '"
-										ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
-								WHERE
-									(
-										"' . $newTable . '"."' . $field . '" <> "' . $oldTable . '"."' . $field . '"
-									)
-									OR
-									(
-										("' . $newTable . '"."' . $field . '" IS NULL AND "' . $oldTable . '"."' . $field . '" IS NOT NULL)
-										 OR
-										("' . $newTable . '"."' . $field . '" IS NOT NULL AND "' . $oldTable . '"."' . $field . '" IS NULL)
-									)
-									;';
+							SELECT
+								"' . $newTable . '"."ID",
+								"' . $newTable . '"."' . $field . '" AS NEW' . $field . ',
+								"' . $oldTable . '"."' . $field . '" AS OLD' . $field . '
+								FROM "' . $oldTable . '"
+									INNER JOIN "' . $newTable . '"
+									ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
+							WHERE
+								(
+									"' . $newTable . '"."' . $field . '" <> "' . $oldTable . '"."' . $field . '"
+								)
+								OR
+								(
+									("' . $newTable . '"."' . $field . '" IS NULL AND "' . $oldTable . '"."' . $field . '" IS NOT NULL)
+									 OR
+									("' . $newTable . '"."' . $field . '" IS NOT NULL AND "' . $oldTable . '"."' . $field . '" IS NULL)
+								)
+								;';
                             $rows = DB::query($sql);
                             if ($rows->numRecords()) {
-                                echo sprintf('<h3>DIFFERENCES in MATCHING ROWS (%s)</h3><table border="1"><thead><tr><th>ID</th><th>OLD</th><th>NEW</th><th>ACTION</th></tr></thead><tbody>', $matchingRowCount);
+                                $output->writeForHtml(sprintf('<h3>DIFFERENCES in MATCHING ROWS (%s)</h3><table border="1"><thead><tr><th>ID</th><th>OLD</th><th>NEW</th><th>ACTION</th></tr></thead><tbody>', $matchingRowCount));
                                 foreach ($rows as $row) {
                                     $action = 'do nothing';
                                     if (! $row['NEW' . $field] || $row['NEW' . $field] === '0.00') {
                                         $action = 'override';
                                     }
 
-                                    echo '<tr><td>' . $row['ID'] . '</td><td>' . $row['OLD' . $field] . '</td><td>' . $row['NEW' . $field] . '</td><td>' . $action . '</td></tr>';
+                                    $output->writeForHtml('<tr><td>' . $row['ID'] . '</td><td>' . $row['OLD' . $field] . '</td><td>' . $row['NEW' . $field] . '</td><td>' . $action . '</td></tr>');
                                 }
 
-                                echo '</tbody></table>';
+                                $output->writeForHtml('</tbody></table>');
                             } else {
-                                echo '<p>No differences!</p>';
+                                $output->writeForHtml('<p>No differences!</p>');
                             }
 
                             $sql = '
-								SELECT
-									COUNT("' . $oldTable . '"."ID") AS C
-									FROM "' . $oldTable . '"
-										LEFT JOIN "' . $newTable . '"
-										ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
-									WHERE "' . $newTable . '"."ID" IS NULL;
-									;';
+							SELECT
+								COUNT("' . $oldTable . '"."ID") AS C
+								FROM "' . $oldTable . '"
+									LEFT JOIN "' . $newTable . '"
+									ON "' . $newTable . '"."ID" = "' . $oldTable . '"."ID"
+								WHERE "' . $newTable . '"."ID" IS NULL;
+								;';
                             $nonMatchingRowCount = DB::query($sql)->value();
-                            echo '<h3>Number of rows to insert: ' . $nonMatchingRowCount . '</h3>';
-                            echo '<h2><a href="' . $this->Link() . sprintf('?oldtable=%s&newtable=%s&field=%s&forreal=1">move now!</a></h2>', $oldTable, $newTable, $field);
+                            $output->writeForHtml('<h3>Number of rows to insert: ' . $nonMatchingRowCount . '</h3>');
+                            $output->writeForHtml('<h2>Run with --forreal to move now!</h2>');
                         }
                     }
                 } else {
-                    user_error('Field is not in both tables.  We recommend that you run a <em>dev/build</em> first as this may solve the problem....');
+                    $output->writeln('Field is not in both tables. We recommend that you run a dev/build first as this may solve the problem....');
                 }
             } else {
-                user_error('Specificy valid oldtable using get var');
+                $output->writeln('Specify valid oldtable using --oldtable option');
             }
         }
 
-        echo '<hr />';
+        $output->writeForHtml('<hr />');
         $tablesToCheck = DB::query('SHOW tables');
         $array = [];
         $completed = [];
@@ -193,10 +215,9 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                                     fn($val) => $val . 'ID',
                                     $hasOneArray
                                 );
-                                //$modelFields1 = array_keys((array)Injector::inst()->get($testTable1)->db()) + array_keys((array)Injector::inst()->get($testTable1)->has_one());
                                 foreach ($interSect as $moveableField) {
                                     if (in_array($moveableField, $modelFields1, true)) {
-                                        $link['movetoparent'][$moveableField] = '<a href="' . $this->Link() . sprintf('?oldtable=%s&newtable=%s&field=%s">move from %s into %s</a>', $testTable2, $testTable1, $moveableField, $testTable2, $testTable1);
+                                        $link['movetoparent'][$moveableField] = sprintf('move from %s into %s: sake tasks:' . static::$commandName . ' --oldtable=%s --newtable=%s --field=%s', $testTable2, $testTable1, $testTable2, $testTable1, $moveableField);
                                     }
                                 }
                             }
@@ -209,42 +230,36 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
                                     fn($val) => $val . 'ID',
                                     $hasOneArray
                                 );
-                                //$modelFields2 = array_keys((array)Injector::inst()->get($testTable2)->db()) + array_keys((array)Injector::inst()->get($testTable2)->has_one());
                                 foreach ($interSect as $moveableField) {
                                     if (in_array($moveableField, $modelFields2, true)) {
-                                        $link['movetochild'][$moveableField] = '<a href="' . $this->Link() . sprintf('?oldtable=%s&newtable=%s&field=%s">move from %s  into %s</a>', $testTable1, $testTable2, $moveableField, $testTable1, $testTable2);
+                                        $link['movetochild'][$moveableField] = sprintf('move from %s into %s: sake tasks:' . static::$commandName . ' --oldtable=%s --newtable=%s --field=%s', $testTable1, $testTable2, $testTable1, $testTable2, $moveableField);
                                     }
                                 }
                             }
 
-                            $str = sprintf('%s &lt;&gt; %s<br /><ul>', $testTable1, $testTable2);
+                            $str = sprintf('%s <> %s', $testTable1, $testTable2) . PHP_EOL;
                             foreach ($interSect as $moveableField) {
-                                $str .= sprintf('<li>%s: ', $moveableField);
+                                $str .= sprintf('  %s:', $moveableField);
 
                                 if (isset($link['movetoparent'][$moveableField])) {
-                                    $str .= $link['movetoparent'][$moveableField];
-                                }
-
-                                if (isset($link['movetoparent'][$moveableField]) && isset($link['movetochild'][$moveableField])) {
-                                    $str .= ' ||| ';
+                                    $str .= ' ' . $link['movetoparent'][$moveableField];
                                 }
 
                                 if (isset($link['movetochild'][$moveableField])) {
-                                    $str .= $link['movetochild'][$moveableField];
+                                    $str .= ' | ' . $link['movetochild'][$moveableField];
                                 }
 
-                                $str .= '</li>';
+                                $str .= PHP_EOL;
                             }
 
-                            $str .= '</ul>';
-                            DB::alteration_message($str);
+                            $output->writeln($str);
                         }
                     }
                 }
             }
         }
 
-        echo '<h1>======================== THE END ====================== </h1>';
+        $output->writeln('======================== THE END ======================');
         return Command::SUCCESS;
     }
 
@@ -253,7 +268,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
      */
     protected function Link()
     {
-        return '/dev/tasks/DataIntegrityMoveFieldUpOrDownClassHierarchy/';
+        return '/dev/tasks/' . static::$commandName . '/';
     }
 
     /**
@@ -267,29 +282,29 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
         $databaseSchema = DB::get_schema();
         $fields = array_keys($databaseSchema->fieldList($table));
         if (! DB::query("SHOW TABLES LIKE '" . $table . "'")->value()) {
-            DB::alteration_message(sprintf('tried to delete %s.%s but TABLE does not exist', $table, $field), 'deleted');
+            $this->polyOutput->writeln(sprintf('tried to delete %s.%s but TABLE does not exist', $table, $field));
             return false;
         }
 
         if (! class_exists($table)) {
-            DB::alteration_message(sprintf('tried to delete %s.%s but CLASS does not exist', $table, $field), 'deleted');
+            $this->polyOutput->writeln(sprintf('tried to delete %s.%s but CLASS does not exist', $table, $field));
             return false;
         }
 
         if (! in_array($field, $fields, true)) {
-            DB::alteration_message(sprintf('tried to delete %s.%s but FIELD does not exist', $table, $field), 'deleted');
+            $this->polyOutput->writeln(sprintf('tried to delete %s.%s but FIELD does not exist', $table, $field));
             return false;
         }
 
-        DB::alteration_message(sprintf('Deleting %s in %s', $field, $table), 'deleted');
+        $this->polyOutput->writeln(sprintf('Deleting %s in %s', $field, $table));
         DB::query('ALTER TABLE "' . $table . '" DROP "' . $field . '";');
         $obj = singleton($table);
         //to do: make this more reliable - checking for versioning rather than SiteTree
         if ($obj instanceof SiteTree) {
             DB::query('ALTER TABLE "' . $table . '_Live" DROP "' . $field . '";');
-            DB::alteration_message(sprintf('Deleted %s in %s_Live', $field, $table), 'deleted');
+            $this->polyOutput->writeln(sprintf('Deleted %s in %s_Live', $field, $table));
             DB::query('ALTER TABLE "' . $table . 'Versions" DROP "' . $field . '";');
-            DB::alteration_message(sprintf('Deleted %s in %s_Versions', $field, $table), 'deleted');
+            $this->polyOutput->writeln(sprintf('Deleted %s in %s_Versions', $field, $table));
         }
 
         return true;

@@ -6,10 +6,10 @@ namespace Sunnysideup\DataIntegrityTest;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use SilverStripe\PolyExecution\PolyOutput;
 use DateInterval;
 use DateTimeImmutable;
-use SilverStripe\Control\Director;
 use SilverStripe\Core\Convert;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
@@ -20,26 +20,34 @@ final class CleanOldChangeSetsTask extends BuildTask
 {
     protected string $title = 'Clean Old ChangeSets and ChangeSetItems';
 
-    protected static string $description = 'Deletes ChangeSets and ChangeSetItems older than X days, or shows monthly stats if not run with ?forreal=1';
+    protected static string $description = 'Deletes ChangeSets and ChangeSetItems older than X days, or shows monthly stats if not run with --forreal';
 
     private static int $monthsToShow = 240;
 
     protected static string $commandName = 'cleanoldchangesetstask';
 
+    public function getOptions(): array
+    {
+        return [
+            new InputOption('days', 'd', InputOption::VALUE_REQUIRED, 'Number of days to keep (delete older than this)', 90),
+            new InputOption('forreal', 'f', InputOption::VALUE_NONE, 'Actually delete records (default: show stats only)'),
+        ];
+    }
+
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
-        $days = (int) ($request->getVar('days') ?? 90);
-        $forReal = (bool) $request->getVar('forreal');
+        $days = (int) ($input->getOption('days') ?? 90);
+        $forReal = (bool) $input->getOption('forreal');
         if (! $forReal) {
-            $this->showStats();
+            $this->showStats($output);
             return Command::SUCCESS;
         }
 
-        $this->deleteOldRecords($days);
+        $this->deleteOldRecords($days, $output);
         return Command::SUCCESS;
     }
 
-    private function deleteOldRecords(int $days): void
+    private function deleteOldRecords(int $days, PolyOutput $output): void
     {
         $cutoffDate = (new DateTimeImmutable())
             ->sub(new DateInterval('P' . $days . 'D'))
@@ -53,7 +61,7 @@ final class CleanOldChangeSetsTask extends BuildTask
         $setCount = ChangeSet::get()->filter(['LastEdited:LessThan' => $cutoffDate])
             ->count();
 
-        $this->printHelper(sprintf('Deleting %d ChangeSetItems and %d ChangeSets older than %d days...', $itemCount, $setCount, $days));
+        $output->writeln(sprintf('Deleting %d ChangeSetItems and %d ChangeSets older than %d days...', $itemCount, $setCount, $days));
 
         if ($itemCount > 0) {
             DB::query(
@@ -66,16 +74,14 @@ final class CleanOldChangeSetsTask extends BuildTask
                 'DELETE FROM "ChangeSet" WHERE "Created" < \'' . $safeCutoff . "'"
             );
         }
-
-        $this->printHelper('Done.');
     }
 
-    private function showStats(): void
+    private function showStats(PolyOutput $output): void
     {
-        $this->printHelper('Showing ChangeSet and ChangeSetItem creation stats (last ' . self::$monthsToShow . ' months)');
+        $output->writeln('Showing ChangeSet and ChangeSetItem creation stats (last ' . self::$monthsToShow . ' months)');
 
         foreach (['ChangeSet', 'ChangeSetItem'] as $table) {
-            $this->printHelper(strtoupper($table) . ':');
+            $output->writeln(strtoupper($table) . ':');
 
             $sql = '
                 SELECT
@@ -98,22 +104,12 @@ final class CleanOldChangeSetsTask extends BuildTask
 
             foreach ($data as $month => $count) {
                 $bar = str_repeat('█', (int) (50 * $count / max(1, $max)));
-                $this->printHelper(sprintf('%s: %s ', $month, $bar) . number_format($count) . '');
+                $output->writeln(sprintf('%s: %s ', $month, $bar) . number_format($count));
             }
 
-            $this->printHelper('');
+            $output->writeln('');
         }
 
-        $add = Director::is_cli() ? 'forreal=1 days=90' : '?forreal=1&days=90';
-        $this->printHelper(sprintf('ADD: %s to actually delete records older than 90 days.', $add));
-    }
-
-    private function printHelper(string $message): void
-    {
-        if (Director::is_cli()) {
-            echo $message . "\n";
-        } else {
-            echo '<p style="font-family: monospace;">' . htmlspecialchars($message) . '</p>';
-        }
+        $output->writeln('Run with --forreal --days=90 to actually delete records older than 90 days.');
     }
 }

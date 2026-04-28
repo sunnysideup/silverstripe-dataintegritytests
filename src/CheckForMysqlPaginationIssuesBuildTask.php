@@ -4,6 +4,7 @@ namespace Sunnysideup\DataIntegrityTest;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
@@ -45,56 +46,52 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected static string $commandName = 'checkformysqlpaginationissuesbuildtask';
 
+    /**
+     * Stored PolyOutput instance for use in helper methods.
+     */
+    protected PolyOutput $polyOutput;
+
+    public function getOptions(): array
+    {
+        return [
+            new InputOption('limit', 'l', InputOption::VALUE_REQUIRED, 'Maximum number of rows to iterate per table', 100),
+            new InputOption('step', 's', InputOption::VALUE_REQUIRED, 'Step size for pagination chunks', 15),
+            new InputOption('debug', null, InputOption::VALUE_NONE, 'Enable debug output'),
+            new InputOption('quick', 'q', InputOption::VALUE_NONE, 'Use quick-and-dirty raw SQL mode'),
+            new InputOption('table', 't', InputOption::VALUE_REQUIRED, 'Test a single specific class/table', ''),
+        ];
+    }
+
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
         // give us some time to run this
         ini_set('max_execution_time', 3000);
-        $classes = ClassInfo::subclassesFor(DataObject::class, false);
-        $array = [
-            'l' => 'limit',
-            's' => 'step',
-            'd' => 'debug',
-            'q' => 'quickAndDirty',
-            't' => 'testClassCustom',
-        ];
-        foreach ($array as $getParam => $field) {
-            if (isset($_GET[$getParam])) {
-                $v = $_GET[$getParam];
-                switch ($getParam) {
-                    case 't':
-                        if (in_array($v, $classes, true)) {
-                            $this->{$field} = $v;
-                        }
 
-                        break;
-                    default:
-                        $this->{$field} = intval($v);
-                }
-            }
+        $this->polyOutput = $output;
+        $classes = ClassInfo::subclassesFor(DataObject::class, false);
+
+        $this->limit        = (int) ($input->getOption('limit') ?? 100);
+        $this->step         = (int) ($input->getOption('step') ?? 15);
+        $this->debug        = (bool) $input->getOption('debug');
+        $this->quickAndDirty = (bool) $input->getOption('quick');
+        $testClassCustom    = (string) ($input->getOption('table') ?? '');
+        if ($testClassCustom && in_array($testClassCustom, $classes, true)) {
+            $this->testClassCustom = $testClassCustom;
         }
 
-        $this->flushNowQuick('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
-        $this->flushNow('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>', 'notice');
-        $this->flushNow(
-            '
-                We run through all the summary fields for all dataobjects and select <i>limits</i> (segments) of the datalist.
-                After that we check if the same ID shows up on different segments.
-                If there are duplicates then Pagination may break if a list is paginated and sorted by that field.
-            ',
-            'notice'
-        );
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SETTINGS </h2><hr /><hr /><hr /><hr />');
-        $this->flushNow('
-            <form method="get" action="/dev/tasks/CheckForMysqlPaginationIssuesBuildTask">
-                <br /><br />test table:<br /><input name="t" placeholder="e.g. SiteTree" value="' . $this->testClassCustom . '" />
-                <br /><br />limit:<br /><input name="l" placeholder="limit" value="' . $this->limit . '" />
-                <br /><br />step:<br /><input name="s" placeholder="step" value="' . $this->step . '" />
-                <br /><br />debug:<br /><select name="d" placeholder="debug" /><option value="0">false</option><option value="1" ' . ($this->debug ? 'selected="selected"' : '') . '>true</option></select>
-                <br /><br />quick:<br /><select name="q" placeholder="quick" /><option value="0">false</option><option value="1" ' . ($this->quickAndDirty ? ' selected="selected"' : '') . '>true</option></select>
-                <br /><br /><input type="submit" value="run again with variables above" />
-            </form>
+        $output->writeForHtml('<style>li {list-style: none!important;}h2.group{text-align: center;}</style>');
+        $output->writeForHtml('<h3>Scroll down to bottom to see results. Output ends with <i>END</i></h3>');
+        $output->writeForHtml('
+            We run through all the summary fields for all dataobjects and select <i>limits</i> (segments) of the datalist.
+            After that we check if the same ID shows up on different segments.
+            If there are duplicates then Pagination may break if a list is paginated and sorted by that field.
         ');
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">CALCULATIONS </h2><hr /><hr /><hr /><hr />');
+        $output->writeForHtml('<hr /><h2 class="group">SETTINGS</h2><hr />');
+        $output->writeForHtml('
+            <p>limit: ' . $this->limit . ' | step: ' . $this->step . ' | debug: ' . ($this->debug ? 'true' : 'false') . ' | quick: ' . ($this->quickAndDirty ? 'true' : 'false') . ' | table: ' . ($this->testClassCustom ?: '(all)') . '</p>
+        ');
+        $output->writeForHtml('<hr /><h2 class="group">CALCULATIONS</h2><hr />');
+
         // array of errors
         $errors = [];
         $largestClass = '';
@@ -119,7 +116,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             $schema = $obj->getSchema();
             $tableName = $schema->tableName($class);
             // must exist is its own table to avoid doubling-up on tests
-            // e.g. test SiteTree and Page where Page is not its own table ...
             if ($this->tableExists($tableName)) {
                 $this->timePerClass[$tableName] = [];
                 $this->timePerClass[$tableName]['start'] = microtime(true);
@@ -140,20 +136,18 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                         $largestClass = $class;
                     }
 
-                    $this->flushNowQuick('<br />' . $tableName . ': ');
+                    $output->write('<br />' . $tableName . ': ');
                     if (! isset($errors[$tableName])) {
                         $errors[$tableName] = [];
                     }
 
                     // get fields ...
-
                     $dbFields = $obj->Config()->get('db');
                     if (! is_array($dbFields)) {
                         $dbFields = [];
                     }
 
                     // adding base fields.
-                    // we do not add ID as this should work!
                     $dbFields['ClassName'] = 'ClassName';
                     $dbFields['Created'] = 'Created';
                     $dbFields['LastEdited'] = 'LastEdited';
@@ -167,7 +161,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
                     $summaryFields = $obj->summaryFields();
                     foreach (array_keys($summaryFields) as $field) {
                         if (isset($dbFields[$field]) || isset($hasOneFields[$field])) {
-                            $this->flushNowQuick(' / ' . $field . ': ');
+                            $output->write(' / ' . $field . ': ');
                             // reset comparisonArray - this is important ...
                             $comparisonArray = [];
                             //fix has one field
@@ -195,7 +189,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
                                                 $errors[$tableName][$field][$id]++;
                                             } else {
-                                                $this->flushNowQuick('.');
+                                                $output->write('.');
                                             }
 
                                             $comparisonArray[$id] = $id;
@@ -217,7 +211,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
                                             $errors[$tableName][$field][$id]++;
                                         } else {
-                                            $this->flushNowQuick('.');
+                                            $output->write('.');
                                         }
 
                                         $comparisonArray[$tempObject->ID] = $tempObject->ID;
@@ -249,34 +243,37 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             }
         }
 
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">RESULTS </h2><hr /><hr /><hr /><hr />');
+        $output->writeForHtml('<hr /><h2 class="group">RESULTS</h2><hr />');
         //print out errors again ...
         foreach ($errors as $tableName => $fieldValues) {
-            $this->flushNow('<h4>' . $tableName . '</h4>');
+            $output->writeForHtml('<h4>' . $tableName . '</h4>');
             $time = round(($this->timePerClass[$tableName]['end'] - $this->timePerClass[$tableName]['start']) * 1000);
-            $this->flushNow('Time taken: ' . $time . 'μs');
+            $output->writeln('Time taken: ' . $time . 'μs');
             $errorCount = 0;
             // key is field
             foreach ($fieldValues as $errorMessage) {
                 if (is_string($errorMessage) && $errorMessage) {
                     $errorCount++;
-                    $this->flushNow($errorMessage, 'deleted');
+                    $output->writeForHtml($errorMessage);
                 }
             }
 
             if ($errorCount === 0) {
-                $this->flushNow('No errors', 'created');
+                $output->writeln('No errors');
             }
         }
 
         if ($this->testClassCustom) {
             $largestClass = $this->testClassCustom;
         } elseif (! $largestClass) {
-            $largestClass = $class;
+            $largestClass = $class ?? '';
         }
 
-        $this->speedComparison($largestClass);
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
+        if ($largestClass) {
+            $this->speedComparison($largestClass);
+        }
+
+        $output->writeForHtml('<hr /><h2 class="group">END</h2><hr />');
         return Command::SUCCESS;
     }
 
@@ -289,26 +286,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected function flushNow($error, $style = '')
     {
-        DB::alteration_message($error, $style);
-        $this->flushToBrowser();
-    }
-
-    protected function flushNowQuick($msg)
-    {
-        echo $msg;
-        $this->flushToBrowser();
-    }
-
-    protected function flushToBrowser()
-    {
-        // check that buffer is actually set before flushing
-        if (ob_get_length()) {
-            @ob_flush();
-            @flush();
-            @ob_end_flush();
-        }
-
-        @ob_start();
+        $this->polyOutput->writeForHtml($error);
     }
 
     protected function tableExists($table)
@@ -319,42 +297,35 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
     protected function speedComparison($className)
     {
-
-        $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">SPEED COMPARISON FOR ' . $className . ' with ' . $className::get()->count() . ' records</h2><hr /><hr /><hr /><hr />');
+        $this->flushNow('<hr /><h2 class="group">SPEED COMPARISON FOR ' . $className . ' with ' . $className::get()->count() . ' records</h2><hr />');
         $testSeq = ['A', 'B', 'C', 'C', 'B', 'A'];
         shuffle($testSeq);
-        $this->flushNow('Test sequence: ' . print_r(implode(', ', $testSeq)));
+        $this->flushNow('Test sequence: ' . implode(', ', $testSeq));
         $testAResult = 0;
         $testBResult = 0;
         $testCResult = 0;
         $isFirstRound = false;
+        $defaultSortField = '';
         foreach ($testSeq as $testIndex => $testLetter) {
             if ($testIndex > 2) {
                 $isFirstRound = true;
             }
 
-            $defaultSortField = '';
             if ($testLetter === 'A') {
                 $objects = $className::get();
-
                 $testAResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'B') {
                 $objects = $className::get()->sort(['ID' => 'ASC']);
-
                 $testBResult += $this->runObjects($objects, $className, $isFirstRound);
             }
 
             if ($testLetter === 'C') {
                 $defaultSortField = Config::inst()->get($className, 'default_sort');
-
                 Config::modify()->set($className, 'default_sort', null);
-
                 $objects = $className::get();
-
                 $testCResult += $this->runObjects($objects, $className, $isFirstRound);
-
                 Config::modify()->set($className, 'default_sort', $defaultSortField);
             }
         }
@@ -386,7 +357,6 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
             $start = microtime(true);
             foreach ($objects as $object) {
-
                 $this->flushNowDebug($className . ' with ID = ' . $object->ID . ' (not sorted)');
             }
 
