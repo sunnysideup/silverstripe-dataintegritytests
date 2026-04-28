@@ -32,7 +32,7 @@ final class CleanOldChangeSetsTask extends BuildTask
         $forReal = (bool) $request->getVar('forreal');
         if (! $forReal) {
             $this->showStats();
-            return;
+            return Command::SUCCESS;
         }
 
         $this->deleteOldRecords($days);
