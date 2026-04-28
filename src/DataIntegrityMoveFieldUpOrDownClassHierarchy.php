@@ -2,8 +2,9 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use SilverStripe\Console\PolyOutput;
+use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
@@ -22,7 +23,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = '
+    protected static string $description = '
 		This is useful in case you change the hierarchy of classes
 		and as a consequence your data ends up in the wrong table.
 		To run this task you will first need to run a dev/build -
@@ -244,7 +245,7 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
         }
 
         echo '<h1>======================== THE END ====================== </h1>';
-        return 0;
+        return Command::SUCCESS;
     }
 
     /**

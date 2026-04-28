@@ -2,8 +2,9 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use SilverStripe\Console\PolyOutput;
+use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 
@@ -19,7 +20,7 @@ class DataIntegrityTestInnoDB extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = 'Converts table to innoDB. CAREFUL: replaces all tables in Database to innoDB - not just the Silverstripe ones.';
+    protected static string $description = 'Converts table to innoDB. CAREFUL: replaces all tables in Database to innoDB - not just the Silverstripe ones.';
 
     protected static string $commandName = 'dataintegritytestinnodb';
 
@@ -75,7 +76,7 @@ SELECT CEILING(Total_InnoDB_Bytes*1.6/POWER(1024,3)) RIBPS FROM
 		but it should be set to ' . round($innoBDBufferRecommended, 3) . 'G.
 		The current setting is: ' . round($currentInnoDBSetting / (1042 * 1024 * 1024)) . 'G
 		<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
-        return 0;
+        return Command::SUCCESS;
     }
 
     private function flushNow()

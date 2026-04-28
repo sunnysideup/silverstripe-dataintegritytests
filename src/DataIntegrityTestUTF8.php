@@ -2,8 +2,9 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use SilverStripe\Console\PolyOutput;
+use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\Connect\MySQLDatabase;
@@ -21,7 +22,7 @@ class DataIntegrityTestUTF8 extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = '
+    protected static string $description = '
         Converts table to utf-8 by replacing a bunch of characters that show up in the Silverstripe Conversion.
         CAREFUL: replaces all tables in Database to utf-8!';
 
@@ -89,7 +90,7 @@ class DataIntegrityTestUTF8 extends BuildTask
         }
 
         DB::alteration_message('<hr /><hr /><hr /><hr /><hr /><hr /><hr />COMPLETED<hr /><hr /><hr /><hr /><hr /><hr /><hr />');
-        return 0;
+        return Command::SUCCESS;
     }
 
     private function flushNow()

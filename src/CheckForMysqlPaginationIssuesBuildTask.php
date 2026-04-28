@@ -2,8 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use SilverStripe\Console\PolyOutput;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
@@ -13,6 +13,7 @@ use SilverStripe\Dev\TestOnly;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
+use SilverStripe\PolyExecution\PolyOutput;
 
 class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 {
@@ -26,7 +27,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = 'Goes through all DataObjects to check if pagination can cause data-errors.';
+    protected static string $description = 'Goes through all DataObjects to check if pagination can cause data-errors.';
 
     protected $limit = 100;
 
@@ -276,7 +277,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
 
         $this->speedComparison($largestClass);
         $this->flushNow('<hr /><hr /><hr /><hr /><h2 class="group">END </h2><hr /><hr /><hr /><hr />');
-        return 0;
+        return Command::SUCCESS;
     }
 
     protected function flushNowDebug($error, $style = '')

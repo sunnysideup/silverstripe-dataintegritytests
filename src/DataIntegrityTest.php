@@ -2,8 +2,9 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use SilverStripe\Console\PolyOutput;
+use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
@@ -35,7 +36,7 @@ class DataIntegrityTest extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = 'Go through all fields in the database and work out what fields are superfluous / obsolete.';
+    protected static string $description = 'Go through all fields in the database and work out what fields are superfluous / obsolete.';
 
     private static $warning = 'are you sure - this step is irreversible! - MAKE SURE TO MAKE A BACKUP OF YOUR DATABASE BEFORE YOU CONFIRM THIS!';
 
@@ -99,7 +100,7 @@ class DataIntegrityTest extends BuildTask
         }
 
         $this->makeMenu();
-        return 0;
+        return Command::SUCCESS;
     }
 
     protected function makeMenu()

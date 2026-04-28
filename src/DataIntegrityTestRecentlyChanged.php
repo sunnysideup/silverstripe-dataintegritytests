@@ -2,8 +2,9 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use SilverStripe\Console\PolyOutput;
+use SilverStripe\PolyExecution\PolyOutput;
 use DateTime;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
@@ -25,7 +26,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
      * standard SS variable
      * @var string
      */
-    protected $description = 'Go through all tables in the database and see what records have been edited in the last xxx minutes.  You can set the minutes using a GET variable (http://www.sunnysideup.co.nz/dev/tasks/DataIntegrityTestRecentlyChanged/?x=123 where 123 is the number of minutes).';
+    protected static string $description = 'Go through all tables in the database and see what records have been edited in the last xxx minutes.  You can set the minutes using a GET variable (http://www.sunnysideup.co.nz/dev/tasks/DataIntegrityTestRecentlyChanged/?x=123 where 123 is the number of minutes).';
 
     protected static string $commandName = 'DataIntegrityTestRecentlyChanged';
 
@@ -100,7 +101,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
 				<label for="m">please enter minutes ago or any date (e.g. last week, yesterday, 2011-11-11, etc...)</label>
 				<input name="m" id="m" value="' . $_GET['m'] . '">
 			</form>';
-        return 0;
+        return Command::SUCCESS;
     }
 
     protected function minutesToTime($minutes)
