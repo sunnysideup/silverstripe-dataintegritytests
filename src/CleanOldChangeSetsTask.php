@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Override;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -26,6 +27,7 @@ final class CleanOldChangeSetsTask extends BuildTask
 
     protected static string $commandName = 'cleanoldchangesetstask';
 
+    #[Override]
     public function getOptions(): array
     {
         return [

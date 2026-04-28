@@ -2,6 +2,7 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Override;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -30,6 +31,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
 
     protected static string $commandName = 'DataIntegrityTestRecentlyChanged';
 
+    #[Override]
     public function getOptions(): array
     {
         return [
@@ -60,7 +62,7 @@ class DataIntegrityTestRecentlyChanged extends BuildTask
             }
         }
 
-        if ($minutes) {
+        if ($minutes !== 0) {
             $ts = strtotime($minutes . ' minutes ago');
             $date = date(DATE_RFC2822, $ts);
             $output->writeForHtml('<hr /><h3>changes in the last ' . $this->minutesToTime($minutes) . '<br />from: ' . $date . '<br />make sure you see THE END at the bottom of this list</h3><hr />');

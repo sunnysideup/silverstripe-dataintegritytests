@@ -2,6 +2,7 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Override;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -51,6 +52,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
      */
     protected PolyOutput $polyOutput;
 
+    #[Override]
     public function getOptions(): array
     {
         return [

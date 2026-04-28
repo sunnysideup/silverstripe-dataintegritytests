@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use Override;
+use SilverStripe\Dev\DatabaseAdmin;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -72,6 +74,7 @@ class DataIntegrityTest extends BuildTask
      */
     protected PolyOutput $polyOutput;
 
+    #[Override]
     public function getOptions(): array
     {
         return [
@@ -98,7 +101,7 @@ class DataIntegrityTest extends BuildTask
         }
 
         $action = (string) ($input->getOption('do') ?? '');
-        if ($action) {
+        if ($action !== '' && $action !== '0') {
             $methodArray = explode('/', $action);
             $method = $methodArray[0];
             $allowedActions = Config::inst()->get(DataIntegrityTest::class, 'allowed_actions');
@@ -114,7 +117,7 @@ class DataIntegrityTest extends BuildTask
                     $this->tablereview($makeobsolete, $deletetablealltogether, $fixbrokendataobjects);
                 } elseif ($method === 'deleteonefield') {
                     $tablefield = (string) ($input->getOption('tablefield') ?? '');
-                    if ($tablefield) {
+                    if ($tablefield !== '' && $tablefield !== '0') {
                         $requestExploded = explode('/', $tablefield);
                         $table = $requestExploded[0] ?? '';
                         $field = $requestExploded[1] ?? '';
@@ -451,7 +454,7 @@ class DataIntegrityTest extends BuildTask
     private function cleanupdb()
     {
         // @TODO (SS6 upgrade): DatabaseAdmin::create()->cleanup() — check if DatabaseAdmin still exists.
-        $obj = \SilverStripe\Dev\DatabaseAdmin::create();
+        $obj = DatabaseAdmin::create();
         $obj->cleanup();
         $this->printString('============= COMPLETED =================', '');
         $this->printLink('', 'back to main menu.');
@@ -711,7 +714,7 @@ SQL;
 
                 if (! in_array($actualField, ['ID', 'Version'], true) && ! in_array($actualField, $requiredFields, true)) {
                     $distinctCount = DB::query(sprintf('SELECT COUNT(DISTINCT "%s") FROM "%s" WHERE "%s" IS NOT NULL ;', $actualField, $tableName, $actualField))->value();
-                    $this->printString("{$dataClass}.{$actualField} {$link} - unique entries: {$distinctCount}", 'deleted');
+                    $this->printString(sprintf('%s.%s %s - unique entries: %s', $dataClass, $actualField, $link, $distinctCount), 'deleted');
                     if ($distinctCount) {
                         $rows = DB::query("
                                             SELECT \"{$actualField}\" as N, COUNT(\"{$actualField}\") as C
