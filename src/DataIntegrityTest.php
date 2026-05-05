@@ -3,10 +3,12 @@
 namespace Sunnysideup\DataIntegrityTest;
 
 use Override;
+use SilverStripe\Control\Director;
 use SilverStripe\Dev\DatabaseAdmin;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
@@ -147,52 +149,136 @@ class DataIntegrityTest extends BuildTask
 
     protected function makeMenu()
     {
-        $this->printHeader('Database Administration Helpers');
-        $this->printString('Run with --do=<action> to perform an action. Available actions:');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields --deletesafeones');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields --deleteall');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --makeobsolete');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --makeobsolete --deletetablealltogether');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --fixbrokendataobjects');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=deleteobsoletetables');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=deletemarkedfields');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=deleteallversions');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=cleanupdb');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=deleteliveonlyrecords');
-        $this->printString('sake tasks:' . static::$commandName . ' --do=removeorphanedmanymany');
-        $this->printString('sake tasks:checkformysqlpaginationissuesbuildtask');
-        $this->printString('sake tasks:dataintegritytestinnodb');
-        $this->printString('sake tasks:dataintegritytestutf8');
-        $this->printString('sake tasks:cleanoldchangesetstask');
-        $this->printString('sake tasks:cleanoldchangesetstask --forreal --days=90');
+        if (Director::is_cli()) {
+            $this->printHeader('Database Administration Helpers');
+            $this->printString('Run with --do=<action> to perform an action. Available actions:');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields --deletesafeones');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=obsoletefields --deleteall');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --makeobsolete');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --makeobsolete --deletetablealltogether');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=tablereview --fixbrokendataobjects');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=deleteobsoletetables');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=deletemarkedfields');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=deleteallversions');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=cleanupdb');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=deleteliveonlyrecords');
+            $this->printString('sake tasks:' . static::$commandName . ' --do=removeorphanedmanymany');
+            $this->printString('sake tasks:checkformysqlpaginationissuesbuildtask');
+            $this->printString('sake tasks:dataintegritytestinnodb');
+            $this->printString('sake tasks:dataintegritytestutf8');
+            $this->printString('sake tasks:cleanoldchangesetstask');
+            $this->printString('sake tasks:cleanoldchangesetstask --forreal --days=90');
+            return;
+        }
+
+        // Browser menu
+        $base = '/dev/tasks/' . static::$commandName;
+        $warning = addslashes((string) Config::inst()->get(DataIntegrityTest::class, 'warning'));
+
+        $btnStyle = 'display:inline-block;margin:3px 4px;padding:5px 12px;border-radius:3px;text-decoration:none;font-size:0.9em;';
+        $safe     = $btnStyle . 'background:#2980b9;color:#fff;';
+        $danger   = $btnStyle . 'background:#c0392b;color:#fff;';
+        $confirm  = " onclick=\"return confirm('{$warning}');\"";
+
+        $link = static fn(string $label, string $qs, string $style, bool $needsConfirm = false): string =>
+            '<a href="' . $base . '?' . $qs . '" style="' . $style . '"'
+            . ($needsConfirm ? $confirm : '')
+            . '>' . $label . '</a>';
+
+        $otherTask = static fn(string $label, string $segment): string =>
+            '<a href="/dev/tasks/' . $segment . '" style="' . $safe . '">' . $label . '</a>';
+
+        $html = <<<HTML
+            <h2 style="margin-top:1.5em">Database Administration Helpers</h2>
+
+            <h3>Obsolete Fields</h3>
+            <p>
+                {$link('Check obsolete fields (report only)', 'do=obsoletefields', $safe)}
+                {$link('Delete safe obsolete fields (no data)', 'do=obsoletefields&deletesafeones=1', $danger, true)}
+                {$link('Delete ALL obsolete fields', 'do=obsoletefields&deleteall=1', $danger, true)}
+            </p>
+
+            <h3>Table Review</h3>
+            <p>
+                {$link('Review tables (report only)', 'do=tablereview', $safe)}
+                {$link('Mark obsolete tables with _obsolete_ prefix', 'do=tablereview&makeobsolete=1', $danger, true)}
+                {$link('Delete obsolete tables entirely', 'do=tablereview&makeobsolete=1&deletetablealltogether=1', $danger, true)}
+                {$link('Fix broken DataObjects', 'do=tablereview&fixbrokendataobjects=1', $danger, true)}
+            </p>
+
+            <h3>Cleanup</h3>
+            <p>
+                {$link('Delete _obsolete_ tables', 'do=deleteobsoletetables', $danger, true)}
+                {$link('Delete marked fields (config)', 'do=deletemarkedfields', $danger, true)}
+                {$link('Delete all version history', 'do=deleteallversions', $danger, true)}
+                {$link('Cleanup DB (SilverStripe built-in)', 'do=cleanupdb', $safe)}
+                {$link('Delete live-only orphaned records', 'do=deleteliveonlyrecords', $danger, true)}
+                {$link('Remove orphaned many-many rows', 'do=removeorphanedmanymany', $danger, true)}
+            </p>
+
+            <h3>Related Tasks</h3>
+            <p>
+                {$otherTask('Check MySQL pagination issues', 'checkformysqlpaginationissuesbuildtask')}
+                {$otherTask('InnoDB conversion', 'dataintegritytestinnodb')}
+                {$otherTask('UTF-8 conversion', 'dataintegritytestutf8')}
+                {$otherTask('Clean old changesets', 'cleanoldchangesetstask')}
+            </p>
+            HTML;
+
+        $this->polyOutput->write($html, false, OutputInterface::OUTPUT_RAW);
     }
 
     protected function printLink(string $action, string $label, bool $confirm = false, $returnString = false): ?string
     {
-        // @TODO (SS6 upgrade): printLink now outputs CLI sake commands rather than HTML links.
-        $link = 'sake tasks:' . static::$commandName;
-        if ($action !== '' && $action !== '0') {
-            if (str_starts_with($action, '/dev/tasks')) {
-                // extract task segment from /dev/tasks/xxx
-                $link = str_replace('/dev/tasks/', 'sake tasks:', $action);
-            } else {
-                // Convert query string style (?do=xxx&foo=bar) to sake args (--do=xxx --foo=bar)
-                $action = ltrim($action, '?');
-                $action = str_replace('&', ' --', $action);
-                $action = str_replace('=', '=', $action);
-                $link .= ' --' . $action;
+        if (Director::is_cli()) {
+            $link = 'sake tasks:' . static::$commandName;
+            if ($action !== '' && $action !== '0') {
+                if (str_starts_with($action, '/dev/tasks')) {
+                    $link = str_replace('/dev/tasks/', 'sake tasks:', $action);
+                } else {
+                    $action = ltrim($action, '?');
+                    $action = str_replace('&', ' --', $action);
+                    $link .= ' --' . $action;
+                }
             }
+
+            $string = PHP_EOL . $label . ':' . PHP_EOL . ' ... ' . $link . PHP_EOL;
+
+            if ($returnString) {
+                return $string;
+            }
+
+            $this->printString($string);
+            return null;
         }
 
-        $string = PHP_EOL . $label . ':' . PHP_EOL . ' ... ' . $link . PHP_EOL;
+        // Browser: build a real URL
+        $baseUrl = '/dev/tasks/' . static::$commandName;
+        if ($action !== '' && $action !== '0') {
+            if (str_starts_with($action, '/dev/tasks')) {
+                $href = $action;
+            } else {
+                $href = $baseUrl . '?' . ltrim($action, '?');
+            }
+        } else {
+            $href = $baseUrl;
+        }
+
+        $confirmAttr = $confirm
+            ? ' onclick="return confirm(\'' . addslashes((string) Config::inst()->get(DataIntegrityTest::class, 'warning')) . '\');"'
+            : '';
+
+        $string = "<a href=\"{$href}\"{$confirmAttr} style=\"display:inline-block;margin:4px 0;padding:4px 10px;"
+            . 'background:#2980b9;color:#fff;border-radius:3px;text-decoration:none'
+            . "\">{$label}</a>";
 
         if ($returnString) {
             return $string;
         }
 
-        $this->printString($string);
+        $this->polyOutput->write("<p>{$string}</p>\n", false, OutputInterface::OUTPUT_RAW);
         return null;
     }
 
@@ -762,7 +848,11 @@ SQL;
 
     protected function printHr()
     {
-        $this->printString('---');
+        if (Director::is_cli()) {
+            $this->printString('---');
+        } else {
+            $this->polyOutput->write("<hr>\n", false, OutputInterface::OUTPUT_RAW);
+        }
     }
 
     protected function printHeader($string, $headerNumber = 1, $style = '')
@@ -772,20 +862,41 @@ SQL;
 
     protected function printString($string, $type = '', ?int $headerNumber = 0, $isInline = false)
     {
-        $prefix = match ($type) {
-            'error', 'deleted' => '[ERROR] ',
-            'warning' => '[WARN]  ',
-            'created' => '[OK]    ',
-            'info' => '[INFO]  ',
-            default => '        '
-        };
-
         $plain = strip_tags((string) $string);
 
-        if ($headerNumber) {
-            $this->polyOutput->writeln(str_repeat('=', min($headerNumber * 4, 20)) . ' ' . $plain);
+        if (Director::is_cli()) {
+            $prefix = match ($type) {
+                'error', 'deleted' => '[ERROR] ',
+                'warning' => '[WARN]  ',
+                'created' => '[OK]    ',
+                'info' => '[INFO]  ',
+                default => '        '
+            };
+
+            if ($headerNumber) {
+                $this->polyOutput->writeln(str_repeat('=', min($headerNumber * 4, 20)) . ' ' . $plain);
+            } else {
+                $this->polyOutput->writeln($prefix . $plain);
+            }
         } else {
-            $this->polyOutput->writeln($prefix . $plain);
+            if ($headerNumber) {
+                $tag = 'h' . min($headerNumber + 1, 6);
+                $this->polyOutput->write("<{$tag}>{$plain}</{$tag}>\n", false, OutputInterface::OUTPUT_RAW);
+            } else {
+                $color = match ($type) {
+                    'error', 'deleted' => '#c0392b',
+                    'warning'          => '#e67e22',
+                    'created'          => '#27ae60',
+                    'info'             => '#2980b9',
+                    default            => 'inherit',
+                };
+                // $string may already contain HTML links from printLink(returnString=true), so use as-is
+                $this->polyOutput->write(
+                    "<p style=\"color:{$color};margin:2px 0\">{$string}</p>\n",
+                    false,
+                    OutputInterface::OUTPUT_RAW
+                );
+            }
         }
     }
 
