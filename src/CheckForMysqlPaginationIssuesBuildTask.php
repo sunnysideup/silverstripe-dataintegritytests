@@ -265,6 +265,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             if ($errorCount === 0) {
                 $this->flushNow('No errors', 'created');
             }
+            echo $this->flushNow('----');
         }
 
         if ($this->testClassCustom) {
