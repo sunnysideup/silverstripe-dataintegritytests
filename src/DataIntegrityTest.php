@@ -182,12 +182,12 @@ class DataIntegrityTest extends BuildTask
         $danger   = $btnStyle . 'background:#c0392b;color:#fff;';
         $confirm  = " onclick=\"return confirm('{$warning}');\"";
 
-        $link = static fn(string $label, string $qs, string $style, bool $needsConfirm = false): string =>
+        $link = static fn (string $label, string $qs, string $style, bool $needsConfirm = false): string =>
             '<a href="' . $base . '?' . $qs . '" style="' . $style . '"'
             . ($needsConfirm ? $confirm : '')
             . '>' . $label . '</a>';
 
-        $otherTask = static fn(string $label, string $segment): string =>
+        $otherTask = static fn (string $label, string $segment): string =>
             '<a href="/dev/tasks/' . $segment . '" style="' . $safe . '">' . $label . '</a>';
 
         $html = <<<HTML
@@ -462,24 +462,35 @@ class DataIntegrityTest extends BuildTask
                     }
 
                     //many 2 many tables...
-                    if (strpos((string) $tmpTable, '_')) {
-                        $manyManyClassShort = substr((string) $tmpTable, 0, strrpos((string) $tmpTable, '_'));
-                        $manyManyRelName = substr((string) $tmpTable, strrpos((string) $tmpTable, '_') + 1 - strlen((string) $tmpTable));
-                        $manyManyClass = '';
-                        if (class_exists($manyManyClassShort)) {
-                            $manyManyClass = $manyManyClassShort;
-                        } else {
-                            $manyManyClass = $this->actualTables[$manyManyClassShort] ?? $manyManyClassShort;
+                    // many 2 many tables — try every possible underscore split point
+                    if (strpos((string) $tmpTable, '_') !== false) {
+                        $splitPositions = [];
+                        $pos = 0;
+                        while (($pos = strpos((string) $tmpTable, '_', $pos)) !== false) {
+                            $splitPositions[] = $pos;
+                            $pos++;
                         }
 
-                        if (class_exists($manyManyClass)) {
-                            $singleton = Injector::inst()->get($manyManyClass);
-                            $manyManys = $singleton->config()->get('many_many');
-                            if (isset($manyManys[$manyManyRelName])) {
-                                $remove = false;
+                        foreach ($splitPositions as $splitPos) {
+                            $possibleClassShort = substr((string) $tmpTable, 0, $splitPos);
+                            $possibleRelName    = substr((string) $tmpTable, $splitPos + 1);
+
+                            // Resolve the class name (short or via actualTables map)
+                            $resolvedClass = '';
+                            if (class_exists($possibleClassShort)) {
+                                $resolvedClass = $possibleClassShort;
+                            } elseif (!empty($this->actualTables[$possibleClassShort])) {
+                                $resolvedClass = $this->actualTables[$possibleClassShort];
                             }
-                        } else {
-                            $this->printString('ERROR: could not find class "' . $manyManyClass . '"');
+
+                            if ($resolvedClass && class_exists($resolvedClass)) {
+                                $singleton  = Injector::inst()->get($resolvedClass);
+                                $manyManys  = $singleton->config()->get('many_many') ?: [];
+                                if (isset($manyManys[$possibleRelName])) {
+                                    $remove = false;
+                                    break; // found a valid owner — stop searching
+                                }
+                            }
                         }
                     }
                 }
@@ -553,7 +564,7 @@ class DataIntegrityTest extends BuildTask
         $schema = DB::get_schema();
         $tables = $schema->tableList();
 
-        $liveTables = array_values(array_filter($tables, static fn(string $tableName): bool => str_ends_with($tableName, '_Live')));
+        $liveTables = array_values(array_filter($tables, static fn (string $tableName): bool => str_ends_with($tableName, '_Live')));
 
         $this->printString('Found ' . count($liveTables) . ' *_Live table(s)');
         $this->printString($dryRun ? 'Mode: dry-run' : 'Mode: DELETE');
