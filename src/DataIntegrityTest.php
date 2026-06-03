@@ -5,6 +5,7 @@ namespace Sunnysideup\DataIntegrityTest;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Convert;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\BuildTask;
@@ -188,8 +189,8 @@ class DataIntegrityTest extends BuildTask
     public function deleteonefield()
     {
         $requestExploded = explode('/', (string) $_GET['tablefield']);
-        $table = $requestExploded[0] ?? '';
-        $field = $requestExploded[1] ?? '';
+        $table = Convert::symbol2sql($requestExploded[0] ?? '');
+        $field = Convert::symbol2sql($requestExploded[1] ?? '');
         if ($table === '' || $table === '0') {
             user_error('no table has been specified', E_USER_WARNING);
         }
@@ -199,9 +200,9 @@ class DataIntegrityTest extends BuildTask
         }
 
         if ($this->deleteField($table, $field)) {
-            $this->printString(sprintf('successfully deleted %s from %s now', $field, $table));
+            $this->printString(sprintf('successfully deleted field %s from table %s now', $field, $table));
         } else {
-            $this->printString(sprintf('COULD NOT delete %s from %s now', $field, $table), 'deleted');
+            $this->printString(sprintf('COULD NOT delete field %s from table %s now', $field, $table), 'deleted');
         }
 
         $this->printString('<a href="' . Director::absoluteURL('dev/tasks/dataintegritytest/?do=obsoletefields') . '">return to list of obsolete fields</a>', 'created');
@@ -433,7 +434,7 @@ class DataIntegrityTest extends BuildTask
         $schema = DB::get_schema();
         $tables = $schema->tableList();
 
-        $liveTables = array_values(array_filter($tables, static fn(string $tableName): bool => str_ends_with($tableName, '_Live')));
+        $liveTables = array_values(array_filter($tables, static fn (string $tableName): bool => str_ends_with($tableName, '_Live')));
 
         $this->printString('Found ' . count($liveTables) . ' *_Live table(s)');
         $this->printString($dryRun ? 'Mode: dry-run' : 'Mode: DELETE');
