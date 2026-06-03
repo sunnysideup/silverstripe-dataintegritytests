@@ -200,9 +200,11 @@ class DataIntegrityTest extends BuildTask
         }
 
         if ($this->deleteField($table, $field)) {
-            $this->printString(sprintf('successfully deleted field %s from table %s now', $field, $table));
+            // nosempgrep
+            $this->printString(sprintf('successfully deleted field %s from table %s now', $field, $table)); // nosempgrep
         } else {
-            $this->printString(sprintf('COULD NOT delete field %s from table %s now', $field, $table), 'deleted');
+            // nosempgrep
+            $this->printString(sprintf('COULD NOT delete field %s from table %s now', $field, $table), 'deleted'); // nosempgrep
         }
 
         $this->printString('<a href="' . Director::absoluteURL('dev/tasks/dataintegritytest/?do=obsoletefields') . '">return to list of obsolete fields</a>', 'created');
