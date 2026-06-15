@@ -337,8 +337,8 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
         $testCResult = round($testCResult * 1000);
 
         $this->flushNow('Default sort (' . print_r($defaultSortField, 1) . '): ' . $testAResult . 'μs');
-        $this->flushNow('ID sort ' . $testBResult . 'μs, ' . (100 - (round($testBResult / $testAResult, 2) * 100)) . '% faster than the default sort');
-        $this->flushNow('No sort ' . $testCResult . 'μs, ' . (100 - (round($testCResult / $testAResult, 2) * 100)) . '% faster than the default sort');
+        $this->flushNow('... ID sort ' . $testBResult . 'μs, ' . (100 - (round($testBResult / $testAResult, 2) * 100)) . '% faster than the default sort');
+        $this->flushNow('... No sort ' . $testCResult . 'μs, ' . (100 - (round($testCResult / $testAResult, 2) * 100)) . '% faster than the default sort');
     }
 
     /**
