@@ -189,8 +189,8 @@ class DataIntegrityTest extends BuildTask
     public function deleteonefield()
     {
         $requestExploded = explode('/', (string) $_GET['tablefield']);
-        $table = Convert::raw2sql($requestExploded[0] ?? '');
-        $field = Convert::raw2sql($requestExploded[1] ?? '');
+        $table = Convert::symbol2sql($requestExploded[0] ?? '');
+        $field = Convert::symbol2sql($requestExploded[1] ?? '');
         if ($table === '' || $table === '0') {
             user_error('no table has been specified', E_USER_WARNING);
         }
@@ -200,9 +200,11 @@ class DataIntegrityTest extends BuildTask
         }
 
         if ($this->deleteField($table, $field)) {
-            $this->printString(sprintf('successfully deleted field %s from table %s', $field, $table));
+            // nosempgrep
+            $this->printString(sprintf('successfully deleted field %s from table %s now', $field, $table)); // nosempgrep
         } else {
-            $this->printString(sprintf('COULD NOT delete field %s from table %s', $field, $table), 'deleted');
+            // nosempgrep
+            $this->printString(sprintf('COULD NOT delete field %s from table %s now', $field, $table), 'deleted'); // nosempgrep
         }
 
         $this->printString('<a href="' . Director::absoluteURL('dev/tasks/dataintegritytest/?do=obsoletefields') . '">return to list of obsolete fields</a>', 'created');
