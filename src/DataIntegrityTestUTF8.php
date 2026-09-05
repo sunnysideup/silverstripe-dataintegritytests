@@ -52,11 +52,6 @@ class DataIntegrityTestUTF8 extends BuildTask
      */
     private static $segment = 'dataintegritytestutf8';
 
-    /**
-     * @var bool
-     */
-    private static $enabled = true;
-
     /** The charset/collation this task is designed around. */
     private const DEFAULT_CHARSET = 'utf8mb4';
     private const DEFAULT_COLLATION = 'utf8mb4_unicode_ci';
