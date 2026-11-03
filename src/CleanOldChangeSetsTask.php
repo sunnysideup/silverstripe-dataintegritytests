@@ -7,7 +7,6 @@ namespace Sunnysideup\DataIntegrityTest;
 use DateInterval;
 use DateTimeImmutable;
 use SilverStripe\Control\Director;
-use SilverStripe\Core\Convert;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\ChangeSet;
@@ -48,8 +47,6 @@ final class CleanOldChangeSetsTask extends BuildTask
             ->sub(new DateInterval('P' . $days . 'D'))
             ->format('Y-m-d H:i:s');
 
-        $safeCutoff = Convert::raw2sql($cutoffDate);
-
         $itemCount = ChangeSetItem::get()->filter(['LastEdited:LessThan' => $cutoffDate])
             ->count();
 
@@ -59,14 +56,16 @@ final class CleanOldChangeSetsTask extends BuildTask
         $this->printHelper(sprintf('Deleting %d ChangeSetItems and %d ChangeSets older than %d days...', $itemCount, $setCount, $days));
 
         if ($itemCount > 0) {
-            DB::query(
-                'DELETE FROM "ChangeSetItem" WHERE "Created" < \'' . $safeCutoff . "'"
+            DB::prepared_query(
+                'DELETE FROM "ChangeSetItem" WHERE "Created" < ?',
+                [$cutoffDate]
             );
         }
 
         if ($setCount > 0) {
-            DB::query(
-                'DELETE FROM "ChangeSet" WHERE "Created" < \'' . $safeCutoff . "'"
+            DB::prepared_query(
+                'DELETE FROM "ChangeSet" WHERE "Created" < ?',
+                [$cutoffDate]
             );
         }
 
