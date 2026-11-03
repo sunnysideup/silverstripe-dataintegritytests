@@ -444,12 +444,12 @@ class DataIntegrityTest extends BuildTask
     protected function hasVersioning($dataObject)
     {
         $versioningPresent = false;
-        $array = $dataObject->stat('extensions');
+        $array = $dataObject->config()->get('extensions');
         if (is_array($array) && count($array) && in_array("Versioned('Stage', 'Live')", $array, true)) {
             $versioningPresent = true;
         }
 
-        if ($dataObject->stat('versioning')) {
+        if ($dataObject->config()->get('versioning')) {
             $versioningPresent = true;
         }
 
