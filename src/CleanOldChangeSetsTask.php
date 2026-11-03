@@ -33,6 +33,12 @@ final class CleanOldChangeSetsTask extends BuildTask
             return;
         }
 
+        if (! Director::is_cli()) {
+            echo 'This task can only be run on the command line.';
+
+            return;
+        }
+
         $this->deleteOldRecords($days);
     }
 

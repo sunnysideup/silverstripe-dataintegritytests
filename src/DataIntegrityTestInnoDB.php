@@ -2,6 +2,7 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use SilverStripe\Control\Director;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 
@@ -23,6 +24,12 @@ class DataIntegrityTestInnoDB extends BuildTask
 
     public function run($request)
     {
+        if (! Director::is_cli()) {
+            echo 'This task can only be run on the command line.';
+
+            return;
+        }
+
         ini_set('max_execution_time', 3000);
         $tables = DB::query("SHOW TABLE STATUS WHERE ENGINE <>  'InnoDB'");
         foreach ($tables as $table) {

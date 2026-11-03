@@ -82,6 +82,10 @@ class DataIntegrityTest extends BuildTask
             $method = $methodArray[0];
             $allowedActions = Config::inst()->get(DataIntegrityTest::class, 'allowed_actions');
             if (isset($allowedActions[$method])) {
+                if ($this->isDestructiveAction($method) && ! $this->mayRunDestructive($request, 'Action "' . $method . '" deletes or changes data in the database. It can not be undone.')) {
+                    return;
+                }
+
                 if ($method === 'obsoletefields') {
                     $deletesafeones = (int) ($_GET['deletesafeones'] ?? 0) === 1;
                     $deleteall = (int) ($_GET['deleteall'] ?? 0) === 1;
@@ -100,6 +104,37 @@ class DataIntegrityTest extends BuildTask
         }
 
         $this->makeMenu();
+    }
+
+    protected function isDestructiveAction(string $method): bool
+    {
+        if ('obsoletefields' === $method) {
+            return (int) ($_GET['deletesafeones'] ?? 0) === 1 || (int) ($_GET['deleteall'] ?? 0) === 1;
+        }
+
+        if ('tablereview' === $method) {
+            return (int) ($_GET['makeobsolete'] ?? 0) === 1
+                || (int) ($_GET['fixbrokendataobjects'] ?? 0) === 1
+                || (int) ($_GET['deletetablealltogether'] ?? 0) === 1;
+        }
+
+        return true;
+    }
+
+    /**
+     * Anything that deletes or changes data is never done by following a link (GET).
+     * The admin first has to confirm on a page (POST with security token).
+     * If the guard of the ecommerce module is not available then it can only be done on the command line.
+     */
+    protected function mayRunDestructive(\SilverStripe\Control\HTTPRequest $request, string $whatItDoes): bool
+    {
+        if (Director::is_cli()) {
+            return true;
+        }
+
+        echo '<p>This can only be run on the command line.</p>';
+
+        return false;
     }
 
     protected function makeMenu()

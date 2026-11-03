@@ -35,6 +35,14 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
         $newTable = $request->getVar('newtable');
         $field = $request->getVar('field');
         $forreal = $request->getVar('forreal');
+        if ($forreal) {
+            if (! \SilverStripe\Control\Director::is_cli()) {
+                echo '<p>This can only be run on the command line.</p>';
+
+                return;
+            }
+        }
+
         $databaseSchema = DB::get_schema();
         if ($oldTable && $newTable && $field) {
             if (class_exists($oldTable)) {

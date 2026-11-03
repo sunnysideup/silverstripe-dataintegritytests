@@ -2,6 +2,7 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
@@ -87,6 +88,15 @@ class DataIntegrityTestUTF8 extends BuildTask
         $dryRun    = (bool) $request->getVar('dry-run');
         $force     = (bool) $request->getVar('force');
         $onlyTable = $request->getVar('table') ?: null;
+
+        // a dry run only reports, a real run rewrites tables and data.
+        if (! $dryRun) {
+            if (! Director::is_cli()) {
+                echo 'This task can only be run on the command line.';
+
+                return;
+            }
+        }
 
         // This task is MySQL/MariaDB specific (charset conversion + REPLACE()).
         $conn = DB::get_conn();
