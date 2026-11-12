@@ -224,14 +224,26 @@ class DataIntegrityTest extends BuildTask
     public function deleteonefield()
     {
         $requestExploded = explode('/', (string) $_GET['tablefield']);
-        $table = Convert::symbol2sql($requestExploded[0] ?? '');
-        $field = Convert::symbol2sql($requestExploded[1] ?? '');
+        $table = $requestExploded[0] ?? '';
+        $field = $requestExploded[1] ?? '';
         if ($table === '' || $table === '0') {
             user_error('no table has been specified', E_USER_WARNING);
+
+            return;
         }
 
         if ($field === '' || $field === '0') {
             user_error('no field has been specified', E_USER_WARNING);
+
+            return;
+        }
+
+        // table and field names end up in SQL: letters, numbers and underscores only.
+        // (Convert::symbol2sql can not be used here: it returns QUOTED names, which can not be looked up.)
+        if (! $this->isSafeIdentifier($table) || ! $this->isSafeIdentifier($field)) {
+            $this->printString('The table and field name can only contain letters, numbers and underscores.', 'deleted');
+
+            return;
         }
 
         if ($this->deleteField($table, $field)) {
@@ -608,10 +620,16 @@ SQL;
         }
     }
 
+    /**
+     * Table and field names that are used to build SQL: letters, numbers and underscores only.
+     */
+    private function isSafeIdentifier(string $identifier): bool
+    {
+        return (bool) preg_match('/^\w+$/', $identifier);
+    }
+
     private function deleteField(string $table, string $field)
     {
-        $databaseSchema = DB::get_schema();
-        $fields = $this->swapArray($databaseSchema->fieldList($table));
         $globalExeceptions = Config::inst()->get(DataIntegrityTest::class, 'global_exceptions');
         if (count($globalExeceptions) > 0) {
             foreach ($globalExeceptions as $exceptionTable => $exceptionField) {
@@ -622,10 +640,13 @@ SQL;
             }
         }
 
-        if (! DB::query("SHOW TABLES LIKE '" . $table . "'")->value()) {
+        if (! DB::prepared_query('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table])->value()) {
             $this->printString(sprintf('tried to delete %s.%s but TABLE does not exist', $table, $field), 'deleted');
             return false;
         }
+
+        $databaseSchema = DB::get_schema();
+        $fields = $this->swapArray($databaseSchema->fieldList($table));
 
         if (! in_array($field, $fields, true)) {
             $this->printString(sprintf('tried to delete %s.%s but FIELD does not exist', $table, $field), 'deleted');
