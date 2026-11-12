@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DataObject;
@@ -45,9 +46,9 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
     {
         return [
             new InputOption('oldtable', 'o', InputOption::VALUE_REQUIRED, 'Source table/class name to move the field FROM', ''),
-            new InputOption('newtable', 'n', InputOption::VALUE_REQUIRED, 'Destination table/class name to move the field TO', ''),
+            new InputOption('newtable', null, InputOption::VALUE_REQUIRED, 'Destination table/class name to move the field TO', ''),
             new InputOption('field', 'x', InputOption::VALUE_REQUIRED, 'Field name to move', ''),
-            new InputOption('forreal', 'f', InputOption::VALUE_NONE, 'Execute the move for real (default: dry run / show results)'),
+            new InputOption('forreal', null, InputOption::VALUE_NONE, 'Execute the move for real (default: dry run / show results)'),
         ];
     }
 
@@ -61,6 +62,12 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
         $newTable = (string) ($input->getOption('newtable') ?? '');
         $field    = (string) ($input->getOption('field') ?? '');
         $forreal  = (bool) $input->getOption('forreal');
+
+        if ($forreal && ! Director::is_cli()) {
+            $output->writeln('This can only be run on the command line.');
+
+            return Command::FAILURE;
+        }
 
         $databaseSchema = DB::get_schema();
         if ($oldTable && $newTable && $field) {

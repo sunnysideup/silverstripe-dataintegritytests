@@ -3,14 +3,14 @@
 namespace Sunnysideup\DataIntegrityTest\Api;
 
 use SilverStripe\CMS\Model\SiteTree;
-use SilverStripe\Core\Convert;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 
 class DataIntegrityTestDefaultEntries
 {
     public static function update($baseTable, $field, $value, $id = 0, $replace = false, $addLive = false)
     {
-        $object = $baseTable::get()->setUseCache(true)->first();
+        $object = DataObject::get_one($baseTable);
         if ($object) {
             $tableArray = [$baseTable];
             if ($object instanceof SiteTree) {
@@ -18,8 +18,8 @@ class DataIntegrityTestDefaultEntries
             }
 
             foreach ($tableArray as $table) {
-                $value = Convert::raw2sql($value);
-                $sql = sprintf("UPDATE \"%s\" SET \"%s\".\"%s\" = '%s'", $table, $table, $field, $value);
+                // the value is passed as a parameter (prepared query): no need to escape it
+                $sql = sprintf('UPDATE "%s" SET "%s"."%s" = ?', $table, $table, $field);
                 $where = [];
                 if ($id) {
                     $where[] = sprintf('  "%s"."ID" = ', $table) . $id;
@@ -37,7 +37,7 @@ class DataIntegrityTestDefaultEntries
                 $result = DB::query(sprintf('SELECT COUNT("%s"."ID") C FROM "%s" ', $table, $table) . $wherePhrase);
                 if ($result && $result->value()) {
                     $sql .= $wherePhrase;
-                    DB::query($sql);
+                    DB::prepared_query($sql, [$value]);
                     DB::alteration_message(sprintf('Updated %s in %s to %s ', $field, $table, $value), 'added');
                 }
             }

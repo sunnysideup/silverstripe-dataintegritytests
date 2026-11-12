@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use SilverStripe\PolyExecution\PolyOutput;
 use DateInterval;
 use DateTimeImmutable;
-use SilverStripe\Core\Convert;
+use SilverStripe\Control\Director;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\ChangeSet;
@@ -32,7 +32,7 @@ final class CleanOldChangeSetsTask extends BuildTask
     {
         return [
             new InputOption('days', 'd', InputOption::VALUE_REQUIRED, 'Number of days to keep (delete older than this)', 90),
-            new InputOption('forreal', 'f', InputOption::VALUE_NONE, 'Actually delete records (default: show stats only)'),
+            new InputOption('forreal', null, InputOption::VALUE_NONE, 'Actually delete records (default: show stats only)'),
         ];
     }
 
@@ -45,6 +45,12 @@ final class CleanOldChangeSetsTask extends BuildTask
             return Command::SUCCESS;
         }
 
+        if (! Director::is_cli()) {
+            $output->writeln('This task can only be run on the command line.');
+
+            return Command::FAILURE;
+        }
+
         $this->deleteOldRecords($days, $output);
         return Command::SUCCESS;
     }
@@ -55,8 +61,6 @@ final class CleanOldChangeSetsTask extends BuildTask
             ->sub(new DateInterval('P' . $days . 'D'))
             ->format('Y-m-d H:i:s');
 
-        $safeCutoff = Convert::raw2sql($cutoffDate);
-
         $itemCount = ChangeSetItem::get()->filter(['LastEdited:LessThan' => $cutoffDate])
             ->count();
 
@@ -66,14 +70,16 @@ final class CleanOldChangeSetsTask extends BuildTask
         $output->writeln(sprintf('Deleting %d ChangeSetItems and %d ChangeSets older than %d days...', $itemCount, $setCount, $days));
 
         if ($itemCount > 0) {
-            DB::query(
-                'DELETE FROM "ChangeSetItem" WHERE "Created" < \'' . $safeCutoff . "'"
+            DB::prepared_query(
+                'DELETE FROM "ChangeSetItem" WHERE "Created" < ?',
+                [$cutoffDate]
             );
         }
 
         if ($setCount > 0) {
-            DB::query(
-                'DELETE FROM "ChangeSet" WHERE "Created" < \'' . $safeCutoff . "'"
+            DB::prepared_query(
+                'DELETE FROM "ChangeSet" WHERE "Created" < ?',
+                [$cutoffDate]
             );
         }
     }

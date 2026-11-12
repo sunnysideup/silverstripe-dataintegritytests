@@ -2,9 +2,10 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
+use SilverStripe\Control\Director;
+use SilverStripe\PolyExecution\PolyOutput;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use SilverStripe\PolyExecution\PolyOutput;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
 
@@ -26,6 +27,12 @@ class DataIntegrityTestInnoDB extends BuildTask
 
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
+        if (! Director::is_cli()) {
+            $output->writeln('This task can only be run on the command line.');
+
+            return Command::FAILURE;
+        }
+
         ini_set('max_execution_time', 3000);
         $tables = DB::query("SHOW TABLE STATUS WHERE ENGINE <>  'InnoDB'");
         foreach ($tables as $table) {

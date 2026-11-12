@@ -2,241 +2,316 @@
 
 namespace Sunnysideup\DataIntegrityTest;
 
-// Symfony's base Command class — BuildTask now runs on top of Symfony Console,
-// which is why we return Command::SUCCESS / Command::FAILURE at the end.
-use Symfony\Component\Console\Command\Command;
-// Represents the "input" side of a console command (arguments, options, flags).
-// We don't actually read any input here, but the execute() signature requires it.
-use Symfony\Component\Console\Input\InputInterface;
-// Silverstripe 6's output abstraction. It can render the same output either to
-// an ANSI terminal (CLI) or as HTML (when the task is triggered in the browser).
-// That's what writeForHtml() targets: the browser view of /dev/tasks.
-use SilverStripe\PolyExecution\PolyOutput;
-// The Config layer — how we read YAML / private static config values at runtime.
+use Override;
+use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
-// The base class for all build/dev tasks in Silverstripe 6.
 use SilverStripe\Dev\BuildTask;
-// The MySQL database driver class. We read its *config* (charset/collation),
-// we don't instantiate it directly.
 use SilverStripe\ORM\Connect\MySQLDatabase;
-// The main DB facade: DB::query(), DB::get_conn(), etc.
 use SilverStripe\ORM\DB;
+use SilverStripe\PolyExecution\PolyOutput;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 
+/**
+ * Silverstripe 6 version.
+ *
+ * Converts every table in the current (MySQL/MariaDB) database to a UTF-8
+ * charset/collation and cleans up the classic "mojibake" byte sequences that
+ * appear when UTF-8 text was previously mis-decoded as Latin-1.
+ *
+ * Safer than a naive version:
+ *  - dry-run=1 previews every change without writing anything
+ *  - only *text* columns are touched (no more @-suppressed errors on int/date columns)
+ *  - find/replace values are passed as bound parameters (no SQL string building)
+ *  - aborts if the DB charset/collation config is not at the expected defaults
+ *    (override with force=1)
+ *
+ * Usage:
+ *   vendor/bin/sake tasks:dataintegritytestutf8 --dry-run
+ *   vendor/bin/sake tasks:dataintegritytestutf8 --table=SiteTree
+ *   vendor/bin/sake tasks:dataintegritytestutf8 --force
+ *
+ * A dry run can also be done in the browser. A real run is only possible on the command line.
+ *
+ * CAREFUL: without --dry-run this rewrites data across ALL tables. Back up first.
+ */
 class DataIntegrityTestUTF8 extends BuildTask
 {
     /**
-     * The human-readable title shown in the /dev/tasks list.
-     * NOTE: this is a non-static instance property, whereas $description and
-     * $commandName below are `static`. Minor inconsistency — harmless, but worth
-     * knowing if you ever copy this pattern.
-     *
+     * standard SS variable
      * @var string
      */
-    protected string $title = 'Convert tables to utf-8 and replace funny characters.';
+    protected string $title = 'Convert tables to UTF-8 and replace mojibake characters.';
 
     /**
-     * Longer description shown under the title in /dev/tasks.
-     * The "CAREFUL" wording is deliberate: this task rewrites EVERY table.
-     *
+     * standard SS variable
      * @var string
      */
-    protected static string $description = '
-        Converts table to utf-8 by replacing a bunch of characters that show up in the Silverstripe Conversion.
-        CAREFUL: replaces all tables in Database to utf-8!';
+    protected static string $description = 'Converts every table to UTF-8 and replaces broken characters left over from a bad encoding migration. Use --dry-run first. CAREFUL: without --dry-run this rewrites all tables!';
 
     /**
-     * The find => replace map applied to every column of every table.
-     *
-     * Each KEY is the broken "mojibake" byte sequence that appears when UTF-8
-     * text was mis-decoded as Latin-1; each VALUE is what it should become
-     * (usually an HTML entity, or an empty string to just delete it).
-     *
-     * Because this is a `private static`, it is overridable via YAML config,
-     * which is exactly how it's read below (Config::inst()->get(...)).
-     *
-     * ⚠ HEADS-UP: the first active line and the two commented lines below it all
-     * read as 'Â' here. They were almost certainly DIFFERENT multibyte characters
-     * in the original source, but got flattened to identical text when pasted.
-     * If you rely on those two, re-enter them from a known-good hex source.
-     */
-    private static $replacement_array = [
-        'Â' => '',
-        // 'Â' => '',   // <-- was probably a different char originally (see note above)
-        // 'Â' => '',   // <-- same
-        'â€™' => '&#39;',   // curly apostrophe  ’  -> '
-        'Ââ€"' => '&mdash;', // em dash          —  -> &mdash;
-        'â€¨' => '',         // Unicode line separator U+2028 -> delete
-        'â€œ' => '&quot;',   // opening curly quote “ -> "
-        'â€^Ý' => '&quot;',  // closing curly quote ” -> "
-        'â€¢' => '&#8226',   // bullet • -> &#8226 (NOTE: missing trailing ";")
-        'Ý' => '- ',         // stray Ý -> "- "
-    ];
-
-    /**
-     * The command name you type to run this from the CLI:
-     *   vendor/bin/sake tasks:dataintegritytestutf8
-     * (or via the browser at /dev/tasks/dataintegritytestutf8)
+     * the sake task name.
+     * @var string
      */
     protected static string $commandName = 'dataintegritytestutf8';
 
+    protected PolyOutput $polyOutput;
+
+    /** The charset/collation this task is designed around. */
+    private const DEFAULT_CHARSET = 'utf8mb4';
+    private const DEFAULT_COLLATION = 'utf8mb4_unicode_ci';
+
+    /** Base column types we run REPLACE against (everything else is skipped). */
+    private const TEXT_COLUMN_TYPES = [
+        'char', 'varchar', 'tinytext', 'text', 'mediumtext', 'longtext', 'enum', 'set',
+    ];
+
     /**
-     * The entry point. Silverstripe 6 calls this with a Symfony Input and a
-     * PolyOutput, and expects an int return (Command::SUCCESS = 0).
+     * find => replace map. Overridable via YAML config.
+     * Each KEY is a broken byte sequence; each VALUE is the correct output
+     * (an HTML entity, or '' to simply delete it).
      */
+    private static array $replacement_array = [
+        'Â' => '',
+        'â€™' => '&#39;',    // curly apostrophe
+        'Ââ€“' => '&mdash;', // em dash
+        'â€¨' => '',         // line separator U+2028
+        'â€œ' => '&quot;',   // opening curly quote
+        'â€^Ý' => '&quot;',  // closing curly quote
+        'â€¢' => '&#8226;',  // bullet (fixed: trailing ";" was missing)
+        'Ý' => '- ',
+    ];
+
+    #[Override]
+    public function getOptions(): array
+    {
+        return [
+            new InputOption('dry-run', null, InputOption::VALUE_NONE, 'Only report what would be changed, do not write anything'),
+            new InputOption('force', null, InputOption::VALUE_NONE, 'Continue even if the database charset / collation settings are not at their defaults'),
+            new InputOption('table', null, InputOption::VALUE_REQUIRED, 'Only do this one table', ''),
+        ];
+    }
+
     protected function execute(InputInterface $input, PolyOutput $output): int
     {
-        // Give the script plenty of time — rewriting every table can be slow.
+        $this->polyOutput = $output;
         ini_set('max_execution_time', 3000);
 
-        // Grab the list of all tables in the current database.
-        // Returns rows like ['Tables_in_mydb' => 'SiteTree'].
-        $tables = DB::query('SHOW tables');
+        $dryRun = (bool) $input->getOption('dry-run');
+        $force = (bool) $input->getOption('force');
+        $onlyTable = (string) $input->getOption('table') ?: null;
 
-        // Read the replacement map from config (allows YAML overrides of the
-        // private static above).
-        $arrayOfReplacements = Config::inst()->get(DataIntegrityTestUTF8::class, 'replacement_array');
+        // a dry run only reports, a real run rewrites tables and data.
+        if (! $dryRun && ! Director::is_cli()) {
+            $this->say('This task can only be run on the command line (a dry run can be done in the browser).', 'error');
 
-        // Read the target charset/collation from the MySQLDatabase config.
-        // The `?: 'utf8mb4...'` part means: if nothing is configured, fall back
-        // to these hard-coded defaults.
-        $connCharset = Config::inst()->get(MySQLDatabase::class, 'connection_charset') ?: 'utf8mb4';
-        $connCollation = Config::inst()->get(MySQLDatabase::class, 'connection_collation') ?: 'utf8mb4_unicode_ci';
-
-        // =================================================================
-        // NEW: "error if settings are not at the default" check.
-        // -----------------------------------------------------------------
-        // The whole task assumes utf8mb4 / utf8mb4_unicode_ci. If someone has
-        // OVERRIDDEN these in YAML to something else, converting every table
-        // blindly could give you an unexpected charset — so we surface a clear,
-        // visible error before doing any damage.
-        //
-        // Interpretation used here: an error is only shown when the value is
-        // EXPLICITLY SET to something other than the default. "Not set at all"
-        // is treated as fine, because the `?:` fallback already lands on the
-        // default in that case. If you'd rather require the value to be
-        // explicitly present AND equal to the default, drop the leading
-        // "$configured &&" guard in each check.
-        // =================================================================
-        $defaultCharset   = 'utf8mb4';
-        $defaultCollation = 'utf8mb4_unicode_ci';
-
-        // Read the RAW configured values (null/'' when never set in YAML).
-        $configuredCharset   = Config::inst()->get(MySQLDatabase::class, 'connection_charset');
-        $configuredCollation = Config::inst()->get(MySQLDatabase::class, 'connection_collation');
-
-        $settingsError = false;
-
-        if ($configuredCharset && $configuredCharset !== $defaultCharset) {
-            $settingsError = true;
-            $output->writeForHtml(sprintf(
-                '<strong style="color:#b00">SETTINGS ERROR: MySQLDatabase.connection_charset is "%s" but the expected default is "%s".</strong>',
-                $configuredCharset,
-                $defaultCharset
-            ));
+            return Command::FAILURE;
         }
 
-        if ($configuredCollation && $configuredCollation !== $defaultCollation) {
-            $settingsError = true;
-            $output->writeForHtml(sprintf(
-                '<strong style="color:#b00">SETTINGS ERROR: MySQLDatabase.connection_collation is "%s" but the expected default is "%s".</strong>',
-                $configuredCollation,
-                $defaultCollation
-            ));
-        }
-
-        // OPTIONAL HARD STOP — because this task is destructive, you probably
-        // want to bail out rather than continue when settings are wrong.
-        // Uncomment these lines to abort before touching any tables:
-        //
-        // if ($settingsError) {
-        //     $output->writeForHtml('<hr />ABORTED: settings are not at their defaults.<hr />');
-        //     return Command::FAILURE;
-        // }
-        // =================================================================
-
-        // The live DB connection object.
+        // This task is MySQL/MariaDB specific (charset conversion + REPLACE()).
         $conn = DB::get_conn();
+        if (!($conn instanceof MySQLDatabase)) {
+            $this->say('This task only supports MySQL / MariaDB.', 'error');
 
-        // Name of the database we're connected to (needed for the
-        // INFORMATION_SCHEMA lookup below, which is scoped per-schema).
-        // Assumes database class is like "MySQLDatabase" or "MSSQLDatabase" (suffixed with "Database")
+            return Command::FAILURE;
+        }
+
+        // 1) Verify DB settings are at their expected defaults; abort unless force=1.
+        if (!$this->settingsAreDefault() && !$force) {
+            $this->say('Aborting: DB settings are not at their defaults. Re-run with --force to proceed anyway.', 'error');
+
+            return Command::FAILURE;
+        }
+
+        // Target charset/collation = configured value, falling back to the defaults.
+        $charset   = Config::inst()->get(MySQLDatabase::class, 'connection_charset') ?: self::DEFAULT_CHARSET;
+        $collation = Config::inst()->get(MySQLDatabase::class, 'connection_collation') ?: self::DEFAULT_COLLATION;
+
+        $replacements = (array) Config::inst()->get(self::class, 'replacement_array');
         $databaseName = $conn->getSelectedDatabase();
+        $tables       = $this->getTables($onlyTable);
 
-        // ---- Loop over every table ------------------------------------
+        if (!$tables) {
+            $this->say('No matching tables found.', 'notice');
+
+            return Command::FAILURE;
+        }
+
+        if ($dryRun) {
+            $this->say('DRY RUN - no data will be modified.', 'notice');
+        }
+
+        $grandTotal = 0;
+
         foreach ($tables as $table) {
-            // Each $table is an assoc array like ['Tables_in_mydb' => 'SiteTree'];
-            // array_pop() grabs the value regardless of the column key name.
-            $table = array_pop($table);
+            $grandTotal += $this->processTable($table, $databaseName, $charset, $collation, $replacements, $dryRun);
+        }
 
-            // Look up the table's CURRENT collation, for reporting only.
-            // NOTE: this concatenates $table straight into SQL. It's low risk
-            // because the value came from SHOW TABLES (trusted), but a bound
-            // parameter would be safer as a habit.
-            $currentCollation = DB::query('
-                SELECT TABLE_COLLATION
-                FROM INFORMATION_SCHEMA.TABLES
-                WHERE TABLE_NAME = \'' . $table . "' AND table_schema = '" . $databaseName . "';")->value();
+        $this->say(sprintf(
+            '%s %d replacement(s) across %d table(s).',
+            $dryRun ? 'DRY RUN would make' : 'Made',
+            $grandTotal,
+            count($tables)
+        ), 'changed');
+        $this->say('COMPLETED');
 
-            // Report what we're about to do to this table.
-            $output->writeForHtml('<strong>Resetting "' . $table . '" table to "' . $connCharset . '", collation "' . $connCollation . '", with current collation: "' . $currentCollation . '"</strong>');
+        return Command::SUCCESS;
+    }
 
-            // STEP 1: convert the whole table (and all its text columns) to the
-            // target charset/collation. The double quotes around "table" are
-            // Silverstripe's ANSI-style identifier quoting; the DB layer
-            // rewrites them to MySQL backticks automatically.
-            DB::query('ALTER TABLE "' . $table . '" CONVERT TO CHARACTER SET ' . $connCharset . ' COLLATE ' . $connCollation);
+    /**
+     * Returns true when the configured charset/collation match the defaults.
+     * Only an *explicitly overridden* value counts as a mismatch - a value that
+     * was never set is fine because the fallback lands on the default anyway.
+     */
+    private function settingsAreDefault(): bool
+    {
+        $ok        = true;
+        $charset   = Config::inst()->get(MySQLDatabase::class, 'connection_charset');
+        $collation = Config::inst()->get(MySQLDatabase::class, 'connection_collation');
 
-            // Get full metadata for each column (Field, Type, Collation, etc.).
-            $rows = DB::query('SHOW FULL COLUMNS FROM "' . $table . '"');
+        if ($charset && $charset !== self::DEFAULT_CHARSET) {
+            $ok = false;
+            $this->say(sprintf('SETTINGS: MySQLDatabase.connection_charset is "%s", expected "%s".', $charset, self::DEFAULT_CHARSET), 'error');
+        }
+        if ($collation && $collation !== self::DEFAULT_COLLATION) {
+            $ok = false;
+            $this->say(sprintf('SETTINGS: MySQLDatabase.connection_collation is "%s", expected "%s".', $collation, self::DEFAULT_COLLATION), 'error');
+        }
 
-            // ---- Loop over every column of this table -----------------
-            foreach ($rows as $row) {
-                $fieldName = $row['Field'];               // column name
-                $fieldCollation = $row['Collation'] ?? ''; // '' for non-text columns
+        return $ok;
+    }
 
-                // Sanity check: after the ALTER above, every text column SHOULD
-                // now match $connCollation. If not, report it (doesn't fix it).
-                if ($fieldCollation && $fieldCollation !== $connCollation) {
-                    $output->writeForHtml('Error in ' . $fieldName . ' collation: ' . $fieldCollation);
-                }
+    /**
+     * @return string[] list of table names
+     */
+    private function getTables(?string $onlyTable): array
+    {
+        $tables = [];
+        foreach (DB::query('SHOW TABLES') as $row) {
+            $tables[] = (string) array_pop($row);
+        }
 
-                // Buffer of human-readable messages for this column. We seed it
-                // with a "CHECKING..." line so we can later tell whether any
-                // actual replacements happened (count > 1 means yes).
-                $usedFieldsChanged = [sprintf('CHECKING %s.%s : ', $table, $fieldName)];
+        if ($onlyTable !== null) {
+            $tables = in_array($onlyTable, $tables, true) ? [$onlyTable] : [];
+        }
 
-                // STEP 2: run each find/replace against this column.
-                foreach ($arrayOfReplacements as $from => $to) {
-                    // The leading @ suppresses errors: running REPLACE() on a
-                    // non-text column (int/date/etc.) can throw, and we simply
-                    // want to skip those quietly rather than abort the task.
-                    @DB::query(sprintf("UPDATE \"%s\" SET \"%s\" = REPLACE(\"%s\", '%s', '%s');", $table, $fieldName, $fieldName, $from, $to));
+        return $tables;
+    }
 
-                    // How many rows the UPDATE actually changed.
-                    $count = DB::get_conn()->affectedRows();
+    /**
+     * Convert one table and run the replacements over its text columns.
+     * Returns the number of replacements made (or that would be made in dry-run).
+     */
+    private function processTable(
+        string $table,
+        string $databaseName,
+        string $charset,
+        string $collation,
+        array $replacements,
+        bool $dryRun
+    ): int {
+        $qTable           = $this->quote($table);
+        $currentCollation = (string) DB::prepared_query(
+            'SELECT TABLE_COLLATION FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ? AND TABLE_SCHEMA = ?',
+            [$table, $databaseName]
+        )->value();
 
-                    // Prettify the "to" side for the log when it's an empty string.
-                    $toWord = $to;
-                    if ($to === '') {
-                        $toWord = '[NOTHING]';
-                    }
+        $this->say(sprintf(
+            '%s  (current: %s  ->  %s / %s)',
+            $table,
+            $currentCollation ?: 'unknown',
+            $charset,
+            $collation
+        ));
 
-                    // Only log lines where something was actually replaced.
-                    if ($count) {
-                        $usedFieldsChanged[] = sprintf('%s Replacements <strong>%s</strong> with <strong>%s</strong>', $count, $from, $toWord);
-                    }
-                }
+        // Convert the table only if it isn't already at the target collation.
+        if ($currentCollation !== $collation) {
+            if ($dryRun) {
+                $this->say(sprintf('  would convert to %s %s', $charset, $collation), 'changed');
+            } else {
+                DB::query(sprintf('ALTER TABLE %s CONVERT TO CHARACTER SET %s COLLATE %s', $qTable, $charset, $collation));
+            }
+        }
 
-                // If the buffer grew beyond its seed line, print the report
-                // for this column (one line per replacement performed).
-                if (count($usedFieldsChanged) > 1) {
-                    $output->writeForHtml(implode('<br /> &nbsp;&nbsp;&nbsp;&nbsp; - ', $usedFieldsChanged));
+        $tableTotal = 0;
+
+        foreach (DB::query('SHOW FULL COLUMNS FROM ' . $qTable) as $row) {
+            $field          = (string) $row['Field'];
+            $type           = (string) ($row['Type'] ?? '');
+            $fieldCollation = (string) ($row['Collation'] ?? '');
+
+            if (!$this->isTextColumn($type)) {
+                continue; // skip int/date/blob/etc. entirely
+            }
+
+            if ($fieldCollation && $fieldCollation !== $collation) {
+                $this->say(sprintf('  %s: collation is %s', $field, $fieldCollation), 'error');
+            }
+
+            $qField = $this->quote($field);
+
+            foreach ($replacements as $from => $to) {
+                $count = $dryRun
+                    ? $this->countMatches($qTable, $qField, (string) $from)
+                    : $this->applyReplacement($qTable, $qField, (string) $from, (string) $to);
+
+                if ($count > 0) {
+                    $tableTotal += $count;
+                    $this->say(sprintf(
+                        '  %s.%s: %d x "%s" -> "%s"',
+                        $table,
+                        $field,
+                        $count,
+                        $from,
+                        $to === '' ? '[removed]' : $to
+                    ), 'changed');
                 }
             }
         }
 
-        // Done.
-        $output->writeForHtml('<hr />COMPLETED<hr />');
-        return Command::SUCCESS;
+        return $tableTotal;
+    }
+
+    /** Run the actual UPDATE ... REPLACE() and return rows affected. */
+    private function applyReplacement(string $qTable, string $qField, string $from, string $to): int
+    {
+        DB::prepared_query(
+            sprintf('UPDATE %s SET %s = REPLACE(%s, ?, ?)', $qTable, $qField, $qField),
+            [$from, $to]
+        );
+
+        return (int) DB::get_conn()->affectedRows();
+    }
+
+    /** Count rows containing the search string (used for dry-run previews). */
+    private function countMatches(string $qTable, string $qField, string $from): int
+    {
+        return (int) DB::prepared_query(
+            sprintf('SELECT COUNT(*) FROM %s WHERE LOCATE(?, %s) > 0', $qTable, $qField),
+            [$from]
+        )->value();
+    }
+
+    /** True for char/text/enum/set style columns. */
+    private function isTextColumn(string $type): bool
+    {
+        $base = strtolower((string) preg_replace('/\(.*$/', '', trim($type)));
+
+        return in_array($base, self::TEXT_COLUMN_TYPES, true);
+    }
+
+    /** Quote a MySQL identifier, escaping any embedded backticks. */
+    private function quote(string $identifier): string
+    {
+        return '`' . str_replace('`', '``', $identifier) . '`';
+    }
+
+    /**
+     * Write a line to the task output (CLI or browser).
+     */
+    private function say(string $message, string $type = ''): void
+    {
+        $this->polyOutput->writeln(($type === 'error' ? 'ERROR: ' : '') . $message);
     }
 }

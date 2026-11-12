@@ -108,6 +108,10 @@ class DataIntegrityTest extends BuildTask
             $method = $methodArray[0];
             $allowedActions = Config::inst()->get(DataIntegrityTest::class, 'allowed_actions');
             if (isset($allowedActions[$method])) {
+                if ($this->isDestructiveAction($method, $input) && ! $this->mayRunDestructive($output)) {
+                    return Command::FAILURE;
+                }
+
                 if ($method === 'obsoletefields') {
                     $deletesafeones = (bool) $input->getOption('deletesafeones');
                     $deleteall = (bool) $input->getOption('deleteall');
@@ -123,7 +127,9 @@ class DataIntegrityTest extends BuildTask
                         $requestExploded = explode('/', $tablefield);
                         $table = $requestExploded[0] ?? '';
                         $field = $requestExploded[1] ?? '';
-                        if ($table && $field) {
+                        if (! $this->isSafeIdentifier($table) || ! $this->isSafeIdentifier($field)) {
+                            $this->printString('The table and field name can only contain letters, numbers and underscores.', 'deleted');
+                        } elseif ($table && $field) {
                             if ($this->deleteField($table, $field)) {
                                 $this->printString(sprintf('successfully deleted %s from %s now', $field, $table));
                             } else {
@@ -145,6 +151,41 @@ class DataIntegrityTest extends BuildTask
 
         $this->makeMenu();
         return Command::SUCCESS;
+    }
+
+    /**
+     * Does this action (with these options) delete or change data in the database?
+     * Only read-only runs (reports) are allowed outside of the command line.
+     */
+    protected function isDestructiveAction(string $method, InputInterface $input): bool
+    {
+        if ('obsoletefields' === $method) {
+            return (bool) $input->getOption('deletesafeones') || (bool) $input->getOption('deleteall');
+        }
+
+        if ('tablereview' === $method) {
+            return (bool) $input->getOption('makeobsolete')
+                || (bool) $input->getOption('fixbrokendataobjects')
+                || (bool) $input->getOption('deletetablealltogether');
+        }
+
+        // everything else that can be requested (deleteonefield, deletemarkedfields, deleteallversions, etc...) changes data.
+        return true;
+    }
+
+    /**
+     * Anything that deletes or changes data can only be done on the command line,
+     * never by following a link in a browser.
+     */
+    protected function mayRunDestructive(PolyOutput $output): bool
+    {
+        if (Director::is_cli()) {
+            return true;
+        }
+
+        $output->writeln('This can only be run on the command line.');
+
+        return false;
     }
 
     protected function makeMenu()
@@ -320,9 +361,11 @@ class DataIntegrityTest extends BuildTask
         }
 
         if ($this->deleteField($table, $field)) {
-            $this->printString(sprintf('successfully deleted %s from %s now', $field, $table));
+            // nosempgrep
+            $this->printString(sprintf('successfully deleted field %s from table %s now', $field, $table)); // nosempgrep
         } else {
-            $this->printString(sprintf('COULD NOT delete %s from %s now', $field, $table), 'deleted');
+            // nosempgrep
+            $this->printString(sprintf('COULD NOT delete field %s from table %s now', $field, $table), 'deleted'); // nosempgrep
         }
 
         $this->printLink('', 'back to main menu.');
@@ -536,12 +579,12 @@ class DataIntegrityTest extends BuildTask
     protected function hasVersioning($dataObject)
     {
         $versioningPresent = false;
-        $array = $dataObject->stat('extensions');
+        $array = $dataObject->config()->get('extensions');
         if (is_array($array) && count($array) && in_array("Versioned('Stage', 'Live')", $array, true)) {
             $versioningPresent = true;
         }
 
-        if ($dataObject->stat('versioning')) {
+        if ($dataObject->config()->get('versioning')) {
             $versioningPresent = true;
         }
 
@@ -703,8 +746,6 @@ SQL;
 
     private function deleteField(string $table, string $field)
     {
-        $databaseSchema = DB::get_schema();
-        $fields = $this->swapArray($databaseSchema->fieldList($table));
         $globalExeceptions = Config::inst()->get(DataIntegrityTest::class, 'global_exceptions');
         if (count($globalExeceptions) > 0) {
             foreach ($globalExeceptions as $exceptionTable => $exceptionField) {
@@ -715,10 +756,13 @@ SQL;
             }
         }
 
-        if (! DB::query("SHOW TABLES LIKE '" . $table . "'")->value()) {
+        if (! DB::prepared_query('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table])->value()) {
             $this->printString(sprintf('tried to delete %s.%s but TABLE does not exist', $table, $field), 'deleted');
             return false;
         }
+
+        $databaseSchema = DB::get_schema();
+        $fields = $this->swapArray($databaseSchema->fieldList($table));
 
         if (! in_array($field, $fields, true)) {
             $this->printString(sprintf('tried to delete %s.%s but FIELD does not exist', $table, $field), 'deleted');
@@ -734,6 +778,14 @@ SQL;
         }
 
         return true;
+    }
+
+    /**
+     * Table and field names that are used to build SQL: letters, numbers and underscores only.
+     */
+    private function isSafeIdentifier(string $identifier): bool
+    {
+        return (bool) preg_match('/^\w+$/', $identifier);
     }
 
     private function swapArray($array): array
