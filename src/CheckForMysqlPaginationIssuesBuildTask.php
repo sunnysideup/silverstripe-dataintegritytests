@@ -59,7 +59,7 @@ class CheckForMysqlPaginationIssuesBuildTask extends BuildTask
             new InputOption('limit', 'l', InputOption::VALUE_REQUIRED, 'Maximum number of rows to iterate per table', 100),
             new InputOption('step', 's', InputOption::VALUE_REQUIRED, 'Step size for pagination chunks', 15),
             new InputOption('debug', null, InputOption::VALUE_NONE, 'Enable debug output'),
-            new InputOption('quick', null, InputOption::VALUE_NONE, 'Use quick-and-dirty raw SQL mode'),
+            new InputOption('quick', 'Q', InputOption::VALUE_NONE, 'Use quick-and-dirty raw SQL mode'),
             new InputOption('table', 't', InputOption::VALUE_REQUIRED, 'Test a single specific class/table', ''),
         ];
     }

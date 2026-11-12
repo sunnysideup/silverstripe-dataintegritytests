@@ -46,9 +46,9 @@ class DataIntegrityMoveFieldUpOrDownClassHierarchy extends BuildTask
     {
         return [
             new InputOption('oldtable', 'o', InputOption::VALUE_REQUIRED, 'Source table/class name to move the field FROM', ''),
-            new InputOption('newtable', null, InputOption::VALUE_REQUIRED, 'Destination table/class name to move the field TO', ''),
+            new InputOption('newtable', 't', InputOption::VALUE_REQUIRED, 'Destination table/class name to move the field TO', ''),
             new InputOption('field', 'x', InputOption::VALUE_REQUIRED, 'Field name to move', ''),
-            new InputOption('forreal', null, InputOption::VALUE_NONE, 'Execute the move for real (default: dry run / show results)'),
+            new InputOption('forreal', 'r', InputOption::VALUE_NONE, 'Execute the move for real (default: dry run / show results)'),
         ];
     }
 

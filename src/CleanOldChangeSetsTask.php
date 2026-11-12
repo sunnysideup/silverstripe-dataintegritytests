@@ -32,7 +32,7 @@ final class CleanOldChangeSetsTask extends BuildTask
     {
         return [
             new InputOption('days', 'd', InputOption::VALUE_REQUIRED, 'Number of days to keep (delete older than this)', 90),
-            new InputOption('forreal', null, InputOption::VALUE_NONE, 'Actually delete records (default: show stats only)'),
+            new InputOption('forreal', 'r', InputOption::VALUE_NONE, 'Actually delete records (default: show stats only)'),
         ];
     }
 
